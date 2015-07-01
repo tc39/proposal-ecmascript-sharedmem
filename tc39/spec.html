@@ -1,0 +1,176 @@
+<!doctype html>
+<meta charset="utf8">
+<title>Shared memory and atomics specification</title>
+<link rel="stylesheet" href="https://bterlson.github.com/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<h1>Shared memory and atomics specification</h1>
+
+<emu-intro id="intro">
+<h1>Introduction</h1>
+<p>
+This proposal adds shared memory types and atomic operations to ECMAScript.
+</p>
+<p>
+This document is organized in terms of where changes would be made to the ES6 spec. Although ecmarkup generates numbering at the beginning of headers, these won't correspond to the numbering within the existing ECMA spec, so I've included a matching numbering in parentheses afterwards, referring to the ES6 spec.
+</p>
+<p>This document is in spec order, not written for direct readability.</p>
+<p>Changelog:</p>
+<ul>
+</ul>
+</emu-intro>
+
+<emu-clause id="IndexedCollections">
+  <h1>Indexed Collections (ES6 22)</h1>
+  <emu-clause id="TypedArray">
+    <h1>TypedArray Objects (ES6 22.2)</h1>
+    <p>Modifications to TypedArray to allow the use of SharedArrayBuffer</p>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="StructuredData">
+  <h1>Structured Data (ES6 24)</h1>
+  <emu-clause id="SharedArrayBuffer">
+    <h1>SharedArrayBuffer Objects</h1>
+
+    <emu-clause id="SharedArrayBuffer_abstractOps">
+      <h1>Abstract Operations for SharedArrayBuffer</h1>
+      <emu-clause id="AllocateSharedArrayBuffer">
+	<h1>AllocateSharedArrayBuffer ( constructor, byteLength )</h1>
+	<p> The abstract operation AllocateSharedArrayBuffer with arguments constructor and byteLength is used to create a SharedArrayBuffer object. It performs the following steps:</p>
+	<p> FIXME </p>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="SharedArrayBuffer_constructor">
+      <h1>The SharedArrayBuffer Constructor</h1>
+      <emu-clause id="SharedArrayBuffer_constructorWithLength">
+	<h1>SharedArrayBuffer ( length )</h1>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="SharedArrayBuffer_constructor_props">
+      <h1>Properties of the SharedArrayBuffer constructor</h1>
+      <emu-clause id="SharedArrayBuffer.isView">
+	<h1>SharedArrayBuffer.isView ( arg )</h1>
+	<p> FIXME </p>
+      </emu-clause>
+      <emu-clause id="SharedArrayBuffer_prototype">
+	<h1>SharedArrayBuffer.prototype</h1>
+	<p> The initial value of ArrayBuffer.prototype is the intrinsic object %SharedArrayBufferPrototype% (q.v.).</P>
+	<p> This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false }.</p>
+      </emu-clause>
+      <emu-clause id="SharedArrayBuffer_getSpecies">
+	<h1>get SharedArrayBuffer [ @@species ]</h1>
+	<P>SharedArrayBuffer[@@species] is an accessor property whose set accessor function is undefined. Its get accessor function performs the following steps:</P>
+	<emu-alg>
+	1. Return the this value.
+	</emu-alg>
+	<P> The value of the name property of this function is "get [Symbol.species]".</P>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="SharedArrayBuffer_prototype_props">
+      <h1>Properties of the SharedArrayBuffer prototype object</h1>
+
+      <emu-clause id="SharedArrayBuffer_prototype_get_byteLength">
+	<h1>get SharedArrayBuffer.prototype.byteLength</h1>
+      </emu-clause>
+
+      <emu-clause id="SharedArrayBuffer_prototype_constructor">
+	<h1>SharedArrayBuffer.prototype.constructor</h1>
+      </emu-clause>
+
+      <emu-clause id="SharedArrayBuffer_prototype_slice">
+	<h1>SharedArrayBuffer.prototype.slice</h1>
+      </emu-clause>
+
+      <emu-clause id="SharedArrayBuffer_prototype_toString">
+	<h1>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="SharedArrayBuffer_instances">
+      <h1>Properties of the SharedArrayBuffer instances</h1>
+
+      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have an [[ArrayBufferData]] internal slot and an [[ArrayBufferByteLength]] internal slot. </p>
+
+      <p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
+    </emu-clause>
+
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="AtomicsObject">
+  <h1>The Atomics Object</h1>
+  
+  <emu-clause id="AtomicsObjectValueProps">
+    <h1>Value Properties of the Atomics Object</h1>
+    <emu-clause id="Atomics.OK">
+      <h1>Atomics.OK</h1>
+      <p>The value 0.</p>
+    </emu-clause>
+    <emu-clause id="Atomics.NOTEQUAL">
+      <h1>Atomics.NOTEQUAL</h1>
+      <p>The value -1.</p>
+    </emu-clause>
+    <emu-clause id="Atomics.TIMEDOUT">
+      <h1>Atomics.TIMEDOUT</h1>
+      <p>The value -2.</p>
+    </emu-clause>
+  </emu-clause>
+  
+  <emu-clause id="AtomicsObjectFunctionProps">
+    <h1>Function Properties of the Atomics Object</h1>
+    <emu-clause id="Atomics.add">
+      <h1>Atomics.add ( ta, index, value )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.and">
+      <h1>Atomics.and ( ta, index, value )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.compareExchange">
+      <h1>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.exchange">
+      <h1>Atomics.exchange ( ta, index, value )</h1>
+      <emu-alg>
+	1. If _ta_ is not a TypedArray that maps shared memory then throw a ~TypeError~ exception
+	1. Let _B_ be the base type of _ta_
+	1. Let _i_ be ToLength( _index_ )
+	1. Let _v_ be the result of coercing _value_ to _B_
+	1. Let _A_ be the value of the ~length~ property of _ta_
+	1. If _i_ >= _A_ then:
+	  1. Throw a ~RangeError~ exception
+	1. Atomically let _r_ be _ta_ [ _i_ ] and store _v_ in _ta_ [ _i_ ]
+	1. Return _r_
+      </emu-alg>
+    </emu-clause>
+    <emu-clause id="Atomics.futexWait">
+      <h1>Atomics.futexWait ( ta, index, value, timeout )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.futexWake">
+      <h1>Atomics.futexWake ( ta, index, count )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.futexWakeOrRequeue">
+      <h1>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.isLockFree">
+      <h1>Atomics.isLockFree ( size )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.load">
+      <h1>Atomics.load ( ta, index )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.or">
+      <h1>Atomics.or ( ta, index, value )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.store">
+      <h1>Atomics.store ( ta, index, value )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.sub">
+      <h1>Atomics.sub ( ta, index, value )</h1>
+    </emu-clause>
+    <emu-clause id="Atomics.xor">
+      <h1>Atomics.xor ( ta, index, value )</h1>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
