@@ -20,32 +20,106 @@ This document is organized in terms of where changes would be made to the ES6 sp
 </ul>
 </emu-intro>
 
+<emu-clause id="Overview">
+  <h1>Overview (ES6 4)</h1>
+  <emu-clause id="Overview.Terms">
+    <h1>Terms and Definitions (ES6 4.3)</h1>
+    <emu-clause id="Overview.Terms.Agent">
+      <h1>Agent</h1>
+      <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
+      <emu-note>
+	<p>Agents whose lifetimes overlap and who are able to share a Shared Data Block can communicate by means of certain operations on that Shared Data Block.</p>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="DataTypesValues">
+  <h1>ECMAScript Data Types and Values (ES6 6)</h1>
+  <emu-clause id="DataTypesValues.SpecTypes">
+    <h1>ECMAScript Specification Types (ES6 6.2)</h1>
+    <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
+      <h1>Data blocks (ES6 6.2.6)</h1>
+      <p> AMEND: Insert the following paragraph after the third: </p>
+      <p> A data block that resides in memory that is shareable between concurrent agents is designated a Shared Data Block. </p>
+
+      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
+	<h1>CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) (ES6 6.2.6.2)</h1>
+	<p> AMEND: In step 1, allow also a Shared Data Block. </p>
+      </emu-clause>
+
+      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">
+	<h1>CreateSharedByteDataBlock( size )</h1>
+	<p>When the abstract operation CreateSharedByteDataBlock is called with integer argument size, the following steps are taken:</p>
+	<emu-alg>
+	  1. Assert: _size_ >= 0.
+	  1. Let _db_ be a new Shared Data Block value consisting of size bytes. If it is impossible to create such a Shared Data Block, throw a ~RangeError~ exception.
+	  1. Set all of the bytes of _db_ to 0.
+	  1. Return _db_.
+	</emu-alg>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
 <emu-clause id="IndexedCollections">
   <h1>Indexed Collections (ES6 22)</h1>
   <emu-clause id="TypedArray">
     <h1>TypedArray Objects (ES6 22.2)</h1>
-    <p>Modifications to TypedArray to allow the use of SharedArrayBuffer</p>
+    <p>FIXME: Modifications to TypedArray to allow the use of SharedArrayBuffer</p>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="StructuredData">
   <h1>Structured Data (ES6 24)</h1>
-  <emu-clause id="SharedArrayBuffer">
+  <emu-clause id="StructuredData.SharedArrayBuffer">
     <h1>SharedArrayBuffer Objects</h1>
 
-    <emu-clause id="SharedArrayBuffer_abstractOps">
+    <emu-clause id="StructuredData.SharedArrayBuffer.abstract">
       <h1>Abstract Operations for SharedArrayBuffer</h1>
-      <emu-clause id="AllocateSharedArrayBuffer">
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer">
 	<h1>AllocateSharedArrayBuffer ( constructor, byteLength )</h1>
 	<p> The abstract operation AllocateSharedArrayBuffer with arguments constructor and byteLength is used to create a SharedArrayBuffer object. It performs the following steps:</p>
-	<p> FIXME </p>
+
+	<emu-alg>
+	  1. Let obj be OrdinaryCreateFromConstructor(constructor, "%SharedArrayBufferPrototype%", «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).
+	  1. ReturnIfAbrupt(obj).
+	  1. Assert: byteLength is a positive integer.
+	  1. Let block be CreateSharedByteDataBlock(byteLength).
+	  1. ReturnIfAbrupt(block).
+	  1. Set obj’s [[SharedArrayBufferData]] internal slot to block.
+	  1. Set obj’s [[SharedArrayBufferByteLength]] internal slot to byteLength.
+	  1. Return obj.
+	</emu-alg>
       </emu-clause>
+
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer" aoid="GetValueFromSharedBuffer">
+	<h1>GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type, isLittleEndian )</h1>
+	<P> This is the same as ArrayBuffer's GetValueFromBuffer (ES6 24.1.1.5) except that: </p>
+	<ul>
+	  <li> The _arrayBuffer_ parameter is a SharedArrayBuffer
+	  <li> There is no detachment check (step 1)
+	  <li> Use the [[SharedArrayBufferData]] internal slot (step 4)
+	</ul>
+      </emu-clause>
+      
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer" aoid="SetValueInSharedBuffer">
+	<h1>SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value, isLittleEndian )</h1>
+	<P> This is the same as ArrayBuffer's SetValueInBuffer (ES6 24.1.1.6) except that: </p>
+	<ul>
+	  <li> The _arrayBuffer_ parameter is a SharedArrayBuffer
+	  <li> There is no detachment check (step 1)
+	  <li> Use the [[SharedArrayBufferData]] internal slot (step 5)
+	</ul>
+      </emu-clause>
+      
     </emu-clause>
 
     <emu-clause id="SharedArrayBuffer_constructor">
       <h1>The SharedArrayBuffer Constructor</h1>
       <emu-clause id="SharedArrayBuffer_constructorWithLength">
 	<h1>SharedArrayBuffer ( length )</h1>
+	<p> FIXME </p>
       </emu-clause>
     </emu-clause>
 
@@ -75,27 +149,42 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
       <emu-clause id="SharedArrayBuffer_prototype_get_byteLength">
 	<h1>get SharedArrayBuffer.prototype.byteLength</h1>
+
+	<p> SharedArrayBuffer.prototype.byteLength is an accessor property whose set accessor function is undefined. Its get accessor function performs the following steps: </P>
+
+	<emu-alg>
+	  1. Let _O_ be the ~this~ value.
+	  1. If Type(_O_) is not ~Object~, throw a ~TypeError~ exception.
+	  1. If _O_ does not have a [[SharedArrayBufferData]] internal slot, throw a ~TypeError~ exception.
+	  1. Let length be the value of _O_’s [[SharedArrayBufferByteLength]] internal slot.
+	  1. Return length.
+	</emu-alg>
       </emu-clause>
 
       <emu-clause id="SharedArrayBuffer_prototype_constructor">
 	<h1>SharedArrayBuffer.prototype.constructor</h1>
+	<p> FIXME </p>
       </emu-clause>
 
       <emu-clause id="SharedArrayBuffer_prototype_slice">
 	<h1>SharedArrayBuffer.prototype.slice</h1>
+	<p> FIXME </p>
       </emu-clause>
 
       <emu-clause id="SharedArrayBuffer_prototype_toString">
 	<h1>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
+	<p> FIXME </p>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="SharedArrayBuffer_instances">
       <h1>Properties of the SharedArrayBuffer instances</h1>
 
-      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have an [[ArrayBufferData]] internal slot and an [[ArrayBufferByteLength]] internal slot. </p>
+      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have a [[SharedArrayBufferData]] internal slot and a [[SharedArrayBufferByteLength]] internal slot. </p>
 
-      <p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
+      <emu-note>
+	<p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
+      </emu-note>
     </emu-clause>
 
   </emu-clause>
@@ -122,55 +211,99 @@ This document is organized in terms of where changes would be made to the ES6 sp
   
   <emu-clause id="AtomicsObjectFunctionProps">
     <h1>Function Properties of the Atomics Object</h1>
+
+    <p> In the algorithms below, the algorithm step 'With atomic access to (_sab_, _offset_, _size_)' means the following:</p>
+    <ul>
+      <li> If several agents are claiming atomic access to exactly the same _size_ memory cells then these atomic sections are serialized, each agent executes all its dependent steps while the other agents are waiting
+      <li> FIXME: Well-defined atomic sections are globally ordered
+      <li> FIXME: It's possible to create ill-defined behavior with overlapping
+      <li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
+    </ul>
+
     <emu-clause id="Atomics.add">
       <h1>Atomics.add ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.and">
       <h1>Atomics.and ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.compareExchange">
       <h1>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.exchange">
       <h1>Atomics.exchange ( ta, index, value )</h1>
       <emu-alg>
 	1. If _ta_ is not a TypedArray that maps shared memory then throw a ~TypeError~ exception
 	1. Let _B_ be the base type of _ta_
-	1. Let _i_ be ToLength( _index_ )
+	1. If _B_ is not "Int8", "Uint8", "Int16", "Uint16", "Int32", or "Uint32" then throw a ~TypeError~ exception
+	1. Let _i_ be ToLength( _index_ )  -- FIXME: is this appropriate?
 	1. Let _v_ be the result of coercing _value_ to _B_
 	1. Let _A_ be the value of the ~length~ property of _ta_
 	1. If _i_ >= _A_ then:
 	  1. Throw a ~RangeError~ exception
-	1. Atomically let _r_ be _ta_ [ _i_ ] and store _v_ in _ta_ [ _i_ ]
+	1. Let _size_ be the size of values of type _B_.
+	1. Let _sab_ be ... FIXME
+	1. Let _isLittleEndian_ be ... FIXME
+	1. Let _offset_ be _i_ * _size_
+	1. With atomic access to ( _sab_, _offset_, _size_ ), do:
+	  1. Let _r_ be the result of GetValueFromSharedBuffer( _sab_, _offset_, _B_, _isLittleEndian_ )
+	  1. Call SetValueInSharedBuffer( _sab_, _offset_, _B_, _v_, _isLittleEndian_ )
 	1. Return _r_
       </emu-alg>
     </emu-clause>
     <emu-clause id="Atomics.futexWait">
       <h1>Atomics.futexWait ( ta, index, value, timeout )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.futexWake">
       <h1>Atomics.futexWake ( ta, index, count )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.futexWakeOrRequeue">
       <h1>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
+
     <emu-clause id="Atomics.isLockFree">
       <h1>Atomics.isLockFree ( size )</h1>
+
+      <p> An atomic operation on a range of locations (_sab_, _offset_, _size_) is lock-free if the algorithm section of the operation that is labeled 'With atomic access to (_sab_, _offset_, _size_)' is implemented in a way that does not require a lock outside the specified locations to be acquired. </p>
+
+      <emu-note>
+	<p> Atomics.isLockFree is an optimization primitive. High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections.  If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</P>
+      </emu-note>
+
+      <emu-alg>
+	1. Let _n_ be ToInteger(_size_)
+	2. If accesses of size _n_ are lock-free within the agent then return ~true~.
+	3. Return ~false~.
+      </emu-alg>
+
+      <p> All agents that are able to communicate through shared memory must return the same value for any given _n_, and that value must be constant for the lifetime of each agent. </p>
+
     </emu-clause>
+
     <emu-clause id="Atomics.load">
       <h1>Atomics.load ( ta, index )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.or">
       <h1>Atomics.or ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.store">
       <h1>Atomics.store ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.sub">
       <h1>Atomics.sub ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.xor">
       <h1>Atomics.xor ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
   </emu-clause>
 </emu-clause>

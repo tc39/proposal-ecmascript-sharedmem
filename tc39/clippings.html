@@ -1,0 +1,35 @@
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.MemoryLock" aoid="MemoryLock">
+	<h1>MemoryLock( sab, offset, size )</h1>
+
+	<P> FIXME: This may not adequately specify global synchronization. It may be an error to attempt to operationalize this.  But it's important to specify that overlapping but non-indentical atomic accesses to the same locations may actually be racy. </p>
+
+	<emu-alg>
+	  1. Assert: _sab_ is a SharedArrayBuffer
+	  1. Assert: _offset_ &ge; 0 and _offset_ + _size_ &le; _sab_.byteLength and _offset_ mod _size_ == 0
+	  1. Assert: _size_ is 1, 2, or 4.
+	  1. Assert: The calling agent's rights are cleared.
+	  1. Let _G_ be the unique identifier for the memory of _sab_
+	  1. Wait until no other agent's access rights specify the triple (_G_, _offset_, _size_), then set the calling agent's rights to (_G_, _offset_, _size_)
+	</emu-alg>
+
+	<emu-note>
+	  <p> MemoryLock communicates with other agents. </p>
+	</emu-note>
+
+	<emu-note>
+	  <p> Atomicity is only guaranteed for same-sized accesses to the same memory locations, hence the attempt above at operationalizing that.  But that may be a mistake. </p>
+	</emu-note>
+
+      </emu-clause>
+
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.MemoryUnlock" aoid="MemoryUnlock">
+	<h1>MemoryUnlock()</h1>
+	<emu-alg>
+	  1. Assert: The calling agent's rights are not cleared.
+	  1. FIXME: Somehow specify that all local writes will be observed by other agents before they observe that the flag is ~false~.
+	  1. Clear the calling agent's rights
+	</emu-alg>
+	<emu-note>
+	  <p> MemoryUnlock communicates with other agents. </p>
+	</emu-note>
+      </emu-clause>

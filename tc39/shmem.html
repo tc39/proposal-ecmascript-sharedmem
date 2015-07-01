@@ -6,7 +6,7 @@
 
 </head><body><h1>Shared memory and atomics specification</h1>
 
-<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#intro"><span class="secnum"></span> Introduction</a></li><li><a href="#IndexedCollections"><span class="secnum">1</span> Indexed Collections (ES6 22)</a><ol class="toc"><li><a href="#TypedArray"><span class="secnum">1.1</span> TypedArray Objects (ES6 22.2)</a></li></ol></li><li><a href="#StructuredData"><span class="secnum">2</span> Structured Data (ES6 24)</a><ol class="toc"><li><a href="#SharedArrayBuffer"><span class="secnum">2.1</span> SharedArrayBuffer Objects (new)</a><ol class="toc"><li><a href="#SharedArrayBuffer_abstractOps"><span class="secnum">2.1.1</span> Abstract Operations for SharedArrayBuffer</a><ol class="toc"><li><a href="#AllocateSharedArrayBuffer"><span class="secnum">2.1.1.1</span> AllocateSharedArrayBuffer ( constructor, byteLength )</a></li></ol></li><li><a href="#SharedArrayBuffer_constructor"><span class="secnum">2.1.2</span> The SharedArrayBuffer Constructor</a><ol class="toc"><li><a href="#SharedArrayBuffer_constructorWithLength"><span class="secnum">2.1.2.1</span> SharedArrayBuffer ( length )</a></li></ol></li><li><a href="#SharedArrayBuffer_constructor_props"><span class="secnum">2.1.3</span> Properties of the SharedArrayBuffer constructor</a><ol class="toc"><li><a href="#SharedArrayBuffer.isView"><span class="secnum">2.1.3.1</span> SharedArrayBuffer.isView ( arg )</a></li><li><a href="#SharedArrayBuffer_prototype"><span class="secnum">2.1.3.2</span> SharedArrayBuffer.prototype</a></li><li><a href="#SharedArrayBuffer_getSpecies"><span class="secnum">2.1.3.3</span> get SharedArrayBuffer [ @@species ]</a></li></ol></li><li><a href="#SharedArrayBuffer_prototype_props"><span class="secnum">2.1.4</span> Properties of the SharedArrayBuffer prototype object</a><ol class="toc"><li><a href="#SharedArrayBuffer_prototype_get_byteLength"><span class="secnum">2.1.4.1</span> get SharedArrayBuffer.prototype.byteLength</a></li><li><a href="#SharedArrayBuffer_prototype_constructor"><span class="secnum">2.1.4.2</span> SharedArrayBuffer.prototype.constructor</a></li><li><a href="#SharedArrayBuffer_prototype_slice"><span class="secnum">2.1.4.3</span> SharedArrayBuffer.prototype.slice</a></li><li><a href="#SharedArrayBuffer_prototype_toString"><span class="secnum">2.1.4.4</span> SharedArrayBuffer.prototype[ @@toStringTag ]</a></li></ol></li><li><a href="#SharedArrayBuffer_instances"><span class="secnum">2.1.5</span> Properties of the SharedArrayBuffer instances</a></li></ol></li></ol></li><li><a href="#AtomicsObject"><span class="secnum">3</span> The Atomics Object (new)</a><ol class="toc"><li><a href="#AtomicsObjectValueProps"><span class="secnum">3.1</span> Value Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.OK"><span class="secnum">3.1.1</span> Atomics.OK</a></li><li><a href="#Atomics.NOTEQUAL"><span class="secnum">3.1.2</span> Atomics.NOTEQUAL</a></li><li><a href="#Atomics.TIMEDOUT"><span class="secnum">3.1.3</span> Atomics.TIMEDOUT</a></li></ol></li><li><a href="#AtomicsObjectFunctionProps"><span class="secnum">3.2</span> Function Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.add"><span class="secnum">3.2.1</span> Atomics.add ( ta, index, value )</a></li><li><a href="#Atomics.and"><span class="secnum">3.2.2</span> Atomics.and ( ta, index, value )</a></li><li><a href="#Atomics.compareExchange"><span class="secnum">3.2.3</span> Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</a></li><li><a href="#Atomics.exchange"><span class="secnum">3.2.4</span> Atomics.exchange ( ta, index, value )</a></li><li><a href="#Atomics.futexWait"><span class="secnum">3.2.5</span> Atomics.futexWait ( ta, index, value, timeout )</a></li><li><a href="#Atomics.futexWake"><span class="secnum">3.2.6</span> Atomics.futexWake ( ta, index, count )</a></li><li><a href="#Atomics.futexWakeOrRequeue"><span class="secnum">3.2.7</span> Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</a></li><li><a href="#Atomics.isLockFree"><span class="secnum">3.2.8</span> Atomics.isLockFree ( size )</a></li><li><a href="#Atomics.load"><span class="secnum">3.2.9</span> Atomics.load ( ta, index )</a></li><li><a href="#Atomics.or"><span class="secnum">3.2.10</span> Atomics.or ( ta, index, value )</a></li><li><a href="#Atomics.store"><span class="secnum">3.2.11</span> Atomics.store ( ta, index, value )</a></li><li><a href="#Atomics.sub"><span class="secnum">3.2.12</span> Atomics.sub ( ta, index, value )</a></li><li><a href="#Atomics.xor"><span class="secnum">3.2.13</span> Atomics.xor ( ta, index, value )</a></li></ol></li></ol></li></ol></div><emu-intro id="intro">
+<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#intro"><span class="secnum"></span> Introduction</a></li><li><a href="#Overview"><span class="secnum">1</span> Overview (ES6 4)</a><ol class="toc"><li><a href="#Overview.Terms"><span class="secnum">1.1</span> Terms and Definitions (ES6 4.3)</a><ol class="toc"><li><a href="#Overview.Terms.Agent"><span class="secnum">1.1.1</span> Agent</a></li></ol></li></ol></li><li><a href="#DataTypesValues"><span class="secnum">2</span> ECMAScript Data Types and Values (ES6 6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes"><span class="secnum">2.1</span> ECMAScript Specification Types (ES6 6.2)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks"><span class="secnum">2.1.1</span> Data blocks (ES6 6.2.6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes"><span class="secnum">2.1.1.1</span> CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) (ES6 6.2.6.2)</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock"><span class="secnum">2.1.1.2</span> CreateSharedByteDataBlock( size )</a></li></ol></li></ol></li></ol></li><li><a href="#IndexedCollections"><span class="secnum">3</span> Indexed Collections (ES6 22)</a><ol class="toc"><li><a href="#TypedArray"><span class="secnum">3.1</span> TypedArray Objects (ES6 22.2)</a></li></ol></li><li><a href="#StructuredData"><span class="secnum">4</span> Structured Data (ES6 24)</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer"><span class="secnum">4.1</span> SharedArrayBuffer Objects</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract"><span class="secnum">4.1.1</span> Abstract Operations for SharedArrayBuffer</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer"><span class="secnum">4.1.1.1</span> AllocateSharedArrayBuffer ( constructor, byteLength )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer"><span class="secnum">4.1.1.2</span> GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type, isLittleEndian )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer"><span class="secnum">4.1.1.3</span> SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value, isLittleEndian )</a></li></ol></li><li><a href="#SharedArrayBuffer_constructor"><span class="secnum">4.1.2</span> The SharedArrayBuffer Constructor</a><ol class="toc"><li><a href="#SharedArrayBuffer_constructorWithLength"><span class="secnum">4.1.2.1</span> SharedArrayBuffer ( length )</a></li></ol></li><li><a href="#SharedArrayBuffer_constructor_props"><span class="secnum">4.1.3</span> Properties of the SharedArrayBuffer constructor</a><ol class="toc"><li><a href="#SharedArrayBuffer.isView"><span class="secnum">4.1.3.1</span> SharedArrayBuffer.isView ( arg )</a></li><li><a href="#SharedArrayBuffer_prototype"><span class="secnum">4.1.3.2</span> SharedArrayBuffer.prototype</a></li><li><a href="#SharedArrayBuffer_getSpecies"><span class="secnum">4.1.3.3</span> get SharedArrayBuffer [ @@species ]</a></li></ol></li><li><a href="#SharedArrayBuffer_prototype_props"><span class="secnum">4.1.4</span> Properties of the SharedArrayBuffer prototype object</a><ol class="toc"><li><a href="#SharedArrayBuffer_prototype_get_byteLength"><span class="secnum">4.1.4.1</span> get SharedArrayBuffer.prototype.byteLength</a></li><li><a href="#SharedArrayBuffer_prototype_constructor"><span class="secnum">4.1.4.2</span> SharedArrayBuffer.prototype.constructor</a></li><li><a href="#SharedArrayBuffer_prototype_slice"><span class="secnum">4.1.4.3</span> SharedArrayBuffer.prototype.slice</a></li><li><a href="#SharedArrayBuffer_prototype_toString"><span class="secnum">4.1.4.4</span> SharedArrayBuffer.prototype[ @@toStringTag ]</a></li></ol></li><li><a href="#SharedArrayBuffer_instances"><span class="secnum">4.1.5</span> Properties of the SharedArrayBuffer instances</a></li></ol></li></ol></li><li><a href="#AtomicsObject"><span class="secnum">5</span> The Atomics Object</a><ol class="toc"><li><a href="#AtomicsObjectValueProps"><span class="secnum">5.1</span> Value Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.OK"><span class="secnum">5.1.1</span> Atomics.OK</a></li><li><a href="#Atomics.NOTEQUAL"><span class="secnum">5.1.2</span> Atomics.NOTEQUAL</a></li><li><a href="#Atomics.TIMEDOUT"><span class="secnum">5.1.3</span> Atomics.TIMEDOUT</a></li></ol></li><li><a href="#AtomicsObjectFunctionProps"><span class="secnum">5.2</span> Function Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.add"><span class="secnum">5.2.1</span> Atomics.add ( ta, index, value )</a></li><li><a href="#Atomics.and"><span class="secnum">5.2.2</span> Atomics.and ( ta, index, value )</a></li><li><a href="#Atomics.compareExchange"><span class="secnum">5.2.3</span> Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</a></li><li><a href="#Atomics.exchange"><span class="secnum">5.2.4</span> Atomics.exchange ( ta, index, value )</a></li><li><a href="#Atomics.futexWait"><span class="secnum">5.2.5</span> Atomics.futexWait ( ta, index, value, timeout )</a></li><li><a href="#Atomics.futexWake"><span class="secnum">5.2.6</span> Atomics.futexWake ( ta, index, count )</a></li><li><a href="#Atomics.futexWakeOrRequeue"><span class="secnum">5.2.7</span> Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</a></li><li><a href="#Atomics.isLockFree"><span class="secnum">5.2.8</span> Atomics.isLockFree ( size )</a></li><li><a href="#Atomics.load"><span class="secnum">5.2.9</span> Atomics.load ( ta, index )</a></li><li><a href="#Atomics.or"><span class="secnum">5.2.10</span> Atomics.or ( ta, index, value )</a></li><li><a href="#Atomics.store"><span class="secnum">5.2.11</span> Atomics.store ( ta, index, value )</a></li><li><a href="#Atomics.sub"><span class="secnum">5.2.12</span> Atomics.sub ( ta, index, value )</a></li><li><a href="#Atomics.xor"><span class="secnum">5.2.13</span> Atomics.xor ( ta, index, value )</a></li></ol></li></ol></li></ol></div><emu-intro id="intro">
 <h1><span class="secnum"></span>Introduction</h1>
 <p>
 This proposal adds shared memory types and atomic operations to ECMAScript.
@@ -20,48 +20,122 @@ This document is organized in terms of where changes would be made to the ES6 sp
 </ul>
 </emu-intro>
 
+<emu-clause id="Overview">
+  <h1><span class="secnum">1</span>Overview (ES6 4)</h1>
+  <emu-clause id="Overview.Terms">
+    <h1><span class="secnum">1.1</span>Terms and Definitions (ES6 4.3)</h1>
+    <emu-clause id="Overview.Terms.Agent">
+      <h1><span class="secnum">1.1.1</span>Agent</h1>
+      <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
+      <emu-note><span class="note">Note</span>
+	<p>Agents whose lifetimes overlap and who are able to share a Shared Data Block can communicate by means of certain operations on that Shared Data Block.</p>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="DataTypesValues">
+  <h1><span class="secnum">2</span>ECMAScript Data Types and Values (ES6 6)</h1>
+  <emu-clause id="DataTypesValues.SpecTypes">
+    <h1><span class="secnum">2.1</span>ECMAScript Specification Types (ES6 6.2)</h1>
+    <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
+      <h1><span class="secnum">2.1.1</span>Data blocks (ES6 6.2.6)</h1>
+      <p> AMEND: Insert the following paragraph after the third: </p>
+      <p> A data block that resides in memory that is shareable between concurrent agents is designated a Shared Data Block. </p>
+
+      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
+	<h1><span class="secnum">2.1.1.1</span>CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) (ES6 6.2.6.2)</h1>
+	<p> AMEND: In step 1, allow also a Shared Data Block. </p>
+      </emu-clause>
+
+      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">
+	<h1><span class="secnum">2.1.1.2</span>CreateSharedByteDataBlock( size )</h1>
+	<p>When the abstract operation CreateSharedByteDataBlock is called with integer argument size, the following steps are taken:</p>
+	<emu-alg><ol>
+  <li>Assert: <var>size</var> &gt;= 0.</li>
+  <li>Let <var>db</var> be a new Shared Data Block value consisting of size bytes. If it is impossible to create such a Shared Data Block, throw a <emu-const>RangeError</emu-const> exception.</li>
+  <li>Set all of the bytes of <var>db</var> to 0.</li>
+  <li>Return <var>db</var>.</li>
+</ol></emu-alg>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
 <emu-clause id="IndexedCollections">
-  <h1><span class="secnum">1</span>Indexed Collections (ES6 22)</h1>
+  <h1><span class="secnum">3</span>Indexed Collections (ES6 22)</h1>
   <emu-clause id="TypedArray">
-    <h1><span class="secnum">1.1</span>TypedArray Objects (ES6 22.2)</h1>
-    <p>Modifications to TypedArray to allow the use of SharedArrayBuffer</p>
+    <h1><span class="secnum">3.1</span>TypedArray Objects (ES6 22.2)</h1>
+    <p>FIXME: Modifications to TypedArray to allow the use of SharedArrayBuffer</p>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="StructuredData">
-  <h1><span class="secnum">2</span>Structured Data (ES6 24)</h1>
-  <emu-clause id="SharedArrayBuffer">
-    <h1><span class="secnum">2.1</span>SharedArrayBuffer Objects (new)</h1>
+  <h1><span class="secnum">4</span>Structured Data (ES6 24)</h1>
+  <emu-clause id="StructuredData.SharedArrayBuffer">
+    <h1><span class="secnum">4.1</span>SharedArrayBuffer Objects</h1>
 
-    <emu-clause id="SharedArrayBuffer_abstractOps">
-      <h1><span class="secnum">2.1.1</span>Abstract Operations for SharedArrayBuffer</h1>
-      <emu-clause id="AllocateSharedArrayBuffer">
-	<h1><span class="secnum">2.1.1.1</span>AllocateSharedArrayBuffer ( constructor, byteLength )</h1>
+    <emu-clause id="StructuredData.SharedArrayBuffer.abstract">
+      <h1><span class="secnum">4.1.1</span>Abstract Operations for SharedArrayBuffer</h1>
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer">
+	<h1><span class="secnum">4.1.1.1</span>AllocateSharedArrayBuffer ( constructor, byteLength )</h1>
 	<p> The abstract operation AllocateSharedArrayBuffer with arguments constructor and byteLength is used to create a SharedArrayBuffer object. It performs the following steps:</p>
-	<p> FIXME </p>
+
+	<emu-alg><ol>
+  <li>Let obj be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ordinarycreatefromconstructor">OrdinaryCreateFromConstructor</a>(constructor, <code>"%SharedArrayBufferPrototype%"</code>, «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).</li>
+  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(obj).</li>
+  <li>Assert: byteLength is a positive integer.</li>
+  <li>Let block be CreateSharedByteDataBlock(byteLength).</li>
+  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(block).</li>
+  <li>Set obj’s [[SharedArrayBufferData]] internal slot to block.</li>
+  <li>Set obj’s [[SharedArrayBufferByteLength]] internal slot to byteLength.</li>
+  <li>Return obj.</li>
+</ol></emu-alg>
       </emu-clause>
+
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer" aoid="GetValueFromSharedBuffer">
+	<h1><span class="secnum">4.1.1.2</span>GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type, isLittleEndian )</h1>
+	<p> This is the same as ArrayBuffer's GetValueFromBuffer (ES6 24.1.1.5) except that: </p>
+	<ul>
+	  <li> The <var>arrayBuffer</var> parameter is a SharedArrayBuffer
+	  </li><li> There is no detachment check (step 1)
+	  </li><li> Use the [[SharedArrayBufferData]] internal slot (step 4)
+	</li></ul>
+      </emu-clause>
+      
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer" aoid="SetValueInSharedBuffer">
+	<h1><span class="secnum">4.1.1.3</span>SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value, isLittleEndian )</h1>
+	<p> This is the same as ArrayBuffer's SetValueInBuffer (ES6 24.1.1.6) except that: </p>
+	<ul>
+	  <li> The <var>arrayBuffer</var> parameter is a SharedArrayBuffer
+	  </li><li> There is no detachment check (step 1)
+	  </li><li> Use the [[SharedArrayBufferData]] internal slot (step 5)
+	</li></ul>
+      </emu-clause>
+      
     </emu-clause>
 
     <emu-clause id="SharedArrayBuffer_constructor">
-      <h1><span class="secnum">2.1.2</span>The SharedArrayBuffer Constructor</h1>
+      <h1><span class="secnum">4.1.2</span>The SharedArrayBuffer Constructor</h1>
       <emu-clause id="SharedArrayBuffer_constructorWithLength">
-	<h1><span class="secnum">2.1.2.1</span>SharedArrayBuffer ( length )</h1>
+	<h1><span class="secnum">4.1.2.1</span>SharedArrayBuffer ( length )</h1>
+	<p> FIXME </p>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="SharedArrayBuffer_constructor_props">
-      <h1><span class="secnum">2.1.3</span>Properties of the SharedArrayBuffer constructor</h1>
+      <h1><span class="secnum">4.1.3</span>Properties of the SharedArrayBuffer constructor</h1>
       <emu-clause id="SharedArrayBuffer.isView">
-	<h1><span class="secnum">2.1.3.1</span>SharedArrayBuffer.isView ( arg )</h1>
+	<h1><span class="secnum">4.1.3.1</span>SharedArrayBuffer.isView ( arg )</h1>
 	<p> FIXME </p>
       </emu-clause>
       <emu-clause id="SharedArrayBuffer_prototype">
-	<h1><span class="secnum">2.1.3.2</span>SharedArrayBuffer.prototype</h1>
+	<h1><span class="secnum">4.1.3.2</span>SharedArrayBuffer.prototype</h1>
 	<p> The initial value of ArrayBuffer.prototype is the intrinsic object %SharedArrayBufferPrototype% (q.v.).</p>
 	<p> This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false }.</p>
       </emu-clause>
       <emu-clause id="SharedArrayBuffer_getSpecies">
-	<h1><span class="secnum">2.1.3.3</span>get SharedArrayBuffer [ @@species ]</h1>
+	<h1><span class="secnum">4.1.3.3</span>get SharedArrayBuffer [ @@species ]</h1>
 	<p>SharedArrayBuffer[@@species] is an accessor property whose set accessor function is undefined. Its get accessor function performs the following steps:</p>
 	<emu-alg><ol>
   <li>Return the this value.</li>
@@ -71,72 +145,100 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="SharedArrayBuffer_prototype_props">
-      <h1><span class="secnum">2.1.4</span>Properties of the SharedArrayBuffer prototype object</h1>
+      <h1><span class="secnum">4.1.4</span>Properties of the SharedArrayBuffer prototype object</h1>
 
       <emu-clause id="SharedArrayBuffer_prototype_get_byteLength">
-	<h1><span class="secnum">2.1.4.1</span>get SharedArrayBuffer.prototype.byteLength</h1>
+	<h1><span class="secnum">4.1.4.1</span>get SharedArrayBuffer.prototype.byteLength</h1>
+
+	<p> SharedArrayBuffer.prototype.byteLength is an accessor property whose set accessor function is undefined. Its get accessor function performs the following steps: </p>
+
+	<emu-alg><ol>
+  <li>Let <var>O</var> be the <emu-const>this</emu-const> value.</li>
+  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>O</var>) is not <emu-const>Object</emu-const>, throw a <emu-const>TypeError</emu-const> exception.</li>
+  <li>If <var>O</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <emu-const>TypeError</emu-const> exception.</li>
+  <li>Let length be the value of <var>O</var>’s [[SharedArrayBufferByteLength]] internal slot.</li>
+  <li>Return length.</li>
+</ol></emu-alg>
       </emu-clause>
 
       <emu-clause id="SharedArrayBuffer_prototype_constructor">
-	<h1><span class="secnum">2.1.4.2</span>SharedArrayBuffer.prototype.constructor</h1>
+	<h1><span class="secnum">4.1.4.2</span>SharedArrayBuffer.prototype.constructor</h1>
+	<p> FIXME </p>
       </emu-clause>
 
       <emu-clause id="SharedArrayBuffer_prototype_slice">
-	<h1><span class="secnum">2.1.4.3</span>SharedArrayBuffer.prototype.slice</h1>
+	<h1><span class="secnum">4.1.4.3</span>SharedArrayBuffer.prototype.slice</h1>
+	<p> FIXME </p>
       </emu-clause>
 
       <emu-clause id="SharedArrayBuffer_prototype_toString">
-	<h1><span class="secnum">2.1.4.4</span>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
+	<h1><span class="secnum">4.1.4.4</span>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
+	<p> FIXME </p>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="SharedArrayBuffer_instances">
-      <h1><span class="secnum">2.1.5</span>Properties of the SharedArrayBuffer instances</h1>
+      <h1><span class="secnum">4.1.5</span>Properties of the SharedArrayBuffer instances</h1>
 
-      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have an [[ArrayBufferData]] internal slot and an [[ArrayBufferByteLength]] internal slot. </p>
+      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have a [[SharedArrayBufferData]] internal slot and a [[SharedArrayBufferByteLength]] internal slot. </p>
 
-      <p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
+      <emu-note><span class="note">Note</span>
+	<p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
+      </emu-note>
     </emu-clause>
 
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="AtomicsObject">
-  <h1><span class="secnum">3</span>The Atomics Object (new)</h1>
+  <h1><span class="secnum">5</span>The Atomics Object</h1>
   
   <emu-clause id="AtomicsObjectValueProps">
-    <h1><span class="secnum">3.1</span>Value Properties of the Atomics Object</h1>
+    <h1><span class="secnum">5.1</span>Value Properties of the Atomics Object</h1>
     <emu-clause id="Atomics.OK">
-      <h1><span class="secnum">3.1.1</span>Atomics.OK</h1>
+      <h1><span class="secnum">5.1.1</span>Atomics.OK</h1>
       <p>The value 0.</p>
     </emu-clause>
     <emu-clause id="Atomics.NOTEQUAL">
-      <h1><span class="secnum">3.1.2</span>Atomics.NOTEQUAL</h1>
+      <h1><span class="secnum">5.1.2</span>Atomics.NOTEQUAL</h1>
       <p>The value -1.</p>
     </emu-clause>
     <emu-clause id="Atomics.TIMEDOUT">
-      <h1><span class="secnum">3.1.3</span>Atomics.TIMEDOUT</h1>
+      <h1><span class="secnum">5.1.3</span>Atomics.TIMEDOUT</h1>
       <p>The value -2.</p>
     </emu-clause>
   </emu-clause>
   
   <emu-clause id="AtomicsObjectFunctionProps">
-    <h1><span class="secnum">3.2</span>Function Properties of the Atomics Object</h1>
+    <h1><span class="secnum">5.2</span>Function Properties of the Atomics Object</h1>
+
+    <p> In the algorithms below, the algorithm step 'With atomic access to (<var>sab</var>, <var>offset</var>, <var>size</var>)' means the following:</p>
+    <ul>
+      <li> If several agents are claiming atomic access to exactly the same <var>size</var> memory cells then these atomic sections are serialized, each agent executes all its dependent steps while the other agents are waiting
+      </li><li> FIXME: Well-defined atomic sections are globally ordered
+      </li><li> FIXME: It's possible to create ill-defined behavior with overlapping
+      </li><li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
+    </li></ul>
+
     <emu-clause id="Atomics.add">
-      <h1><span class="secnum">3.2.1</span>Atomics.add ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.1</span>Atomics.add ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.and">
-      <h1><span class="secnum">3.2.2</span>Atomics.and ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.2</span>Atomics.and ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.compareExchange">
-      <h1><span class="secnum">3.2.3</span>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+      <h1><span class="secnum">5.2.3</span>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.exchange">
-      <h1><span class="secnum">3.2.4</span>Atomics.exchange ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.4</span>Atomics.exchange ( ta, index, value )</h1>
       <emu-alg><ol>
   <li>If <var>ta</var> is not a TypedArray that maps shared memory then throw a <emu-const>TypeError</emu-const> exception</li>
   <li>Let <var>B</var> be the base type of <var>ta</var></li>
-  <li>Let <var>i</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength">ToLength</a>( <var>index</var> )</li>
+  <li>If <var>B</var> is not <code>"Int8"</code>, <code>"Uint8"</code>, <code>"Int16"</code>, <code>"Uint16"</code>, <code>"Int32"</code>, or <code>"Uint32"</code> then throw a <emu-const>TypeError</emu-const> exception</li>
+  <li>Let <var>i</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength">ToLength</a>( <var>index</var> ) -- FIXME: is this appropriate?</li>
   <li>Let <var>v</var> be the result of coercing <var>value</var> to <var>B</var></li>
   <li>Let <var>A</var> be the value of the <emu-const>length</emu-const> property of <var>ta</var></li>
   <li>If <var>i</var> &gt;= <var>A</var> then:
@@ -144,36 +246,70 @@ This document is organized in terms of where changes would be made to the ES6 sp
       <li>Throw a <emu-const>RangeError</emu-const> exception</li>
     </ol>
   </li>
-  <li>Atomically let <var>r</var> be <var>ta</var> [ <var>i</var> ] and store <var>v</var> in <var>ta</var> [ <var>i</var> ]</li>
+  <li>Let <var>size</var> be the size of values of type <var>B</var>.</li>
+  <li>Let <var>sab</var> be ... FIXME</li>
+  <li>Let <var>isLittleEndian</var> be ... FIXME</li>
+  <li>Let <var>offset</var> be <var>i</var> * <var>size</var></li>
+  <li>With atomic access to ( <var>sab</var>, <var>offset</var>, <var>size</var> ), do:
+    <ol>
+      <li>Let <var>r</var> be the result of <a href="#StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer">GetValueFromSharedBuffer</a>( <var>sab</var>, <var>offset</var>, <var>B</var>, <var>isLittleEndian</var> )</li>
+      <li>Call <a href="#StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer">SetValueInSharedBuffer</a>( <var>sab</var>, <var>offset</var>, <var>B</var>, <var>v</var>, <var>isLittleEndian</var> )</li>
+    </ol>
+  </li>
   <li>Return <var>r</var></li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="Atomics.futexWait">
-      <h1><span class="secnum">3.2.5</span>Atomics.futexWait ( ta, index, value, timeout )</h1>
+      <h1><span class="secnum">5.2.5</span>Atomics.futexWait ( ta, index, value, timeout )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.futexWake">
-      <h1><span class="secnum">3.2.6</span>Atomics.futexWake ( ta, index, count )</h1>
+      <h1><span class="secnum">5.2.6</span>Atomics.futexWake ( ta, index, count )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1><span class="secnum">3.2.7</span>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+      <h1><span class="secnum">5.2.7</span>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
+
     <emu-clause id="Atomics.isLockFree">
-      <h1><span class="secnum">3.2.8</span>Atomics.isLockFree ( size )</h1>
+      <h1><span class="secnum">5.2.8</span>Atomics.isLockFree ( size )</h1>
+
+      <p> An atomic operation on a range of locations (<var>sab</var>, <var>offset</var>, <var>size</var>) is lock-free if the algorithm section of the operation that is labeled 'With atomic access to (<var>sab</var>, <var>offset</var>, <var>size</var>)' is implemented in a way that does not require a lock outside the specified locations to be acquired. </p>
+
+      <emu-note><span class="note">Note</span>
+	<p> Atomics.isLockFree is an optimization primitive. High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections. If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</p>
+      </emu-note>
+
+      <emu-alg><ol>
+  <li>Let <var>n</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tointeger">ToInteger</a>(<var>size</var>)</li>
+  <li>If accesses of size <var>n</var> are lock-free within the agent then return <emu-const>true</emu-const>.</li>
+  <li>Return <emu-const>false</emu-const>.</li>
+</ol></emu-alg>
+
+      <p> All agents that are able to communicate through shared memory must return the same value for any given <var>n</var>, and that value must be constant for the lifetime of each agent. </p>
+
     </emu-clause>
+
     <emu-clause id="Atomics.load">
-      <h1><span class="secnum">3.2.9</span>Atomics.load ( ta, index )</h1>
+      <h1><span class="secnum">5.2.9</span>Atomics.load ( ta, index )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.or">
-      <h1><span class="secnum">3.2.10</span>Atomics.or ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.10</span>Atomics.or ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.store">
-      <h1><span class="secnum">3.2.11</span>Atomics.store ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.11</span>Atomics.store ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.sub">
-      <h1><span class="secnum">3.2.12</span>Atomics.sub ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.12</span>Atomics.sub ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
     <emu-clause id="Atomics.xor">
-      <h1><span class="secnum">3.2.13</span>Atomics.xor ( ta, index, value )</h1>
+      <h1><span class="secnum">5.2.13</span>Atomics.xor ( ta, index, value )</h1>
+	<p> FIXME </p>
     </emu-clause>
   </emu-clause>
 </emu-clause>
