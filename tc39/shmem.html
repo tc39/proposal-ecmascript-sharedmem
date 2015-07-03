@@ -6,7 +6,7 @@
 
 </head><body><h1>Shared memory and atomics specification</h1>
 
-<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#intro"><span class="secnum"></span> Introduction</a></li><li><a href="#Overview"><span class="secnum">1</span> Overview (ES6 4)</a><ol class="toc"><li><a href="#Overview.Terms"><span class="secnum">1.1</span> Terms and Definitions (ES6 4.3)</a><ol class="toc"><li><a href="#Overview.Terms.Agent"><span class="secnum">1.1.1</span> Agent</a></li></ol></li></ol></li><li><a href="#DataTypesValues"><span class="secnum">2</span> ECMAScript Data Types and Values (ES6 6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes"><span class="secnum">2.1</span> ECMAScript Specification Types (ES6 6.2)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks"><span class="secnum">2.1.1</span> Data blocks (ES6 6.2.6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes"><span class="secnum">2.1.1.1</span> CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) (ES6 6.2.6.2)</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock"><span class="secnum">2.1.1.2</span> CreateSharedByteDataBlock( size )</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID"><span class="secnum">2.1.1.3</span> SharedDataBlockID( block )</a></li></ol></li></ol></li></ol></li><li><a href="#IndexedCollections"><span class="secnum">3</span> Indexed Collections (ES6 22)</a><ol class="toc"><li><a href="#TypedArray"><span class="secnum">3.1</span> TypedArray Objects (ES6 22.2)</a></li></ol></li><li><a href="#StructuredData"><span class="secnum">4</span> Structured Data (ES6 24)</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer"><span class="secnum">4.1</span> SharedArrayBuffer Objects</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract"><span class="secnum">4.1.1</span> Abstract Operations for SharedArrayBuffer</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer"><span class="secnum">4.1.1.1</span> AllocateSharedArrayBuffer ( constructor, byteLength )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer"><span class="secnum">4.1.1.2</span> GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer"><span class="secnum">4.1.1.3</span> SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value )</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.constructor"><span class="secnum">4.1.2</span> The SharedArrayBuffer Constructor</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.constructor.withLength"><span class="secnum">4.1.2.1</span> SharedArrayBuffer ( length )</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties"><span class="secnum">4.1.3</span> Properties of the SharedArrayBuffer constructor</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.isView"><span class="secnum">4.1.3.1</span> SharedArrayBuffer.isView ( arg )</a></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.prototype"><span class="secnum">4.1.3.2</span> SharedArrayBuffer.prototype</a></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.get_species"><span class="secnum">4.1.3.3</span> get SharedArrayBuffer [ @@species ]</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.prototype"><span class="secnum">4.1.4</span> Properties of the SharedArrayBuffer prototype object</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.prototype.get_byteLength"><span class="secnum">4.1.4.1</span> get SharedArrayBuffer.prototype.byteLength</a></li><li><a href="#SharedArrayBuffer_prototype_constructor"><span class="secnum">4.1.4.2</span> SharedArrayBuffer.prototype.constructor</a></li><li><a href="#SharedArrayBuffer_prototype_slice"><span class="secnum">4.1.4.3</span> SharedArrayBuffer.prototype.slice ( start, end )</a></li><li><a href="#SharedArrayBuffer_prototype_toString"><span class="secnum">4.1.4.4</span> SharedArrayBuffer.prototype[ @@toStringTag ]</a></li></ol></li><li><a href="#SharedArrayBuffer_instances"><span class="secnum">4.1.5</span> Properties of the SharedArrayBuffer instances</a></li></ol></li></ol></li><li><a href="#AtomicsObject"><span class="secnum">5</span> The Atomics Object</a><ol class="toc"><li><a href="#AtomicsObjectValueProps"><span class="secnum">5.1</span> Value Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.OK"><span class="secnum">5.1.1</span> Atomics.OK</a></li><li><a href="#Atomics.NOTEQUAL"><span class="secnum">5.1.2</span> Atomics.NOTEQUAL</a></li><li><a href="#Atomics.TIMEDOUT"><span class="secnum">5.1.3</span> Atomics.TIMEDOUT</a></li></ol></li><li><a href="#AtomicsObjectFunctionProps"><span class="secnum">5.2</span> Function Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.ValidateSharedIntegerTypedArray"><span class="secnum">5.2.1</span> Runtime semantics: ValidateSharedIntegerTypedArray(<var>ta</var>, [onlyInt32])</a></li><li><a href="#Atomics.ValidateAtomicAccess"><span class="secnum">5.2.2</span> Runtime semantics: ValidateAtomicAccess(<var>ta</var>, <var>index</var>)</a></li><li><a href="#Atomics.add"><span class="secnum">5.2.3</span> Atomics.add ( ta, index, value )</a></li><li><a href="#Atomics.and"><span class="secnum">5.2.4</span> Atomics.and ( ta, index, value )</a></li><li><a href="#Atomics.compareExchange"><span class="secnum">5.2.5</span> Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</a></li><li><a href="#Atomics.exchange"><span class="secnum">5.2.6</span> Atomics.exchange ( ta, index, value )</a></li><li><a href="#Atomics.futexWait"><span class="secnum">5.2.7</span> Atomics.futexWait ( ta, index, value, timeout )</a></li><li><a href="#Atomics.futexWake"><span class="secnum">5.2.8</span> Atomics.futexWake ( ta, index, count )</a></li><li><a href="#Atomics.futexWakeOrRequeue"><span class="secnum">5.2.9</span> Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</a></li><li><a href="#Atomics.isLockFree"><span class="secnum">5.2.10</span> Atomics.isLockFree ( size )</a></li><li><a href="#Atomics.load"><span class="secnum">5.2.11</span> Atomics.load ( ta, index )</a></li><li><a href="#Atomics.or"><span class="secnum">5.2.12</span> Atomics.or ( ta, index, value )</a></li><li><a href="#Atomics.store"><span class="secnum">5.2.13</span> Atomics.store ( ta, index, value )</a></li><li><a href="#Atomics.sub"><span class="secnum">5.2.14</span> Atomics.sub ( ta, index, value )</a></li><li><a href="#Atomics.xor"><span class="secnum">5.2.15</span> Atomics.xor ( ta, index, value )</a></li></ol></li></ol></li></ol></div><emu-intro id="intro">
+<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#intro"><span class="secnum"></span> Introduction</a></li><li><a href="#Overview"><span class="secnum">1</span> Overview (ES6 4)</a><ol class="toc"><li><a href="#Overview.Terms"><span class="secnum">1.1</span> Terms and Definitions (ES6 4.3)</a><ol class="toc"><li><a href="#Overview.Terms.Agent"><span class="secnum">1.1.1</span> Agent</a></li></ol></li></ol></li><li><a href="#DataTypesValues"><span class="secnum">2</span> ECMAScript Data Types and Values (ES6 6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes"><span class="secnum">2.1</span> ECMAScript Specification Types (ES6 6.2)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks"><span class="secnum">2.1.1</span> Data blocks (ES6 6.2.6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes"><span class="secnum">2.1.1.1</span> CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) (ES6 6.2.6.2)</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock"><span class="secnum">2.1.1.2</span> CreateSharedByteDataBlock( size )</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID"><span class="secnum">2.1.1.3</span> SharedDataBlockID( block )</a></li></ol></li></ol></li></ol></li><li><a href="#IndexedCollections"><span class="secnum">3</span> Indexed Collections (ES6 22)</a><ol class="toc"><li><a href="#TypedArray"><span class="secnum">3.1</span> TypedArray Objects (ES6 22.2)</a></li></ol></li><li><a href="#StructuredData"><span class="secnum">4</span> Structured Data (ES6 24)</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer"><span class="secnum">4.1</span> SharedArrayBuffer Objects</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract"><span class="secnum">4.1.1</span> Abstract Operations for SharedArrayBuffer</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer"><span class="secnum">4.1.1.1</span> AllocateSharedArrayBuffer ( constructor, byteLength )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer"><span class="secnum">4.1.1.2</span> GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer"><span class="secnum">4.1.1.3</span> SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value )</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.constructor"><span class="secnum">4.1.2</span> The SharedArrayBuffer Constructor</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.constructor.withLength"><span class="secnum">4.1.2.1</span> SharedArrayBuffer ( length )</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties"><span class="secnum">4.1.3</span> Properties of the SharedArrayBuffer constructor</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.isView"><span class="secnum">4.1.3.1</span> SharedArrayBuffer.isView ( arg )</a></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.prototype"><span class="secnum">4.1.3.2</span> SharedArrayBuffer.prototype</a></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.get_species"><span class="secnum">4.1.3.3</span> get SharedArrayBuffer [ @@species ]</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.prototype"><span class="secnum">4.1.4</span> Properties of the SharedArrayBuffer prototype object</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.prototype.get_byteLength"><span class="secnum">4.1.4.1</span> get SharedArrayBuffer.prototype.byteLength</a></li><li><a href="#SharedArrayBuffer_prototype_constructor"><span class="secnum">4.1.4.2</span> SharedArrayBuffer.prototype.constructor</a></li><li><a href="#SharedArrayBuffer_prototype_slice"><span class="secnum">4.1.4.3</span> SharedArrayBuffer.prototype.slice ( start, end )</a></li><li><a href="#SharedArrayBuffer_prototype_toString"><span class="secnum">4.1.4.4</span> SharedArrayBuffer.prototype[ @@toStringTag ]</a></li></ol></li><li><a href="#SharedArrayBuffer_instances"><span class="secnum">4.1.5</span> Properties of the SharedArrayBuffer instances</a></li></ol></li></ol></li><li><a href="#AtomicsObject"><span class="secnum">5</span> The Atomics Object</a><ol class="toc"><li><a href="#AtomicsObjectValueProps"><span class="secnum">5.1</span> Value Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.OK"><span class="secnum">5.1.1</span> Atomics.OK</a></li><li><a href="#Atomics.NOTEQUAL"><span class="secnum">5.1.2</span> Atomics.NOTEQUAL</a></li><li><a href="#Atomics.TIMEDOUT"><span class="secnum">5.1.3</span> Atomics.TIMEDOUT</a></li></ol></li><li><a href="#"><span class="secnum">5.2</span> Runtime semantics</a><ol class="toc"><li><a href="#Atomics.ValidateSharedIntegerTypedArray"><span class="secnum">5.2.1</span> Runtime semantics: ValidateSharedIntegerTypedArray(<var>ta</var>, [onlyInt32])</a></li><li><a href="#Atomics.ValidateAtomicAccess"><span class="secnum">5.2.2</span> Runtime semantics: ValidateAtomicAccess(<var>ta</var>, <var>index</var>)</a></li><li><a href="#Atomics.AddWaiter"><span class="secnum">5.2.3</span> Runtime semantics: AddWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</a></li><li><a href="#Atomics.RemoveWaiter"><span class="secnum">5.2.4</span> Runtime semantics: RemoveWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</a></li><li><a href="#Atomics.RemoveWaiters"><span class="secnum">5.2.5</span> Runtime semantics: RemoveWaiters(<var>G</var>, <var>i</var>)</a></li><li><a href="#Atomics.SuspendWaiter"><span class="secnum">5.2.6</span> Runtime semantics: Suspend(<var>timeout</var>)</a></li><li><a href="#Atomics.WakeWaiter"><span class="secnum">5.2.7</span> Runtime semantics: WakeWaiter(<var>W</var>)</a></li></ol></li><li><a href="#AtomicsObjectFunctionProps"><span class="secnum">5.3</span> Function Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.add"><span class="secnum">5.3.1</span> Atomics.add ( ta, index, value )</a></li><li><a href="#Atomics.and"><span class="secnum">5.3.2</span> Atomics.and ( ta, index, value )</a></li><li><a href="#Atomics.compareExchange"><span class="secnum">5.3.3</span> Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</a></li><li><a href="#Atomics.exchange"><span class="secnum">5.3.4</span> Atomics.exchange ( ta, index, value )</a></li><li><a href="#Atomics.futexWait"><span class="secnum">5.3.5</span> Atomics.futexWait ( ta, index, value, timeout )</a></li><li><a href="#Atomics.futexWake"><span class="secnum">5.3.6</span> Atomics.futexWake ( ta, index, count )</a></li><li><a href="#Atomics.futexWakeOrRequeue"><span class="secnum">5.3.7</span> Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</a></li><li><a href="#Atomics.isLockFree"><span class="secnum">5.3.8</span> Atomics.isLockFree ( size )</a></li><li><a href="#Atomics.load"><span class="secnum">5.3.9</span> Atomics.load ( ta, index )</a></li><li><a href="#Atomics.or"><span class="secnum">5.3.10</span> Atomics.or ( ta, index, value )</a></li><li><a href="#Atomics.store"><span class="secnum">5.3.11</span> Atomics.store ( ta, index, value )</a></li><li><a href="#Atomics.sub"><span class="secnum">5.3.12</span> Atomics.sub ( ta, index, value )</a></li><li><a href="#Atomics.xor"><span class="secnum">5.3.13</span> Atomics.xor ( ta, index, value )</a></li></ol></li></ol></li></ol></div><emu-intro id="intro">
 <h1><span class="secnum"></span>Introduction</h1>
 <p>
 This proposal adds shared memory types and atomic operations to ECMAScript.
@@ -14,6 +14,11 @@ This proposal adds shared memory types and atomic operations to ECMAScript.
 <p>
 This document is organized in terms of where changes would be made to the ES6 spec. Although ecmarkup generates numbering at the beginning of headers, these won't correspond to the numbering within the existing ECMA spec, so I've included a matching numbering in parentheses afterwards, referring to the ES6 spec.
 </p>
+<p>Missing from this document (also search for FIXME):</p>
+<ul>
+  <li> How things hook into TypedArray (significant work)
+  </li><li> Memory model discussion
+</li></ul>
 <p>This document is in spec order, not written for direct readability.</p>
 <p>Changelog:</p>
 <ul>
@@ -270,8 +275,10 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
   </emu-clause>
 
-  <emu-clause id="AtomicsObjectFunctionProps">
-    <h1><span class="secnum">5.2</span>Function Properties of the Atomics Object</h1>
+  <emu-clause "atomicsobjectfunctionprops.semantics"="">
+    <h1><span class="secnum">5.2</span>Runtime semantics</h1>
+    
+    <p> FIXME: Memory model probably goes here </p>
 
     <p> In the algorithms below, the algorithm step 'With atomic access to (<var>buffer</var>, <var>indexedPosition</var>, <var>elementSize</var>)' means the following:</p>
     <ul>
@@ -289,7 +296,6 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
       <h1><span class="secnum">5.2.1</span>Runtime semantics: ValidateSharedIntegerTypedArray(<var>ta</var>, [onlyInt32])</h1>
-      <p> FIXME: This section probably belongs somewhere else </p>
       <emu-alg><ol>
   <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>ta</var>) is not Object, throw a <emu-const>TypeError</emu-const> exception.</li>
   <li>Let <var>typeName</var> be the value of <var>ta</var>'s [[TypedArrayName]] internal slot</li>
@@ -314,15 +320,68 @@ This document is organized in terms of where changes would be made to the ES6 sp
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
       <h1><span class="secnum">5.2.2</span>Runtime semantics: ValidateAtomicAccess(<var>ta</var>, <var>index</var>)</h1>
       <p> FIXME: Flesh this out; the original spec uses ToLength here but it may be more complicated </p>
-      <p> FIXME: This section probably belongs somewhere else </p>
       <emu-alg><ol>
   <li>If <var>index</var> can be interpreted as a nonnegative index <var>i</var> within <var>ta</var> then return <var>i</var>.</li>
   <li>Throw a RangeError exception</li>
 </ol></emu-alg>
     </emu-clause>
     
+    <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
+      <h1><span class="secnum">5.2.3</span>Runtime semantics: AddWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</h1>
+      <emu-alg><ol>
+  <li>Assert: The calling agent is in the futex critical section.</li>
+  <li>Assert: <var>W</var> is not in any global list of waiters</li>
+  <li>Add <var>W</var> to the end of the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
+</ol></emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.RemoveWaiter" aoid="RemoveWaiter">
+      <h1><span class="secnum">5.2.4</span>Runtime semantics: RemoveWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</h1>
+      <emu-alg><ol>
+  <li>Assert: The calling agent is in the futex critical section.</li>
+  <li>Assert: <var>W</var> is in the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
+  <li>Remove <var>W</var> from the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
+</ol></emu-alg>
+    </emu-clause>
+    
+    <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
+      <h1><span class="secnum">5.2.5</span>Runtime semantics: RemoveWaiters(<var>G</var>, <var>i</var>)</h1>
+      <emu-alg><ol>
+  <li>Assert: The calling agent is in the futex critical section.</li>
+  <li>Let <var>L</var> be a copy of the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
+  <li>Set the global list of all waiters that wait on (<var>G</var>, <var>i</var>) to the empty list</li>
+  <li>Return <var>L</var></li>
+</ol></emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.SuspendWaiter">
+      <h1><span class="secnum">5.2.6</span>Runtime semantics: Suspend(<var>timeout</var>)</h1>
+      <emu-alg><ol>
+  <li>Assert: The calling agent is in the futex critical section.</li>
+  <li>Assert: The calling agent is on some global list of waiters</li>
+  <li>Atomically relinquish the futex critical section and suspend the calling agent for up to <var>timeout</var> milliseconds. It can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter, and not for any other reasons at all.</li>
+  <li>Re-acquire the futex critical section.</li>
+  <li>If the calling agent was woken explicitly by another agent calling WakeWaiter, then return <emu-const>true</emu-const></li>
+  <li>Return <emu-const>false</emu-const></li>
+</ol></emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.WakeWaiter">
+      <h1><span class="secnum">5.2.7</span>Runtime semantics: WakeWaiter(<var>W</var>)</h1>
+      <emu-alg><ol>
+  <li>Assert: The calling agent is in the futex critical section.</li>
+  <li>Assert: <var>W</var> is on some global list of waiters</li>
+  <li>Wake the agent <var>W</var></li>
+</ol></emu-alg>
+    </emu-clause>
+
+  </emu-clause> <!-- runtime semantics -->
+
+  <emu-clause id="AtomicsObjectFunctionProps">
+    <h1><span class="secnum">5.3</span>Function Properties of the Atomics Object</h1>
+
     <emu-clause id="Atomics.add">
-      <h1><span class="secnum">5.2.3</span>Atomics.add ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.1</span>Atomics.add ( ta, index, value )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -347,12 +406,12 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
     
     <emu-clause id="Atomics.and">
-      <h1><span class="secnum">5.2.4</span>Atomics.and ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.2</span>Atomics.and ( ta, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> &amp; <var>v</var>.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.compareExchange">
-      <h1><span class="secnum">5.2.5</span>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+      <h1><span class="secnum">5.3.3</span>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -382,12 +441,12 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="Atomics.exchange">
-      <h1><span class="secnum">5.2.6</span>Atomics.exchange ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.4</span>Atomics.exchange ( ta, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>v</var>.</p>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWait">
-      <h1><span class="secnum">5.2.7</span>Atomics.futexWait ( ta, index, value, timeout )</h1>
+      <h1><span class="secnum">5.3.5</span>Atomics.futexWait ( ta, index, value, timeout )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>, <emu-const>true</emu-const>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -407,17 +466,15 @@ This document is organized in terms of where changes would be made to the ES6 sp
     <ol>
       <li>Let <var>w</var> be Atomics.load(<var>ta</var>, <var>i</var>)</li>
       <li>If <var>v</var> does not equal <var>w</var> then return the original value of <emu-const>Atomics.NOTEQUAL</emu-const>.</li>
-      <li>Record that the agent is waiting on (<var>G</var>, <var>i</var>), assigning it a wait ID that is the next available element from a monotonically increasing sequence of wait IDs for (<var>G</var>, <var>i</var>).</li>
-      <li>Suspend the calling agent for up to <var>t</var> milliseconds.</li>
-      <li>(The agent wakes up. It may wake up either because the timeout expired or because it was woken explicitly, and not for other reasons. It does not wake up for any kind of event delivery. If there are system-internal ways in which the agent may spuriously awake it must suspend again, without re-checking the value of i32a[x], until the timeout expires or it is woken explicitly.)</li>
-      <li>Un-record that the agent is waiting on (<var>G</var>, <var>i</var>).</li>
+      <li>Let <var>W</var> be a signifier for the calling agent</li>
+      <li>Call <a href="#Atomics.AddWaiter">AddWaiter</a>(<var>W</var>, <var>G</var>, <var>i</var>)</li>
+      <li>Let awoken = Suspend(<var>t</var>)</li>
+      <li>Call <a href="#Atomics.RemoveWaiter">RemoveWaiter</a>(<var>W</var>, <var>G</var>, <var>i</var>)</li>
     </ol>
   </li>
-  <li>If the suspension in 9(d) was broken by another agent with a call on <emu-const>Atomics.futexWake</emu-const> or <emu-const>Atomics.futexWakeOrRequeue</emu-const> then return the original value of <emu-const>Atomics.OK</emu-const>.</li>
+  <li>If awoken = <emu-const>true</emu-const> then return the original value of <emu-const>Atomics.OK</emu-const>.</li>
   <li>Return the original value of <emu-const>Atomics.TIMEDOUT</emu-const>.</li>
 </ol></emu-alg>
-
-      <p> FIXME: The data needed for waiting could be structured better so that we don't have to keep talking about "the wait ID of x" all over the place. </p>
 
       <emu-note><span class="note">Note</span>
         <p> The name "futex" comes from Linux, where it means "fast user-space mutex". Linux has wait/wake system calls with names and functionality similar to what's defined here. The mechanism described here is however not Linux-dependent in any way. </p>
@@ -426,7 +483,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="Atomics.futexWake">
-      <h1><span class="secnum">5.2.8</span>Atomics.futexWake ( ta, index, count )</h1>
+      <h1><span class="secnum">5.3.6</span>Atomics.futexWake ( ta, index, count )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>, <emu-const>true</emu-const>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -438,12 +495,12 @@ This document is organized in terms of where changes would be made to the ES6 sp
   <li>Let <var>n</var> = 0</li>
   <li>Within the futex critical section do:
     <ol>
-      <li>Let <var>S</var> be the list of agents waiting on (<var>G_,_i</var>) sorted in ascending wait ID order</li>
+      <li>Let <var>S</var> be <a href="#Atomics.RemoveWaiters">RemoveWaiters</a>(<var>G</var>, <var>i</var>)</li>
       <li>While <var>c</var> &gt; 0 and <var>S</var> is not the empty list:
         <ol>
           <li>Let <var>W</var> be the first agent in <var>S</var></li>
           <li>Remove <var>W</var> from the front of <var>S</var></li>
-          <li>Wake <var>W</var></li>
+          <li>Call WakeWaiter(<var>W</var>)</li>
           <li>Subtract 1 from <var>c</var></li>
           <li>Add 1 to <var>n</var></li>
         </ol>
@@ -455,7 +512,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1><span class="secnum">5.2.9</span>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+      <h1><span class="secnum">5.3.7</span>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>, <emu-const>true</emu-const>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -467,17 +524,17 @@ This document is organized in terms of where changes would be made to the ES6 sp
   <li>Let <var>v</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-toint32">ToInt32</a>(<var>value</var>)</li>
   <li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var></li>
   <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>bufferVal</var>)</li>
-  <li>Let <var>n</var> = 0</li>
   <li>Within the futex critical section do:
     <ol>
       <li>Let <var>w</var> be Atomics.load(<var>ta</var>, <var>i</var>)</li>
       <li>If <var>v</var> does not equal <var>w</var> then return the original value of <emu-const>Atomics.NOTEQUAL</emu-const></li>
-      <li>Let <var>S</var> be the list of agents waiting on (<var>G</var>, <var>i</var>) sorted in ascending wait ID order</li>
+      <li>Let <var>S</var> be <a href="#Atomics.RemoveWaiters">RemoveWaiters</a>(<var>G</var>, <var>i</var>)</li>
+      <li>Let <var>n</var> = 0</li>
       <li>While <var>c</var> &gt; 0 and <var>S</var> is not the empty list:
         <ol>
           <li>Let <var>W</var> be the first agent in <var>S</var></li>
           <li>Remove <var>W</var> from the front of <var>S</var></li>
-          <li>Wake <var>W</var></li>
+          <li>Call WakeWaiter(<var>W</var>)</li>
           <li>Subtract 1 from <var>c</var></li>
           <li>Add 1 to <var>n</var></li>
         </ol>
@@ -486,9 +543,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
         <ol>
           <li>Let <var>W</var> be the first agent in <var>S</var></li>
           <li>Remove <var>W</var> from the front of <var>S</var></li>
-          <li>Assign <var>W</var> a new wait ID that is the next available element from a monotonically increasing sequence of wait IDs for (<var>G</var>, <var>j</var>)</li>
-          <li>Unrecord that <var>W</var> is waiting on (<var>G</var>, <var>i</var>)</li>
-          <li>Record that <var>W</var> is waiting on (<var>G</var>, <var>j</var>)</li>
+          <li>Call <a href="#Atomics.AddWaiter">AddWaiter</a>(<var>W</var>, <var>G</var>, <var>j</var>)</li>
         </ol>
       </li>
     </ol>
@@ -503,7 +558,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="Atomics.isLockFree">
-      <h1><span class="secnum">5.2.10</span>Atomics.isLockFree ( size )</h1>
+      <h1><span class="secnum">5.3.8</span>Atomics.isLockFree ( size )</h1>
 
       <p> An atomic operation on a range of locations (<var>sab</var>, <var>offset</var>, <var>size</var>) is said to be <var>lock-free</var> if the algorithm section of the operation that is labeled 'With atomic access to (<var>sab</var>, <var>offset</var>, <var>size</var>)' is implemented in a way that does not require a lock outside the specified data locations to be acquired. </p>
 
@@ -528,7 +583,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="Atomics.load">
-      <h1><span class="secnum">5.2.11</span>Atomics.load ( ta, index )</h1>
+      <h1><span class="secnum">5.3.9</span>Atomics.load ( ta, index )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -549,12 +604,12 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
 
     <emu-clause id="Atomics.or">
-      <h1><span class="secnum">5.2.12</span>Atomics.or ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.10</span>Atomics.or ( ta, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> | <var>v</var>.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.store">
-      <h1><span class="secnum">5.2.13</span>Atomics.store ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.11</span>Atomics.store ( ta, index, value )</h1>
       <emu-alg><ol>
   <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>ta</var>)</li>
   <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
@@ -577,12 +632,12 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
     
     <emu-clause id="Atomics.sub">
-      <h1><span class="secnum">5.2.14</span>Atomics.sub ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.12</span>Atomics.sub ( ta, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> - <var>v</var>.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.xor">
-      <h1><span class="secnum">5.2.15</span>Atomics.xor ( ta, index, value )</h1>
+      <h1><span class="secnum">5.3.13</span>Atomics.xor ( ta, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> ^ <var>v</var>.</p>
     </emu-clause>
   </emu-clause>

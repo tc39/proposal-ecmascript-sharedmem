@@ -15,6 +15,11 @@ This proposal adds shared memory types and atomic operations to ECMAScript.
 <p>
 This document is organized in terms of where changes would be made to the ES6 spec. Although ecmarkup generates numbering at the beginning of headers, these won't correspond to the numbering within the existing ECMA spec, so I've included a matching numbering in parentheses afterwards, referring to the ES6 spec.
 </p>
+<p>Missing from this document (also search for FIXME):</p>
+<ul>
+  <li> How things hook into TypedArray (significant work)
+  <li> Memory model discussion
+</ul>
 <p>This document is in spec order, not written for direct readability.</p>
 <p>Changelog:</p>
 <ul>
@@ -271,26 +276,25 @@ This document is organized in terms of where changes would be made to the ES6 sp
     </emu-clause>
   </emu-clause>
 
-  <emu-clause id="AtomicsObjectFunctionProps">
-    <h1>Function Properties of the Atomics Object</h1>
+  <emu-clause "AtomicsObjectFunctionProps.semantics">
+    <h1>Runtime semantics</h1>
+    
+    <p> FIXME: Memory model probably goes here </p>
 
-    <p> In the algorithms below, the algorithm step 'With atomic access to (_buffer_, _indexedPosition_, _elementSize_)' means the following:</p>
-    <ul>
-      <li> If several agents are claiming atomic access to exactly the same _elementSize_ memory cells then these atomic sections are serialized, each agent executes all its dependent steps while the other agents are waiting
-      <li> FIXME: Well-defined atomic sections are globally ordered
-      <li> FIXME: It's possible to create ill-defined behavior with overlapping
-      <li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
-    </ul>
-
-    <p> In the algorithms below, the algorithm step 'Within the futex critical section' means the following:</p>
-    <ul>
-      <li> There is a critical section for the futex operations that is shared among all agents that can communicate through shared memory.
-      <li> The phrase 'within the futex critical section' acquires that section exclusively; any return from the dependent statements releases the section.
-    </ul>
+    <emu-clause id="Atomics.WithAtomicAccessTo">
+      <h1>With atomic access to ...</h1>
+      
+      <p> In the algorithms below, the algorithm step 'With atomic access to (_buffer_, _indexedPosition_, _elementSize_)' means the following:</p>
+      <ul>
+        <li> If several agents are claiming atomic access to exactly the same _elementSize_ memory cells then these atomic sections are serialized, each agent executes all its dependent steps while the other agents are waiting
+        <li> FIXME: Well-defined atomic sections are globally ordered
+        <li> FIXME: It's possible to create ill-defined behavior with overlapping
+        <li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
+      </ul>
+    </emu-clause>
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
       <h1>Runtime semantics: ValidateSharedIntegerTypedArray(_ta_, [onlyInt32])</h1>
-      <p> FIXME: This section probably belongs somewhere else </p>
       <emu-alg>
         1. If Type(_ta_) is not Object, throw a ~TypeError~ exception.
         1. Let _typeName_ be the value of _ta_'s [[TypedArrayName]] internal slot
@@ -309,15 +313,78 @@ This document is organized in terms of where changes would be made to the ES6 sp
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
       <h1>Runtime semantics: ValidateAtomicAccess(_ta_, _index_)</h1>
       <P> FIXME: Flesh this out; the original spec uses ToLength here but it may be more complicated </P>
-      <P> FIXME: This section probably belongs somewhere else </p>
       <emu-alg>
         1. If _index_ can be interpreted as a nonnegative index _i_ within _ta_ then return _i_.
         1. Throw a RangeError exception
       </emu-alg>
     </emu-clause>
     
+    <emu-clause id="WithinTheFutexCriticalSection">
+      <h1>Within the futex critical section ...</h1>
+      <p> In the algorithms below, the algorithm step 'Within the futex critical section' means the following:</p>
+      <ul>
+        <li> There is a single critical section for the futex operations that is shared among all agents that can communicate through shared memory.
+        <li> The phrase 'within the futex critical section' acquires that section exclusively; any return from the dependent statements releases the section.
+      </ul>
+    </emu-clause>
+
+    <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
+      <h1>Runtime semantics: AddWaiter(_W_, _G_, _i_)</h1>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: _W_ is not in any global list of waiters
+        1. Add _W_ to the end of the global list of all waiters that wait on (_G_, _i_)
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.RemoveWaiter" aoid="RemoveWaiter">
+      <h1>Runtime semantics: RemoveWaiter(_W_, _G_, _i_)</h1>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: _W_ is in the global list of all waiters that wait on (_G_, _i_)
+        1. Remove _W_ from the global list of all waiters that wait on (_G_, _i_)
+      </emu-alg>
+    </emu-clause>
+    
+    <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
+      <h1>Runtime semantics: RemoveWaiters(_G_, _i_)</h1>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Let _L_ be a copy of the global list of all waiters that wait on (_G_, _i_)
+        1. Set the global list of all waiters that wait on (_G_, _i_) to the empty list
+        1. Return _L_
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.SuspendWaiter">
+      <h1>Runtime semantics: Suspend(_timeout_)</h1>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is on some global list of waiters
+        1. Atomically relinquish the futex critical section and suspend the calling agent for up to _timeout_ milliseconds.  It can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter, and not for any other reasons at all.
+        1. Re-acquire the futex critical section.
+        1. If the calling agent was woken explicitly by another agent calling WakeWaiter, then return ~true~
+        1. Return ~false~
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.WakeWaiter">
+      <h1>Runtime semantics: WakeWaiter(_W_)</h1>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: _W_ is on some global list of waiters
+        1. Wake the agent _W_
+      </emu-alg>
+    </emu-clause>
+
+  </emu-clause> <!-- runtime semantics -->
+
+  <emu-clause id="AtomicsObjectFunctionProps">
+    <h1>Function Properties of the Atomics Object</h1>
+
     <emu-clause id="Atomics.add">
       <h1>Atomics.add ( ta, index, value )</h1>
+      <p> The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
         1. ReturnIfAbrupt(_buffer_)
@@ -345,6 +412,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
     
     <emu-clause id="Atomics.compareExchange">
       <h1>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+      <p> The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
         1. ReturnIfAbrupt(_buffer_)
@@ -374,6 +442,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
     <emu-clause id="Atomics.futexWait">
       <h1>Atomics.futexWait ( ta, index, value, timeout )</h1>
+      <p> Atomics.futexWait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
@@ -389,15 +458,13 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Within the futex critical section do:
           1. Let _w_ be Atomics.load(_ta_, _i_)
           1. If _v_ does not equal _w_ then return the original value of ~Atomics.NOTEQUAL~.
-          1. Record that the agent is waiting on (_G_, _i_), assigning it a wait ID that is the next available element from a monotonically increasing sequence of wait IDs for (_G_, _i_).
-          1. Suspend the calling agent for up to _t_ milliseconds.
-          1. (The agent wakes up.  It may wake up either because the timeout expired or because it was woken explicitly, and not for other reasons.  It does not wake up for any kind of event delivery.  If there are system-internal ways in which the agent may spuriously awake it must suspend again, without re-checking the value of i32a[x], until the timeout expires or it is woken explicitly.)
-          1. Un-record that the agent is waiting on (_G_, _i_).
-        1. If the suspension in 9(d) was broken by another agent with a call on ~Atomics.futexWake~ or ~Atomics.futexWakeOrRequeue~ then return the original value of ~Atomics.OK~.
+          1. Let _W_ be a signifier for the calling agent
+          1. Call AddWaiter(_W_, _G_, _i_)
+          1. Let awoken = Suspend(_t_)
+          1. Call RemoveWaiter(_W_, _G_, _i_)
+        1. If awoken = ~true~ then return the original value of ~Atomics.OK~.
         1. Return the original value of ~Atomics.TIMEDOUT~.
       </emu-alg>
-
-      <P> FIXME: The data needed for waiting could be structured better so that we don't have to keep talking about "the wait ID of x" all over the place. </p>
 
       <emu-note>
         <p> The name "futex" comes from Linux, where it means "fast user-space mutex".  Linux has wait/wake system calls with names and functionality similar to what's defined here. The mechanism described here is however not Linux-dependent in any way. </p>
@@ -407,6 +474,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
     <emu-clause id="Atomics.futexWake">
       <h1>Atomics.futexWake ( ta, index, count )</h1>
+      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
@@ -417,11 +485,11 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
         1. Let _n_ = 0
         1. Within the futex critical section do:
-          1. Let _S_ be the list of agents waiting on (_G_,_i_) sorted in ascending wait ID order
+          1. Let _S_ be RemoveWaiters(_G_, _i_)
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
-            1. Wake _W_
+            1. Call WakeWaiter(_W_)
             1. Subtract 1 from _c_
             1. Add 1 to _n_
         1. Return _n_.
@@ -430,6 +498,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
       <h1>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue and moves other waiting agents to the back of the queue.  The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
@@ -441,23 +510,21 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Let _v_ be ToInt32(_value_)
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Let _n_ = 0
         1. Within the futex critical section do:
           1. Let _w_ be Atomics.load(_ta_, _i_)
           1. If _v_ does not equal _w_ then return the original value of ~Atomics.NOTEQUAL~
-          1. Let _S_ be the list of agents waiting on (_G_, _i_) sorted in ascending wait ID order
+          1. Let _S_ be RemoveWaiters(_G_, _i_)
+          1. Let _n_ = 0
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
-            1. Wake _W_
+            1. Call WakeWaiter(_W_)
             1. Subtract 1 from _c_
             1. Add 1 to _n_
           1. While _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
-            1. Assign _W_ a new wait ID that is the next available element from a monotonically increasing sequence of wait IDs for (_G_, _j_)
-            1. Unrecord that _W_ is waiting on (_G_, _i_)
-            1. Record that _W_ is waiting on (_G_, _j_)
+            1. Call AddWaiter(_W_, _G_, _j_)
         1. Return _n_.
       </emu-alg>        
 
@@ -494,6 +561,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
     <emu-clause id="Atomics.load">
       <h1>Atomics.load ( ta, index )</h1>
+      <p> The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
         1. ReturnIfAbrupt(_buffer_)
@@ -517,6 +585,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
     
     <emu-clause id="Atomics.store">
       <h1>Atomics.store ( ta, index, value )</h1>
+      <p> The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
         1. ReturnIfAbrupt(_buffer_)
