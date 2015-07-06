@@ -1,4 +1,10 @@
-<!-- -*- indent-tabs-mode: nil -*- -->
+<!-- -*- indent-tabs-mode: nil -*-
+
+     Preprocess this file with ecmarkup to produce shmem.html:
+
+       # ecmarkup spec.html shmem.html
+
+-->
 <!doctype html>
 <meta charset="utf8">
 <title>Shared memory and atomics specification</title>
@@ -9,39 +15,61 @@
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
-<p>
-This proposal adds shared memory types and atomic operations to ECMAScript.
-</p>
-<p>
-This document is organized in terms of where changes would be made to the ES6 spec. Although ecmarkup generates numbering at the beginning of headers, these won't correspond to the numbering within the existing ECMA spec, so I've included a matching numbering in parentheses afterwards, referring to the ES6 spec.
-</p>
+<p>This proposal adds shared memory types and atomic operations to ECMAScript.</p>
+<p>This document is organized in terms of where changes would be made to the ES6 spec. Although ecmarkup generates numbering at the beginning of headers, these won't correspond to the numbering within the existing ECMA spec, so I've included a matching numbering in parentheses afterwards, referring to the ES6 spec.</p>
 <p>Missing from this document (also search for FIXME):</p>
 <ul>
-  <li> How things hook into TypedArray (significant work)
   <li> Memory model discussion
 </ul>
 <p>This document is in spec order, not written for direct readability.</p>
+<p>This document constitutes a restatement and formalization of an earlier work, <a href="https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing">the spec document for which</a> also contains a rationale, background information, discussions, and comments.</p>
 <p>Changelog:</p>
 <ul>
+  <li> 2015-07-06
+    <ul>
+      <li> Translated from the original proposal
+    </ul>
 </ul>
+
 </emu-intro>
 
 <emu-clause id="Overview">
   <h1>Overview (ES6 4)</h1>
+  <emu-clause id="Overview.Overview">
+    <h1>ECMAScript Overview (ES6 4.2)</h1>
+    <p>In the third paragraph, include <b>SharedArrayBuffer</b> after <b>ArrayBuffer</b>.</p>
+  </emu-clause>
   <emu-clause id="Overview.Terms">
     <h1>Terms and Definitions (ES6 4.3)</h1>
     <emu-clause id="Overview.Terms.Agent">
       <h1>Agent</h1>
       <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
-      <emu-note>
-        <p>Agents whose lifetimes overlap and who are able to share a Shared Data Block can communicate by means of certain operations on that Shared Data Block.</p>
-      </emu-note>
+    </emu-clause>
+    <emu-clause id="Overview.Terms.AgentComm">
+      <h1>Agent communication</h1>
+      <p> Two agents are said to be able to communicate through shared memory if there can exist a Shared Data Block that can come to be referenced from both agents, not necessarily at the same time.  (Note this does not require the agents to have overlapping lifetimes.) </p>
     </emu-clause>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="DataTypesValues">
   <h1>ECMAScript Data Types and Values (ES6 6)</h1>
+  
+  <emu-clause id="DataTypesValues.LanguageTypes">
+    <h1>ECMAScript Language Types (ES6 6.1)</h1>
+    <emu-clause id="DataTypesValues.LanguageTypes.Number">
+      <h1>The Number Type (ES6 6.1.6)</h1>
+      <p>In the NOTE, include <b>SharedArrayBuffer</b> along with <b>ArrayBuffer</b>.</p>
+    </emu-clause>
+    <emu-clause id="DataTypesValues.LanguageTypes.Object">
+      <h1>The Object Type (ES6 6.1.7)</h1>
+      <emu-clause id="DataTypesValues.LanguageTypes.Object.Intrinsic">
+        <h1>Well-Known Intrinsic Objects</h1>
+        <p>In table 7, include rows for %SharedArrayBuffer% and %SharedArrayBufferPrototype% following the manner of the ditto for ArrayBuffer.</p>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause>
+  
   <emu-clause id="DataTypesValues.SpecTypes">
     <h1>ECMAScript Specification Types (ES6 6.2)</h1>
     <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
@@ -67,9 +95,9 @@ This document is organized in terms of where changes would be made to the ES6 sp
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID" aoid="SharedDataBlockID">
         <h1>SharedDataBlockID( block )</h1>
-        <p>When the abstract operation SharedDataBlockID is called with shared data block argument _block_, the following steps are taken:</p>
+        <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument _block_, the following steps are taken:</p>
         <emu-alg>
-          1. Let _G_ be an address-free identifier for _block_.  _G_ has the same value in every agent.
+          1. Let _G_ be an address-free identifier for _block_.  If two agents are able to communicate through shared memory then _G_ has the same value in the two agents.
           1. Return _G_.
         </emu-alg>
         <emu-note>
@@ -80,21 +108,138 @@ This document is organized in terms of where changes would be made to the ES6 sp
   </emu-clause>
 </emu-clause>
 
+<emu-clause id="GlobalObject">
+  <h1>The Global Object (ES6 18)</h1>
+  <emu-clause id="GlobalObject.ConstructorProps">
+    <h1>Constructor Properties of the Global Object (ES6 18.3)</h1>
+    <p> Add new subsections for SharedArrayBuffer and Atomics, pointing to the appropriate new sections (below).</p>
+  </emu-clause>
+</emu-clause>
+
+<!--
+AllocateTypedArray only allocates an ArrayBuffer if length is specified.
+These call AllocateTypedArray with a specified length:
+  TypedArrayFrom (twice)
+   called from:
+     %TypedArray% ( object )
+     %TypedArray%.from ( source [,mapFn [,thisArg]] )
+  %TypedArray%.of ( ...items ) 
+  %TypedArray%.prototype.filter ( callbackFn [, thisArg] )
+  %TypedArray%.prototype.slice ( start, end )
+  %TypedArray% ()
+  %TypedArray% (length)
+  -->
+
 <emu-clause id="IndexedCollections">
   <h1>Indexed Collections (ES6 22)</h1>
-  <emu-clause id="TypedArray">
+  <emu-clause id="IndexedCollections.TypedArray">
     <h1>TypedArray Objects (ES6 22.2)</h1>
-    <p>FIXME: Modifications to TypedArray to allow the use of SharedArrayBuffer.  These may be extensive.  SharedArrayBuffer stores its internal data in slots that ave other names than ArrayBuffer, this will cause some churn. </p>
+    <emu-note>
+      <p>This document extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
+      <p>Additionally here is a question whether TypedArray constructors should be extended to allocate shared memory, and whether TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be able to allocate static memory.</p>
+      <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer or one of its (user-defined) subclasses.</p>
+    </emu-note>
+
+    <emu-clause id="IndexedCollections.TypedArray.intrinsic">
+      <h1>The %TypedArray% intrinsic object (ES6 22.2.1)</h1>
+
+      <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
+        <h1>%TypedArray% ( object ) (ES6 22.2.1.4)</h1>
+        <p>This algorithm is modified as follows:</p>
+        <ul>
+          <li> Add the restriction on the applicability of this constructor that it does not apply if the object has a [[SharedArrayBufferData]] internal slot.
+        </ul>
+      </emu-clause>
+
+      <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
+        <h1>%TypedArray% ( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</h1>
+        <p>This algorithm is modified as follows:</p>
+        <ul>
+          <li>In the first paragraph, allow also an object that has a [[SharedArrayBufferData]] internal slot.
+          <li>In step 1, allow also an object that has a [[SharedArrayBufferData]] internal slot.
+          <li>In step 12, if IsSharedMemory(_buffer_) then let _bufferByteLength_ be the value of _buffer_'s [[SharedArrayBufferByteLength]] internal slot.
+        </ul>
+      </emu-clause>
+
+    </emu-clause> <!-- intrinsic object -->
+    
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="StructuredData">
   <h1>Structured Data (ES6 24)</h1>
+
+  <emu-clause id="StructuredData.ArrayBuffer">
+    <h1>ArrayBuffer Objects (ES6 24.1)</h1>
+
+    <emu-clause id="StructuredData.ArrayBuffer.abstract">
+      <h1>Abstract Operations for ArrayBuffer (ES6 24.1.1)</h1>
+
+      <emu-clause id="StructuredData.ArrayBuffer.abstract.IsDetachedBuffer" aoid="IsDetachedBuffer">
+        <h1>IsDetachedBuffer( arrayBuffer ) (ES6 24.1.1.2)</h1>
+        <p> This algorithm is rewritten as follows: </p>
+        <emu-alg>
+          1. Assert: Type(_arrayBuffer_) is Object and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.
+          1. If _arrayBuffer_ has an [[ArrayBufferData]] internal slot and _arrayBuffer_’s [[ArrayBufferData]] internal slot is null, return ~true~.
+          1. Return ~false~.
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="StructuredData.ArrayBuffer.abstract.CloneArrayBuffer" aoid="CloneArrayBuffer">
+        <h1>CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES6 24.1.1.4)</h1>
+        <p>This algorithm is modified as follows:</p>
+        <ul>
+          <li> In the introductory paragraph, note that this function can take a SharedArrayBuffer as well.
+          <li> In step 1, allow for a [[SharedArrayBufferData]] internal slot.
+          <li> In step 4, if IsSharedMemory(_srcBuffer_) then let _srcLength_ be the value of _srcBuffer_'s [[SharedArrayBufferByteLength]] internal slot.
+          <li> In step 7, if IsSharedMemory(_srcBuffer_) then let _srcBlock_ be the value of _srcBuffer_’s [[SharedArrayBufferData]] internal slot.
+        </ul>
+      </emu-clause>
+      
+      <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
+        <h1>GetValueFromBuffer ( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</h1>
+        <p> This algorithm is modified as follows:</p>
+        <ul>
+          <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
+          <li> If two agents can communicate through shared memory then they must compute the same value for _isLittleEndian_ if it is not present.
+          <li> In step 4, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
+        </ul>
+      </emu-clause>
+
+      <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
+        <h1>SetValueInBuffer ( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</h1>
+        <p> This algorithm is modified as follows:</p>
+        <ul>
+          <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
+          <li> If two agents can communicate through shared memory then they must compute the same value for _isLittleEndian_ if it is not present.
+          <li> In step 5, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
+        </ul>
+      </emu-clause>
+      
+    </emu-clause> <!-- abstract -->
+  </emu-clause> <!-- ArrayBuffer -->
+
+  <emu-clause id="StructuredData.DataView">
+    <h1>DataView Objects (ES6 24.2)</h1>
+    <emu-clause id="StructuredData.DataView.constructor">
+      <h1>The DataView Consgtructor (ES6 24.2.2)</h1>
+      <emu-clause id="StructuredData.DataView.constructor.detail">
+        <h1>DataView(buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</h1>
+        <p> This algorithm is modified as follows: </p>
+        <ul>
+          <li> In step 3, allow also a [[SharedArrayBufferData]] internal slot.
+          <li> In step 9, if IsSharedMemory(_buffer_) then let _bufferByteLength_ be the value of _buffer_'s [[SharedArrayBufferByteLength]] internal slot.
+        </ul>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause> <!-- DataView -->
+
   <emu-clause id="StructuredData.SharedArrayBuffer">
     <h1>SharedArrayBuffer Objects</h1>
 
     <emu-clause id="StructuredData.SharedArrayBuffer.abstract">
       <h1>Abstract Operations for SharedArrayBuffer</h1>
+
       <emu-clause id="StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer">
         <h1>AllocateSharedArrayBuffer ( constructor, byteLength )</h1>
         <p> The abstract operation AllocateSharedArrayBuffer with arguments constructor and byteLength is used to create a SharedArrayBuffer object. It performs the following steps:</p>
@@ -111,29 +256,17 @@ This document is organized in terms of where changes would be made to the ES6 sp
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer" aoid="GetValueFromSharedBuffer">
-        <h1>GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type )</h1>
-        <P> This is the same as ArrayBuffer's GetValueFromBuffer (ES6 24.1.1.5) except that: </p>
-        <ul>
-          <li> The _arrayBuffer_ parameter is a SharedArrayBuffer
-          <li> There is no _isLittleEndian_ parameter, it is "not present". The implementation must determine the same value for _isLittleEndian_ in all agents that can communicate through shared memory (see Atomics.isLockFree for more precise wording, for now)
-          <li> There is no detachment check (step 1)
-          <li> Use the [[SharedArrayBufferData]] internal slot (step 4)
-        </ul>
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.IsSharedMemory" aoid="IsSharedMemory">
+        <h1>IsSharedMemory ( obj )</h1>
+        <p> IsSharedMemory tests whether an object represents shared memory. </p>
+        <emu-alg>
+          1. Assert: Type(_obj_) is ~Object~ and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.
+          1. If _obj_ has a [[SharedArrayBufferData]] internal slot then return ~true~.
+          1. Return ~false~.
+        </emu-alg>
       </emu-clause>
-      
-      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer" aoid="SetValueInSharedBuffer">
-        <h1>SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value )</h1>
-        <P> This is the same as ArrayBuffer's SetValueInBuffer (ES6 24.1.1.6) except that: </p>
-        <ul>
-          <li> The _arrayBuffer_ parameter is a SharedArrayBuffer
-          <li> There is no _isLittleEndian_ parameter, it is "not present".
-          <li> There is no detachment check (step 1)
-          <li> Use the [[SharedArrayBufferData]] internal slot (step 5)
-        </ul>
-      </emu-clause>
-      
-    </emu-clause>
+
+    </emu-clause> <!-- abstract -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor">
       <h1>The SharedArrayBuffer Constructor</h1>
@@ -154,7 +287,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
           1. Return AllocateSharedArrayBuffer(NewTarget, _byteLength_).
         </emu-alg>
       </emu-clause>
-    </emu-clause>
+    </emu-clause> <!-- constructor -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties">
       <h1>Properties of the SharedArrayBuffer constructor</h1>
@@ -183,7 +316,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
         </emu-alg>
         <P> The value of the name property of this function is "`get [Symbol.species]`".</P>
       </emu-clause>
-    </emu-clause>
+    </emu-clause> <!-- properties -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.prototype">
       <h1>Properties of the SharedArrayBuffer prototype object</h1>
@@ -202,12 +335,12 @@ This document is organized in terms of where changes would be made to the ES6 sp
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="SharedArrayBuffer_prototype_constructor">
+      <emu-clause id="StructuredData.SharedArrayBuffer.prototype.constructor">
         <h1>SharedArrayBuffer.prototype.constructor</h1>
         <p> The initial value of `SharedArrayBuffer.prototype.constructor` is the intrinsic object %SharedArrayBuffer%. </p>
       </emu-clause>
 
-      <emu-clause id="SharedArrayBuffer_prototype_slice">
+      <emu-clause id="StructuredData.SharedArrayBuffer.prototype.slice">
         <h1>SharedArrayBuffer.prototype.slice ( start, end )</h1>
         <p> The following steps are taken: </p>
         <emu-alg>
@@ -236,15 +369,15 @@ This document is organized in terms of where changes would be made to the ES6 sp
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="SharedArrayBuffer_prototype_toString">
+      <emu-clause id="StructuredData.SharedArrayBuffer.prototype.toString">
         <h1>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
         <p> The initial value of the @@toStringTag property is the String value `"SharedArrayBuffer"`.</p>
 
         <p>This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.</p>
       </emu-clause>
-    </emu-clause>
+    </emu-clause> <!-- prototype -->
 
-    <emu-clause id="SharedArrayBuffer_instances">
+    <emu-clause id="StructuredData.SharedArrayBuffer.instances">
       <h1>Properties of the SharedArrayBuffer instances</h1>
 
       <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have a [[SharedArrayBufferData]] internal slot and a [[SharedArrayBufferByteLength]] internal slot. </p>
@@ -252,10 +385,10 @@ This document is organized in terms of where changes would be made to the ES6 sp
       <emu-note>
         <p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
       </emu-note>
-    </emu-clause>
+    </emu-clause> <!-- instances -->
 
-  </emu-clause>
-</emu-clause>
+  </emu-clause> <!-- SharedArrayBuffer -->
+</emu-clause> <!-- Structured data -->
 
 <emu-clause id="AtomicsObject">
   <h1>The Atomics Object</h1>
@@ -356,25 +489,31 @@ This document is organized in terms of where changes would be made to the ES6 sp
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="Atomics.SuspendWaiter">
+    <emu-clause id="Atomics.SuspendWaiter" aoid="SuspendWaiter">
       <h1>Runtime semantics: Suspend(_timeout_)</h1>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: The calling agent is on some global list of waiters
-        1. Atomically relinquish the futex critical section and suspend the calling agent for up to _timeout_ milliseconds.  It can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter, and not for any other reasons at all.
+        1. Let _W_ be the calling agent.
+        1. Atomically relinquish the futex critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_W_), and not for any other reasons at all.
         1. Re-acquire the futex critical section.
-        1. If the calling agent was woken explicitly by another agent calling WakeWaiter, then return ~true~
+        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
         1. Return ~false~
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="Atomics.WakeWaiter">
+    <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
       <h1>Runtime semantics: WakeWaiter(_W_)</h1>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: _W_ is on some global list of waiters
         1. Wake the agent _W_
       </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="AgentSemantics">
+      <h1>Additional agent semantics</h1>
+      <p> When a Shared Data Block is passed from one agent to the other, the sending of the block from the sender happens before the receipt of the block in the recipient. </p>
     </emu-clause>
 
   </emu-clause> <!-- runtime semantics -->
@@ -398,9 +537,9 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
-          1. Let _r_ be the result of GetValueFromSharedBuffer( _buffer_, _indexedPosition_, _elementType_ )
+          1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. Compute: Let _w_ be _r_ + _v_
-          1. Call SetValueInSharedBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
+          1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
         1. Return _r_
       </emu-alg>
     </emu-clause>
@@ -428,9 +567,9 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementType_ ), do:
-          1. Let _r_ be the result of GetValueFromSharedBuffer( _buffer_, _indexedPosition_, _elementType_ )
+          1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. If _r_ equals _expected_ then:
-            1. Call SetValueInSharedBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
+            1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
         1. Return _r_
       </emu-alg>
     </emu-clause>
@@ -547,14 +686,15 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Return ~false~
       </emu-alg>
 
-      <p>If Atomics.isLockFree(k) returns v in some agent then every subsequent invocation of Atomics.isLockFree(k) in that environment must return v.  Furthermore, any invocation of Atomics.isLockFree(k) in any other agent that can (assuming arbitrary code) reference (in the past, currently, or in the future) any of the same shared memory that the first environment references must also return v.</p>
+      <p>If Atomics.isLockFree(k) returns v at some point in some agent then every other invocation of Atomics.isLockFree(k) in that agent must return v.</p>
+      <p>If Atomics.isLockFree(k) returns v in some agent then every invocation of Atomics.isLockFree(k) in any agent that can communicate through shared memory with the first agent must also return v.</p>
 
       <emu-note>
         <p> Atomics.isLockFree is an optimization primitive. High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections.  If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</P>
       </emu-note>
 
       <emu-note>
-        <p>The return value for a given argument is not necessarily a constant on a given piece of hardware, but also reflects implementation choices that can vary over time and across engines.  The specification requires that if a SharedArrayBuffer can be communicated from one agent to another even in principle, for unrestricted agent types (web workers, service workers, ...) and unrestricted communication channels (postMessage or other mechanisms that might exist), then the two agents must agree on the values returned from isLockFree.</p>
+        <p>The return value for a given argument is not necessarily a constant on a given piece of hardware, but also reflects implementation choices that can vary over time and across engines.</p>
       </emu-note>
 
     </emu-clause>
@@ -573,7 +713,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
-          1. Let _r_ be the result of GetValueFromSharedBuffer( _buffer_, _indexedPosition_, _elementType_ )
+          1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
         1. Return _r_
       </emu-alg>
     </emu-clause>
@@ -599,7 +739,7 @@ This document is organized in terms of where changes would be made to the ES6 sp
         1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
-          1. Call SetValueInSharedBuffer( _buffer_, _indexedPosition_, _elementType_, _v_ )
+          1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _v_ )
         1. Return _v_
       </emu-alg>
     </emu-clause>
@@ -614,4 +754,52 @@ This document is organized in terms of where changes would be made to the ES6 sp
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ ^ _v_.</p>
     </emu-clause>
   </emu-clause>
+</emu-clause>
+
+<emu-clause id="WebBrowserEmbedding">
+  <h1>Web browser embedding (informative)</h1>
+
+  <emu-clause id="WebBrowserEmbedding.Agents">
+    <h1>Agent mapping</h1>
+    <p> In a web browser setting, the <em>agents</em> comprise a document's main thread environment and worker thread environments.  At a minimum, normal Web Workers must be supported.  (In some browsers, ServiceWorkers and Shared Workers may be technically incapable of receiving shared memory segments due to process separation.) </p>
+
+  </emu-clause>
+  
+  <emu-clause id="WebBrowserEmbedding.MemoryModel">
+    <h1>Agent communication semantics</h1>
+
+    <p>Agent-to-agent communication creates edges in the happens-before graph of the program, as follows:</p>
+
+    <ul>
+      <li>The call to the Worker constructor in the parent happens-before the execution of the main script in the worker.
+      <li>The termination of a worker happens-before the parent of the worker (or any other agent) can determine that the worker has terminated.
+      <li>A postMessage to a worker happens-before the event fires in the worker.
+    </ul>
+
+    <p>FIXME: Reexpress this in terms of synchronizes-with?  And do we need to establish that eg a postMessage is an atomic operation somehow? </p>
+  </emu-clause>
+
+  <emu-clause id="WebBrowserEmbedding.Termination">
+    <h1>Agent termination</h1>
+    <p>If a worker is terminated by a call to its terminate method while it is blocked in a call to futexWait then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  There are no provisions for cleaning up locked state unless the browser supports a close handler.</p>
+
+    <p>If a worker is terminated for any other reason, such as the user agent reloading or closing the window or frame, and the worker is blocked in a call to futexWait when it is terminated, then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  However, after the running script has been terminated the worker's close handler(s) will be run as if the wait had not been aborted.</p>
+
+  </emu-clause>
+  
+  <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
+    <h1>Transmitting and Cloning SharedArrayBuffers and Views</h1>
+
+    <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffer can be transmitted from one worker to another and are handled by the HTML5 structured clone algorithm as follows.</p>
+
+    <p>When a SharedArrayBuffer input object is cloned in the originating agent the result is a new SharedArrayBuffer object in the receiving agent that references the same Shared Data Block as the input object.  The input object must be present in the transfer map for the clone operation; if not, a standard clone exception will be thrown.</p>
+
+    <p>When a SharedArrayBuffer object is cloned its Shared Data Block is not detached (SharedArrayBuffers are never detached).</p>
+
+    <p>A Shared Data Block remains accessible so long as at least one SharedArrayBuffer object references it in some agent.</p>
+
+    <p>When a TypedArray object that is a view on a SharedArrayBuffer is cloned the result is a new TypedArray object of the same element type.  The "buffer" property of the new TypedArray will reference a clone of the input object's "buffer" property.  The input object's "buffer" property must be present in the transfer map for the clone, or a standard clone exception will be thrown.</p>
+
+  </emu-clause>
+
 </emu-clause>

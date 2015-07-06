@@ -33,3 +33,59 @@
 	  <p> MemoryUnlock communicates with other agents. </p>
 	</emu-note>
       </emu-clause>
+
+
+<emu-clause id="ObjectBehaviors">
+  <h1>Ordinary and Exotic Object Behaviors (ES6 9)</h1>
+  <emu-clause id="ObjectBehaviors.Exotic">
+    <h1>Built-in Exotic Object Internal Methods and Slots (ES6 9.4)</h1>
+    <emu-clause id="ObjectBehaviors.Exotic.IntegerIndexed">
+      <h1>Integer Indexed Exotic Objects (ES6 9.4.5)</h1>
+      <P> FIXME: It's possible that the shared-memory case should be embedded in GetValueFromBuffer and SetValueInBuffer, since the latter have callers elsewhere. </p>
+      <emu-clause id="ObjectBehaviors.Exotic.IntegerIndexed.ElementGet">
+        <h1>IntegerIndexedElementGet ( O, index ) (ES6 9.4.5.8)</h1>
+        <p>Replace 14 with the following algorithm:</p>
+        <emu-alg>
+          1. If IsSharedMemory(_buffer_) is true, then:
+            1. Return GetValueFromSharedBuffer( _buffer_, _indexedPosition_, _elementType_ )
+          1. Else
+            1. Return GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="ObjectBehaviors.Exotic.IntegerIndexed.ElementSet">
+        <h1>IntegerIndexedElementSet ( O, index, value ) (ES6 9.4.5.9)</h1>
+        <p>Replace step 16 with the following algorithm:</p>
+        <emu-alg>
+          1. If IsSharedMemory(_buffer_) is true, then
+            1. Perform SetValueInSharedBuffer( _buffer_, _indexedPosition_, _elementType_, _numValue_ )
+          1. Else:
+            1. Perform SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _numValue_ )
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+          
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.GetValueFromSharedBuffer" aoid="GetValueFromSharedBuffer">
+        <h1>GetValueFromSharedBuffer ( arrayBuffer, byteIndex, type )</h1>
+        <P> This is the same as ArrayBuffer's GetValueFromBuffer (ES6 24.1.1.5) except that: </p>
+        <ul>
+          <li> The _arrayBuffer_ parameter is a SharedArrayBuffer
+          <li> There is no _isLittleEndian_ parameter, it is "not present". The implementation must determine the same value for _isLittleEndian_ in all agents that can communicate through shared memory (see Atomics.isLockFree for more precise wording, for now)
+          <li> There is no detachment check (step 1)
+          <li> Use the [[SharedArrayBufferData]] internal slot (step 4)
+        </ul>
+      </emu-clause>
+      
+      <emu-clause id="StructuredData.SharedArrayBuffer.abstract.SetValueInSharedBuffer" aoid="SetValueInSharedBuffer">
+        <h1>SetValueInSharedBuffer ( arrayBuffer, byteIndex, type, value )</h1>
+        <P> This is the same as ArrayBuffer's SetValueInBuffer (ES6 24.1.1.6) except that: </p>
+        <ul>
+          <li> The _arrayBuffer_ parameter is a SharedArrayBuffer
+          <li> There is no _isLittleEndian_ parameter, it is "not present".
+          <li> There is no detachment check (step 1)
+          <li> Use the [[SharedArrayBufferData]] internal slot (step 5)
+        </ul>
+      </emu-clause>
+
