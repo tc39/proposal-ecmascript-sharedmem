@@ -1,5 +1,6 @@
 # ecmascript_sharedmem
-Shared memory and atomics for ECMAscript
+
+ECMAScript Shared Memory and Atomics - specification.
 
 The formatted spec is updated occasionally and can be accessed here:
-http://axis-of-eval.org/ecmascript_sharedmem/tc39/shmem.html
+http://lars-t-hansen.github.io/ecmascript_sharedmem/shmem.html
