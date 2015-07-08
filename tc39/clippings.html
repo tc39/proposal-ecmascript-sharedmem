@@ -89,3 +89,49 @@
         </ul>
       </emu-clause>
 
+
+
+
+        
+        A step in the algorithms below that is marked "With atomic access to ..." is known as an atomic step.  There must be a single total order (shared by all the agents that are able to communicate through shared memory) in which atomic steps occur, known as the atomics order.  If an atomic step R reads some bytes B<sub>0</sub> through B<sub>n</sub> in a SharedArrayBuffer, for each byte B it may return any of:</p>
+
+      <p> There is a relation <em>happens-before</em> on program steps that is defined as follows. </p>
+      <ul>
+        <li> If a step S precedes a step T in the dynamic semantics of a program within a single agent then S happens-before T.
+        <li> If a step S writes a value with an atomic operation synchronizes-with a step T then S happens-before T
+        <li> There are certain inter-agent, embedding-specific operations that contribute to the happens-before relationship; see the later section on Web Browser embedding.
+      </ul>
+
+
+      Note, how do the futex sections figure into all of this?
+
+
+      <p> A step in the algorithms below that is marked "With atomic access to ..." is known as an atomic step.  There must be a single total order (shared by all the agents that are able to communicate through shared memory) in which atomic steps occur, known as the atomics order.  If an atomic step R reads some bytes B<sub>0</sub> through B<sub>n</sub> in a SharedArrayBuffer, for each byte B it may return any of:</p>
+      <ul>
+        <li> The most recent (in the atomics order) value written by an atomic step to B.
+        <li> If a non-atomic step S wrote to B, and S happens-before R and there is no other step T that writes to B such that S happens-before T and T happens-before R, then the value that S wrote to B.
+        <li> If a non-atomic step U wrote to B and neither U happens-before R nor R happens-before U, then the value U wrote to B.
+      </ul>
+
+      <p>Notes:</p>
+      <ul>
+        <li> Data-race free programs are sequentially consistent.
+        <li> The fact that all Atomics accesses occur through SharedTypedArrays instead of SharedDataViews or directly to the SharedArrayBuffer guarantees that accesses will be aligned.
+        <li> If two atomic steps access the same elements of a SharedArrayBuffer through SharedTypedArrays with different element sizes, they do not induce a happens-before edge, but they do still occur in the global atomics order.
+        <li> Atomic steps do not have to be through the same type SharedTypedArray to induce a happens-before edge.
+      </ul>
+      
+      <p> If the two threads access the same shared memory cells , and at least one access is not an atomic operation
+      <p> Atomic accesses to memory are totally ordered. </p>
+
+
+      <!--
+      <p> In the algorithms below, the algorithm step 'With atomic access to (_buffer_, _indexedPosition_, _elementSize_)' means the following:</p>
+      <ul>
+        <li> If several agents are claiming atomic access to exactly the same _elementSize_ memory cells then these atomic sections are serialized, each agent executes all its dependent steps while the other agents are waiting
+        <li> FIXME: Well-defined atomic sections are globally ordered
+        <li> FIXME: It's possible to create ill-defined behavior with overlapping
+        <li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
+      </ul>
+-->
+      

@@ -4,31 +4,51 @@
 
        # ecmarkup spec.html shmem.html
 
+     TODO:
+     - of what use is the happens-before relation?  it is not currently used in the semantics.  In Java,
+       happens-before is used to define the meaning of a data race (and what's called a data race below
+       is called a "conflicting access").
+     - go over original proposal to see that everything was carried over
+     - modify ecmarkup to understand the ~ convention for boldface / monotype (which is it?)
+     - tag a lot more text with ~ as appropriate
+     - proofread...
 -->
 <!doctype html>
 <meta charset="utf8">
-<title>Shared memory and atomics specification</title>
+<title>ECMAScript Shared Memory and Atomics</title>
 <link rel="stylesheet" href="https://bterlson.github.com/ecmarkup/elements.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
-<h1>Shared memory and atomics specification</h1>
+<h1>ECMAScript Shared Memory and Atomics</h1>
+<p> Revised: 2015-07-08 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
-<p>This proposal adds shared memory types and atomic operations to ECMAScript.</p>
-<p>This document is organized in terms of where changes would be made to the ES6 spec. Although ecmarkup generates numbering at the beginning of headers, these won't correspond to the numbering within the existing ECMA spec, so I've included a matching numbering in parentheses afterwards, referring to the ES6 spec.</p>
-<p>Missing from this document (also search for FIXME):</p>
+
+<p> This proposal adds a simple form of shared memory to ECMAScript.  Shared memory is being exposed in the form of a new SharedArrayBuffer type; the existing TypedArrays are adapted in such a way that they can be used to create views on shared memory.  The new Atomics global object provides atomic operations on shared memory locations, including operations that can be used to create blocking synchronization primitives.  Though not a part of this specification, we intend for the role of "threads" to be played by Web Workers in web browser environments.<p>
+
+<p> At this time the propsal adds only low-level primitives to ECMAScript; we expect the developer community to put together abstractions that are useful in specific domains. </p>
+
+<p> The work has been driven by the following use cases: <p>
+
 <ul>
-  <li> Memory model discussion
+  <li> Support for threaded code in programs written in other languages that are translated to asm.js or plain JS or a combination of the two, notably C++ but also JVM and CIL bytecode, Halide, Clojure, Rust, and similar safe languages.
+  <li> Support for hand-written JS or JS+asm.js that makes use of multiprocessing facilities for select tasks, such as image processing, asset management, or game AI.
 </ul>
-<p>This document is in spec order, not written for direct readability.</p>
-<p>This document constitutes a restatement and formalization of an earlier work, <a href="https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing">the spec document for which</a> also contains a rationale, background information, discussions, and comments.</p>
+
+<p> The proposal makes only very basic assumptions about the required hardware and should be broadly implementable with good performance.  A closely related API has been available in Firefox Nightly for some time. </p>
+
+<p>This specification constitutes a restatement and formalization of an earlier work, <a href="https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing">the spec document for which</a> also contains additional rationale, background information, discussions, implementation notes, and comments.</p>
+
+<p> This specification is substantially complete, apart from two aspects: </p>
+<ul>
+  <li> The memory model is going to be refined further
+  <li> It is desirable to provide "relaxed" or "unordered" atomic load and store primitives
+</ul>
+
 <p>Changelog:</p>
 <ul>
-  <li> 2015-07-06
-    <ul>
-      <li> Translated from the original proposal
-    </ul>
+  <li> 2015-07-08 -- initial translation from the original proposal
 </ul>
 
 </emu-intro>
@@ -64,8 +84,8 @@
     <emu-clause id="DataTypesValues.LanguageTypes.Object">
       <h1>The Object Type (ES6 6.1.7)</h1>
       <emu-clause id="DataTypesValues.LanguageTypes.Object.Intrinsic">
-        <h1>Well-Known Intrinsic Objects</h1>
-        <p>In table 7, include rows for %SharedArrayBuffer% and %SharedArrayBufferPrototype% following the manner of the ditto for ArrayBuffer.</p>
+        <h1>Well-Known Intrinsic Objects (ES6 6.1.7.4)</h1>
+        <p>In table 7, include rows for %SharedArrayBuffer% and %SharedArrayBufferPrototype% in the manner of the rows for ArrayBuffer.</p>
       </emu-clause>
     </emu-clause>
   </emu-clause>
@@ -74,12 +94,15 @@
     <h1>ECMAScript Specification Types (ES6 6.2)</h1>
     <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
       <h1>Data blocks (ES6 6.2.6)</h1>
-      <p> AMEND: Insert the following paragraph after the third: </p>
-      <p> A data block that resides in memory that is shareable between concurrent agents is designated a Shared Data Block. </p>
+      <p> Insert the following paragraph after the third: </p>
+      <p> A data block that resides in memory that can be referenced from multiple agents is designated a Shared Data Block. </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
-        <h1>CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) (ES6 6.2.6.2)</h1>
-        <p> AMEND: In step 1, allow also a Shared Data Block. </p>
+        <h1>CopyDataBlockBytes( toBlock, toIndex, fromBlock, fromIndex, count ) (ES6 6.2.6.2)</h1>
+        <p>Modify this algorithm as follows:</p>
+        <ul>
+          <li> In step 1, allow also a Shared Data Block.
+        </ul>
       </emu-clause>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">
@@ -87,7 +110,7 @@
         <p>When the abstract operation CreateSharedByteDataBlock is called with integer argument size, the following steps are taken:</p>
         <emu-alg>
           1. Assert: _size_ >= 0.
-          1. Let _db_ be a new Shared Data Block value consisting of size bytes. If it is impossible to create such a Shared Data Block, throw a ~RangeError~ exception.
+          1. Let _db_ be a new Shared Data Block value consisting of _size_ bytes. If it is impossible to create such a Shared Data Block, throw a ~RangeError~ exception.
           1. Set all of the bytes of _db_ to 0.
           1. Return _db_.
         </emu-alg>
@@ -97,7 +120,7 @@
         <h1>SharedDataBlockID( block )</h1>
         <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument _block_, the following steps are taken:</p>
         <emu-alg>
-          1. Let _G_ be an address-free identifier for _block_.  If two agents are able to communicate through shared memory then _G_ has the same value in the two agents.
+          1. Let _G_ be an address-free identifier for _block_.  If two agents are able to communicate through shared memory via _block_ then _G_ has the same value in the two agents.
           1. Return _G_.
         </emu-alg>
         <emu-note>
@@ -112,7 +135,14 @@
   <h1>The Global Object (ES6 18)</h1>
   <emu-clause id="GlobalObject.ConstructorProps">
     <h1>Constructor Properties of the Global Object (ES6 18.3)</h1>
-    <p> Add new subsections for SharedArrayBuffer and Atomics, pointing to the appropriate new sections (below).</p>
+    <emu-clause id="GlobalObject.ConstructorProps.SharedArrayBuffer">
+      <h1>SharedArrayBuffer</h1>
+      <p> Add a new subsection for SharedArrayBuffer, pointing to the appropriate new section (below).</p>
+    </emu-clause>
+    <emu-clause id="GlobalObject.ConstructorProps.Atomics">
+      <h1>Atomics</h1>
+      <p> Add a new subsection for Atomics, pointing to the appropriate new section (below).</p>
+    </emu-clause>
   </emu-clause>
 </emu-clause>
 
@@ -135,16 +165,16 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="IndexedCollections.TypedArray">
     <h1>TypedArray Objects (ES6 22.2)</h1>
     <emu-note>
-      <p>This document extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
-      <p>Additionally here is a question whether TypedArray constructors should be extended to allocate shared memory, and whether TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be able to allocate static memory.</p>
-      <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer or one of its (user-defined) subclasses.</p>
+      <p>(Spec draft notes)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
+      <p>Additionally here is a question whether TypedArray constructors should be extended to allow them to allocate shared memory, and whether TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be extended to allow them to allocate shared memory.</p>
+      <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer (or the constructors of any user-defined subclasses of SharedArrayBuffer).</p>
     </emu-note>
 
     <emu-clause id="IndexedCollections.TypedArray.intrinsic">
       <h1>The %TypedArray% intrinsic object (ES6 22.2.1)</h1>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
-        <h1>%TypedArray% ( object ) (ES6 22.2.1.4)</h1>
+        <h1>%TypedArray%( object ) (ES6 22.2.1.4)</h1>
         <p>This algorithm is modified as follows:</p>
         <ul>
           <li> Add the restriction on the applicability of this constructor that it does not apply if the object has a [[SharedArrayBufferData]] internal slot.
@@ -152,7 +182,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
-        <h1>%TypedArray% ( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</h1>
+        <h1>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</h1>
         <p>This algorithm is modified as follows:</p>
         <ul>
           <li>In the first paragraph, allow also an object that has a [[SharedArrayBufferData]] internal slot.
@@ -162,7 +192,27 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
     </emu-clause> <!-- intrinsic object -->
-    
+
+    <emu-clause id="IndexedCollections.TypedArray.prototype">
+      <h1>Properties of the %TypedArrayPrototype% object (ES6 22.2.3)</h1>
+      <emu-clause id="IndexedCollections.TypedArray.prototype.set">
+        <h1> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES6 22.2.3.22)</h1>
+        <emu-clause id="IndexedCollections.TypedArray.prototype.setFromTypedArray">
+          <h1>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES6 22.2.3.22.2)</h1>
+          <p> Before step 24, insert the following algorithm:</p>
+          <emu-alg>
+            1. If IsSharedMemory(_srcBuffer_) is ~true~ and IsSharedMemory(_targetBuffer_) is ~true~ then:
+              1. Let _srcBlock_ be _srcBuffer_'s [[SharedArrayBufferData]] internal slot
+              1. Let _targetBlock_ be _targetBuffer_'s [[SharedArrayBufferData]] internal slot
+              1. Let _srcId_ be SharedDataBlockID(_srcBlock_)
+              1. Let _targetId_ be SharedDataBlockID(_targetBlock_)
+              1. If _srcId_ = _targetId_ then let _doClone_ be ~true~, else let _doClone_ be ~false~
+            1. Else, let _doClone_ be false
+          </emu-alg>
+          <p> Then, in step 24, also choose to clone srcBuffer if _doClone_ is ~true~. </p>
+        </emu-clause>
+      </emu-clause>
+    </emu-clause>
   </emu-clause>
 </emu-clause>
 
@@ -197,7 +247,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
       
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
-        <h1>GetValueFromBuffer ( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</h1>
+        <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</h1>
         <p> This algorithm is modified as follows:</p>
         <ul>
           <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
@@ -207,13 +257,17 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
-        <h1>SetValueInBuffer ( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</h1>
+        <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</h1>
         <p> This algorithm is modified as follows:</p>
         <ul>
           <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
           <li> If two agents can communicate through shared memory then they must compute the same value for _isLittleEndian_ if it is not present.
           <li> In step 5, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
         </ul>
+
+        <emu-note>
+          <p> When SetValueInBuffer is called to set bytes in shared memory the implementation may set several bytes at a time (and that is the normal case), but it may not use read-modify-write on a larger datum, as that might introduce data races where the source program has none.  Data races are discussed in the section on the Atomics object. </p>
+        </emu-note>
       </emu-clause>
       
     </emu-clause> <!-- abstract -->
@@ -222,9 +276,9 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="StructuredData.DataView">
     <h1>DataView Objects (ES6 24.2)</h1>
     <emu-clause id="StructuredData.DataView.constructor">
-      <h1>The DataView Consgtructor (ES6 24.2.2)</h1>
+      <h1>The DataView Constructor (ES6 24.2.2)</h1>
       <emu-clause id="StructuredData.DataView.constructor.detail">
-        <h1>DataView(buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</h1>
+        <h1>DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</h1>
         <p> This algorithm is modified as follows: </p>
         <ul>
           <li> In step 3, allow also a [[SharedArrayBufferData]] internal slot.
@@ -241,23 +295,23 @@ These call AllocateTypedArray with a specified length:
       <h1>Abstract Operations for SharedArrayBuffer</h1>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer">
-        <h1>AllocateSharedArrayBuffer ( constructor, byteLength )</h1>
-        <p> The abstract operation AllocateSharedArrayBuffer with arguments constructor and byteLength is used to create a SharedArrayBuffer object. It performs the following steps:</p>
+        <h1>AllocateSharedArrayBuffer( constructor, byteLength )</h1>
+        <p> The abstract operation AllocateSharedArrayBuffer with arguments _constructor_ and _byteLength_ is used to create a SharedArrayBuffer object. It performs the following steps:</p>
 
         <emu-alg>
-          1. Let obj be OrdinaryCreateFromConstructor(constructor, "%SharedArrayBufferPrototype%", «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).
-          1. ReturnIfAbrupt(obj).
-          1. Assert: byteLength is a positive integer.
-          1. Let block be CreateSharedByteDataBlock(byteLength).
-          1. ReturnIfAbrupt(block).
-          1. Set obj’s [[SharedArrayBufferData]] internal slot to block.
-          1. Set obj’s [[SharedArrayBufferByteLength]] internal slot to byteLength.
-          1. Return obj.
+          1. Let _obj_ be OrdinaryCreateFromConstructor(constructor, "%SharedArrayBufferPrototype%", «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).
+          1. ReturnIfAbrupt(_obj_).
+          1. Assert: _byteLength_ is a positive integer.
+          1. Let block be CreateSharedByteDataBlock(_byteLength_).
+          1. ReturnIfAbrupt(_block_).
+          1. Set _obj_’s [[SharedArrayBufferData]] internal slot to block.
+          1. Set _obj_’s [[SharedArrayBufferByteLength]] internal slot to _byteLength_.
+          1. Return _obj_.
         </emu-alg>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.abstract.IsSharedMemory" aoid="IsSharedMemory">
-        <h1>IsSharedMemory ( obj )</h1>
+        <h1>IsSharedMemory( obj )</h1>
         <p> IsSharedMemory tests whether an object represents shared memory. </p>
         <emu-alg>
           1. Assert: Type(_obj_) is ~Object~ and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.
@@ -275,7 +329,7 @@ These call AllocateTypedArray with a specified length:
       <p> The SharedArrayBuffer constructor is designed to be subclassable. It may be used as the value of an extends clause of a class definition. Subclass constructors that intend to inherit the specified SharedArrayBuffer behaviour must include a super call to the SharedArrayBuffer constructor to create and initialize subclass instances with the internal state necessary to support the SharedArrayBuffer.prototype built-in methods. </p>
       
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.withLength">
-        <h1>SharedArrayBuffer ( length )</h1>
+        <h1>SharedArrayBuffer( length )</h1>
         <p> SharedArrayBuffer called with argument length performs the following steps: </p>
         <emu-alg>
           1. If NewTarget is undefined, throw a ~TypeError~ exception.
@@ -292,7 +346,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties">
       <h1>Properties of the SharedArrayBuffer constructor</h1>
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.isView">
-        <h1>SharedArrayBuffer.isView ( arg )</h1>
+        <h1>SharedArrayBuffer.isView( arg )</h1>
         <p>The isView function takes one argument arg, and performs the following steps are taken:</p>
         <emu-alg>
           1. If Type(_arg_) is not ~Object~, return ~false~.
@@ -303,16 +357,18 @@ These call AllocateTypedArray with a specified length:
           <p> This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views. </p>
         </emu-note>
       </emu-clause>
+
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.prototype">
         <h1>SharedArrayBuffer.prototype</h1>
         <p> The initial value of SharedArrayBuffer.prototype is the intrinsic object %SharedArrayBufferPrototype% (q.v.).</P>
         <p> This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false }.</p>
       </emu-clause>
+
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.get_species">
         <h1>get SharedArrayBuffer [ @@species ]</h1>
         <P>`SharedArrayBuffer[@@species]` is an accessor property whose set accessor function is ~undefined~. Its get accessor function performs the following steps:</P>
         <emu-alg>
-          1. Return the this value.
+          1. Return the ~this~ value.
         </emu-alg>
         <P> The value of the name property of this function is "`get [Symbol.species]`".</P>
       </emu-clause>
@@ -320,6 +376,8 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="StructuredData.SharedArrayBuffer.prototype">
       <h1>Properties of the SharedArrayBuffer prototype object</h1>
+
+      <p>The SharedArrayBuffer prototype object is the intrinsic object %SharedArrayBufferPrototype%. The value of the [[Prototype]] internal slot of the SharedArrayBuffer prototype object is the intrinsic object %ObjectPrototype% (19.1.3). The SharedArrayBuffer prototype object is an ordinary object. It does not have a [[SharedArrayBufferData]] or [[SharedArrayBufferByteLength]] internal slot.</p>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.get_byteLength">
         <h1>get SharedArrayBuffer.prototype.byteLength</h1>
@@ -330,8 +388,8 @@ These call AllocateTypedArray with a specified length:
           1. Let _O_ be the ~this~ value.
           1. If Type(_O_) is not ~Object~, throw a ~TypeError~ exception.
           1. If _O_ does not have a [[SharedArrayBufferData]] internal slot, throw a ~TypeError~ exception.
-          1. Let length be the value of _O_’s [[SharedArrayBufferByteLength]] internal slot.
-          1. Return length.
+          1. Let _length_ be the value of _O_’s [[SharedArrayBufferByteLength]] internal slot.
+          1. Return _length_.
         </emu-alg>
       </emu-clause>
 
@@ -341,7 +399,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.slice">
-        <h1>SharedArrayBuffer.prototype.slice ( start, end )</h1>
+        <h1>SharedArrayBuffer.prototype.slice( start, end )</h1>
         <p> The following steps are taken: </p>
         <emu-alg>
           1. Let _O_ be the ~this~ value.
@@ -354,7 +412,7 @@ These call AllocateTypedArray with a specified length:
           1. If _end_ is ~undefined~, let _relativeEnd_ be _len_; else let _relativeEnd_ be ToInteger(_end_).
           1. ReturnIfAbrupt(_relativeEnd_).
           1. If _relativeEnd_ &lt; 0, let _final_ be max((_len_ + _relativeEnd_),0); else let _final_ be min(_relativeEnd_, _len_).
-          1. Let _newLen_ be max(_final_-_first_,0).
+          1. Let _newLen_ be max(_final_ - _first_,0).
           1. Let _ctor_ be SpeciesConstructor(_O_, %SharedArrayBuffer%).
           1. ReturnIfAbrupt(_ctor_).
           1. Let _new_ be Construct(_ctor_, «newLen»).
@@ -412,31 +470,55 @@ These call AllocateTypedArray with a specified length:
   <emu-clause "AtomicsObjectFunctionProps.semantics">
     <h1>Runtime semantics</h1>
     
-    <p> FIXME: Memory model probably goes here </p>
-
     <emu-clause id="Atomics.WithAtomicAccessTo">
       <h1>With atomic access to ...</h1>
       
-      <p> In the algorithms below, the algorithm step 'With atomic access to (_buffer_, _indexedPosition_, _elementSize_)' means the following:</p>
+      <p> If two agents access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>race</em>, and the program is said to contain a <em>data race</em>.  Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable.  If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable. </p>
+
+      <p> A program can perform actions on shared memory <em>atomically</em>, such actions are known as <em>atomic steps</em> and are marked in the algorithms below by the phrase "With atomic access to ...".</p>
+
+      <p> An atomic step that accesses a byte range within a Shared Data Block is well-defined unless the access races with:</p>
       <ul>
-        <li> If several agents are claiming atomic access to exactly the same _elementSize_ memory cells then these atomic sections are serialized, each agent executes all its dependent steps while the other agents are waiting
-        <li> FIXME: Well-defined atomic sections are globally ordered
-        <li> FIXME: It's possible to create ill-defined behavior with overlapping
-        <li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
+        <li> another atomic step that accesses an overlapping but non-identical byte range within that same Shared Data Block, or
+        <li> a non-atomic step that accesses an overlapping or identical byte range within that same Shared Data Block.
       </ul>
+
+      <p> Well-defined atomic steps occur in a single total order that is shared by all the agents that are able to communicate through shared memory, and thus a program can use atomic accesses to avoid data races. </p>
+
+      <emu-note>
+        <p> (Spec draft notes)  The intent is that a data race free program will be sequentially consistent.  The above conditions may not yet be sufficient to guarantee that. </p>
+      </emu-note>
+
     </emu-clause>
 
+    <emu-clause id="Atomics.HappensBefore">
+      <h1>Happens-before</h1>
+
+      <p> Some program steps (across agents) are ordered by the program-wide happens-before relation, as follows. </p>
+      <ul>
+        <li> Within a single agent, if a program step S1 occurs earlier in the dynamic semantics than a step S2 then S1 happens-before S2.
+        <li> An atomic step that occurs earlier in the total order of atomic steps happens-before a step that occurs later in the total order.
+        <li> When an agent calls Atomics.futexWake or Atomics.futexWakeOrRequeue and another agent that was in a call to Atomics.futexWait wakes up as a result of the first agent's call, then the call to Atomics.futexWake or Atomics.futexWakeOrRequeue in the first agent happens-before the return from Atomics.futexWait in the second agent.
+        <li> The ECMAScript embedding may extend the happens-before relation to take into account agent creation and destruction and inter-agent communication that does not go through shared memory.
+      </ul>
+
+      <emu-note>
+        <p> (Spec draft notes)  The notion of happens-before is not yet used in this specification.</p>
+      </emu-note>
+
+    </emu-clause>
+    
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
-      <h1>Runtime semantics: ValidateSharedIntegerTypedArray(_ta_, [onlyInt32])</h1>
+      <h1>Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</h1>
       <emu-alg>
-        1. If Type(_ta_) is not Object, throw a ~TypeError~ exception.
-        1. Let _typeName_ be the value of _ta_'s [[TypedArrayName]] internal slot
+        1. If Type(_typedArray_) is not Object, throw a ~TypeError~ exception.
+        1. Let _typeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
         1. If _onlyInt32_ is ~true~ then
           1. If _typeName_ is not "Int32Array" then throw a ~TypeError~ exception
         1. Else
           1. If _typeName_ is not "Int8Array", "Uint8Array", "Int16Array", "Uint16Array", "Int32Array", or "Uint32Array" then throw a ~TypeError~ exception
-        1. If _ta_ does not have a [[ViewedArrayBuffer]] internal slot, throw a ~TypeError~ exception.
-        1. Let _buffer_ be the value of _ta_’s [[ViewedArrayBuffer]] internal slot.
+        1. If _typedArray_ does not have a [[ViewedArrayBuffer]] internal slot, throw a ~TypeError~ exception.
+        1. Let _buffer_ be the value of _typedArray_’s [[ViewedArrayBuffer]] internal slot.
         1. If Type(_buffer_) is not Object, throw a ~TypeError~ exception.
         1. If _buffer_ does not have a [[SharedArrayBufferData]] internal slot, throw a ~TypeError~ exception.
         1. Return _buffer_
@@ -444,11 +526,22 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
-      <h1>Runtime semantics: ValidateAtomicAccess(_ta_, _index_)</h1>
-      <P> FIXME: Flesh this out; the original spec uses ToLength here but it may be more complicated </P>
+      <h1>Runtime semantics: ValidateAtomicAccess( typedArray, index )</h1>
+      <P> Perform the following steps: </p>
       <emu-alg>
-        1. If _index_ can be interpreted as a nonnegative index _i_ within _ta_ then return _i_.
-        1. Throw a RangeError exception
+        1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot.
+        1. If Type(_index_) is String then
+          1. Let _numValue_ be CanonicalNumericIndexString( _index_ )
+          1. If _numValue_ is ~undefined~ then throw a RangeError exception
+        1. Else if Type(_index_) is Number
+          1. Let _numValue_ be _index_
+        1. Else:
+          1. Throw a RangeError exception
+        1. If IsInteger(_numValue_) is ~false~ throw a RangeError exception
+        1. If _numValue_ = -0 throw a RangeError exception
+        1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot.
+        1. If _numValue_ &lt; 0 or _numValue_ &ge; _length_ throw a RangeError exception
+        1. Return _numValue_
       </emu-alg>
     </emu-clause>
     
@@ -456,13 +549,23 @@ These call AllocateTypedArray with a specified length:
       <h1>Within the futex critical section ...</h1>
       <p> In the algorithms below, the algorithm step 'Within the futex critical section' means the following:</p>
       <ul>
-        <li> There is a single critical section for the futex operations that is shared among all agents that can communicate through shared memory.
-        <li> The phrase 'within the futex critical section' acquires that section exclusively; any return from the dependent statements releases the section.
+        <li> There is a single critical section for the futex operations that is shared among all agents that can communicate through shared memory with the calling agent.
+        <li> The phrase 'Within the futex critical section' acquires that section exclusively; any return from the dependent statements releases the section.
       </ul>
     </emu-clause>
 
+    <emu-clause id="Atomics.AgentSignifier" aoid="AgentSignifier">
+      <h1>Runtime semantics: AgentSignifier( )</h1>
+      <p> When AgentSignifier is called without arguments then the following steps are taken.</p>
+      <emu-alg>
+        1. Let _W_ be an identifier for the calling agent among all the agents that are able to communicated through shared memory with the calling agent.
+        2. Return _W_.
+      </emu-alg>
+    </emu-clause>
+    
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
-      <h1>Runtime semantics: AddWaiter(_W_, _G_, _i_)</h1>
+      <h1>Runtime semantics: AddWaiter( W, G, i )</h1>
+      <p> When AddWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: _W_ is not in any global list of waiters
@@ -471,7 +574,8 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.RemoveWaiter" aoid="RemoveWaiter">
-      <h1>Runtime semantics: RemoveWaiter(_W_, _G_, _i_)</h1>
+      <h1>Runtime semantics: RemoveWaiter( W, G, i )</h1>
+      <p> When RemoveWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: _W_ is in the global list of all waiters that wait on (_G_, _i_)
@@ -480,7 +584,8 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1>Runtime semantics: RemoveWaiters(_G_, _i_)</h1>
+      <h1>Runtime semantics: RemoveWaiters( G, i)</h1>
+      <p> When RemoveWaiters is called with Shared Data Block ID _G_ and a nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Let _L_ be a copy of the global list of all waiters that wait on (_G_, _i_)
@@ -489,12 +594,13 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="Atomics.SuspendWaiter" aoid="SuspendWaiter">
-      <h1>Runtime semantics: Suspend(_timeout_)</h1>
+    <emu-clause id="Atomics.Suspend" aoid="Suspend">
+      <h1>Runtime semantics: Suspend( W, timeout )</h1>
+      <p> When Suspend is called with a an agent signifier _W_ and nonnegative number _timeout_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: The calling agent is on some global list of waiters
-        1. Let _W_ be the calling agent.
+        1. Assert: _W_ is equal to AgentSignifier()
         1. Atomically relinquish the futex critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_W_), and not for any other reasons at all.
         1. Re-acquire the futex critical section.
         1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
@@ -503,7 +609,8 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
-      <h1>Runtime semantics: WakeWaiter(_W_)</h1>
+      <h1>Runtime semantics: WakeWaiter( W )</h1>
+      <p> When WakeWaiter is called with an agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: _W_ is on some global list of waiters
@@ -522,20 +629,20 @@ These call AllocateTypedArray with a specified length:
     <h1>Function Properties of the Atomics Object</h1>
 
     <emu-clause id="Atomics.add">
-      <h1>Atomics.add ( ta, index, value )</h1>
+      <h1>Atomics.add( typedArray, index, value )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
         1. Let _v_ be ToNumber(_value_)
         1. ReturnIfAbrupt(_value_).
-        1. Let _arrayTypeName_ be the value of _ta_'s [[TypedArrayName]] internal slot
-        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for arrayTypeName.
-        1. Let _elementType_ be the String value of the Element Type value in Table 49 for arrayTypeName.
-        1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
+        1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
+        1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. Compute: Let _w_ be _r_ + _v_
@@ -545,47 +652,50 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.and">
-      <h1>Atomics.and ( ta, index, value )</h1>
+      <h1>Atomics.and( typedArray, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ &amp; _v_.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.compareExchange">
-      <h1>Atomics.compareExchange ( ta, index, expectedValue, replacementValue )</h1>
+      <h1>Atomics.compareExchange( typedArray, index, expectedValue, replacementValue )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
         1. Let _expected_ be ToNumber(_expectedValue_)
         1. ReturnIfAbrupt(_expected_)
         1. Let _replacement_ be ToNumber(_replacedValue_)
         1. ReturnIfAbrupt(_replacement_)
-        1. Let _arrayTypeName_ be the value of _ta_'s [[TypedArrayName]] internal slot
-        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for arrayTypeName.
-        1. Let _elementType_ be the String value of the Element Type value in Table 49 for arrayTypeName.
-        1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _convOp_ be the conversion operation specified in Table 49 for _arrayTypeName_
+        1. Let _x_ be _convOp_ ( _expected_ )
+        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
+        1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
+        1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementType_ ), do:
-          1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
-          1. If _r_ equals _expected_ then:
+          1. Let _r_ be GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
+          1. If _r_ is the same number value as _x_ then:
             1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
         1. Return _r_
       </emu-alg>
+
     </emu-clause>
 
     <emu-clause id="Atomics.exchange">
-      <h1>Atomics.exchange ( ta, index, value )</h1>
+      <h1>Atomics.exchange( typedArray, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _v_.</p>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWait">
-      <h1>Atomics.futexWait ( ta, index, value, timeout )</h1>
+      <h1>Atomics.futexWait( typedArray, index, value, timeout )</h1>
       <p> Atomics.futexWait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_, ~true~)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
         1. Let _v_ be the result of ToInt32(_value_).
         1. ReturnIfAbrupt(_v_)
@@ -595,11 +705,12 @@ These call AllocateTypedArray with a specified length:
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
         1. Within the futex critical section do:
-          1. Let _w_ be Atomics.load(_ta_, _i_)
-          1. If _v_ does not equal _w_ then return the original value of ~Atomics.NOTEQUAL~.
-          1. Let _W_ be a signifier for the calling agent
+          1. Let _w_ be Atomics.load(_typedArray_, _i_)
+          1. If _v_ does not equal _w_ then:
+            1. Return the original value of ~Atomics.NOTEQUAL~.
+          1. Let _W_ be AgentSignifier().
           1. Call AddWaiter(_W_, _G_, _i_)
-          1. Let awoken = Suspend(_t_)
+          1. Let awoken = Suspend(_W_, _t_)
           1. Call RemoveWaiter(_W_, _G_, _i_)
         1. If awoken = ~true~ then return the original value of ~Atomics.OK~.
         1. Return the original value of ~Atomics.TIMEDOUT~.
@@ -612,14 +723,16 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.futexWake">
-      <h1>Atomics.futexWake ( ta, index, count )</h1>
+      <h1>Atomics.futexWake( typedArray, index, count )</h1>
       <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_, ~true~)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _c_ be max(+0,ToInteger(_count_)).
+        1. Let _tmp_ be ToInteger(_count_)
+        1. ReturnIfAbrupt(_tmp_)
+        1. Let _c_ be max(+0,_tmp_).
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
         1. Let _n_ = 0
@@ -636,24 +749,27 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1>Atomics.futexWakeOrRequeue ( ta, index1, count, index2, value )</h1>
+      <h1>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</h1>
       <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue and moves other waiting agents to the back of the queue.  The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_, ~true~)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index1_ )
-        1. Let _c_ be max(+0,ToInteger(_count_))
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index1_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _j_ be ValidateAtomicAccess( _ta_, _index2_ )
+        1. Let _tmp_ be ToInteger(_count_)
+        1. ReturnIfAbrupt(_tmp_)
+        1. Let _c_ be max(+0,_tmp_)
+        1. Let _j_ be ValidateAtomicAccess( _typedArray_, _index2_ )
         1. ReturnIfAbrupt(_j_)
         1. Let _v_ be ToInt32(_value_)
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
+        1. Let _n_ = 0
         1. Within the futex critical section do:
-          1. Let _w_ be Atomics.load(_ta_, _i_)
-          1. If _v_ does not equal _w_ then return the original value of ~Atomics.NOTEQUAL~
+          1. Let _w_ be Atomics.load(_typedArray_, _i_)
+          1. If _v_ does not equal _w_ then:
+            1. Return the original value of ~Atomics.NOTEQUAL~
           1. Let _S_ be RemoveWaiters(_G_, _i_)
-          1. Let _n_ = 0
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
@@ -668,13 +784,13 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>        
 
       <emu-note>
-        <p> Atomics.futexWaitOrRequeue is an optimization that helps programs avoid a "thundering herd" problem when many threads are woken and compete for a lock (as in a broadcast). </p>
+        <p> Atomics.futexWaitOrRequeue is an optimization that helps programs avoid a "thundering herd" problem when many agents are woken and compete for a lock (as in a broadcast). </p>
       </emu-note>
 
     </emu-clause>
 
     <emu-clause id="Atomics.isLockFree">
-      <h1>Atomics.isLockFree ( size )</h1>
+      <h1>Atomics.isLockFree( size )</h1>
 
       <p> An atomic operation on a range of locations (_sab_, _offset_, _size_) is said to be _lock-free_ if the algorithm section of the operation that is labeled 'With atomic access to (_sab_, _offset_, _size_)' is implemented in a way that does not require a lock outside the specified data locations to be acquired. </p>
 
@@ -700,18 +816,18 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.load">
-      <h1>Atomics.load ( ta, index )</h1>
+      <h1>Atomics.load( typedArray, index )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _arrayTypeName_ be the value of _ta_'s [[TypedArrayName]] internal slot
-        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for arrayTypeName.
-        1. Let _elementType_ be the String value of the Element Type value in Table 49 for arrayTypeName.
-        1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
+        1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
+        1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
         1. Return _r_
@@ -719,25 +835,25 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.or">
-      <h1>Atomics.or ( ta, index, value )</h1>
+      <h1>Atomics.or( typedArray, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ | _v_.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.store">
-      <h1>Atomics.store ( ta, index, value )</h1>
+      <h1>Atomics.store( typedArray, index, value )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_ta_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
         1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _ta_, _index_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
         1. Let _v_ be ToNumber(_value_)
         1. ReturnIfAbrupt(_v_)
-        1. Let _arrayTypeName_ be the value of _ta_'s [[TypedArrayName]] internal slot
-        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for arrayTypeName.
-        1. Let _elementType_ be the String value of the Element Type value in Table 49 for arrayTypeName.
-        1. Let _offset_ be the value of _ta_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ * _elementSize_) + _offset_
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
+        1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
+        1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _v_ )
         1. Return _v_
@@ -745,12 +861,12 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.sub">
-      <h1>Atomics.sub ( ta, index, value )</h1>
+      <h1>Atomics.sub( typedArray, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ - _v_.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.xor">
-      <h1>Atomics.xor ( ta, index, value )</h1>
+      <h1>Atomics.xor( typedArray, index, value )</h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ ^ _v_.</p>
     </emu-clause>
   </emu-clause>
@@ -768,7 +884,7 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="WebBrowserEmbedding.MemoryModel">
     <h1>Agent communication semantics</h1>
 
-    <p>Agent-to-agent communication creates edges in the happens-before graph of the program, as follows:</p>
+    <p>Agent-to-agent communication extends the happens-before relation of the program, as follows:</p>
 
     <ul>
       <li>The call to the Worker constructor in the parent happens-before the execution of the main script in the worker.
@@ -776,7 +892,6 @@ These call AllocateTypedArray with a specified length:
       <li>A postMessage to a worker happens-before the event fires in the worker.
     </ul>
 
-    <p>FIXME: Reexpress this in terms of synchronizes-with?  And do we need to establish that eg a postMessage is an atomic operation somehow? </p>
   </emu-clause>
 
   <emu-clause id="WebBrowserEmbedding.Termination">
@@ -790,7 +905,7 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
     <h1>Transmitting and Cloning SharedArrayBuffers and Views</h1>
 
-    <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffer can be transmitted from one worker to another and are handled by the HTML5 structured clone algorithm as follows.</p>
+    <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffers can be transmitted from one worker to another using postMessage() and are handled by the HTML5 structured clone algorithm as follows.</p>
 
     <p>When a SharedArrayBuffer input object is cloned in the originating agent the result is a new SharedArrayBuffer object in the receiving agent that references the same Shared Data Block as the input object.  The input object must be present in the transfer map for the clone operation; if not, a standard clone exception will be thrown.</p>
 
