@@ -1,17 +1,12 @@
 <!-- -*- indent-tabs-mode: nil -*-
 
-     Preprocess this file with ecmarkup to produce shmem.html:
-
-       # ecmarkup spec.html shmem.html
+     Process this file with ../format.sh to produce shmem.html.  See comments in that file.
 
      TODO:
      - of what use is the happens-before relation?  it is not currently used in the semantics.  In Java,
        happens-before is used to define the meaning of a data race (and what's called a data race below
        is called a "conflicting access").
      - go over original proposal to see that everything was carried over
-     - modify ecmarkup to understand the ~ convention for boldface / monotype (which is it?)
-     - tag a lot more text with ~ as appropriate
-     - proofread...
 -->
 <!doctype html>
 <meta charset="utf8">
@@ -20,7 +15,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2015-07-08 </p>
+<p> Revised: 2015-07-09 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -42,12 +37,13 @@
 
 <p> This specification is substantially complete, apart from two aspects: </p>
 <ul>
-  <li> The memory model is going to be refined further
-  <li> It is desirable to provide "relaxed" or "unordered" atomic load and store primitives
+  <li> The memory model is going to be refined further.
+  <li> It is highly desirable to add facilities that allow conflicting shared memory operations to have defined meaning.  For example, adding Atomics.loadUnordered, Atomics.storeUnordered, and perhaps an explicit Atomics.fence operation, might be enough to allow a translation from JVM bytecodes to ECMAScript.
 </ul>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2015-07-09 -- ongoing cleanup and minor bug fixing
   <li> 2015-07-08 -- initial translation from the original proposal
 </ul>
 
@@ -207,7 +203,7 @@ These call AllocateTypedArray with a specified length:
               1. Let _srcId_ be SharedDataBlockID(_srcBlock_)
               1. Let _targetId_ be SharedDataBlockID(_targetBlock_)
               1. If _srcId_ = _targetId_ then let _doClone_ be ~true~, else let _doClone_ be ~false~
-            1. Else, let _doClone_ be false
+            1. Else, let _doClone_ be ~false~
           </emu-alg>
           <p> Then, in step 24, also choose to clone srcBuffer if _doClone_ is ~true~. </p>
         </emu-clause>
@@ -324,20 +320,23 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor">
       <h1>The SharedArrayBuffer Constructor</h1>
-      <p> The SharedArrayBuffer constructor is the %SharedArrayBuffer% intrinsic object and the initial value of the SharedArrayBuffer property of the global object. When called as a constructor it creates and initializes a new SharedArrayBuffer object. SharedArrayBuffer is not intended to be called as a function and will throw an exception when called in that manner. </p>
+      <p> The SharedArrayBuffer constructor is the %SharedArrayBuffer% intrinsic object and the initial value of the ~SharedArrayBuffer~ property of the global object. When called as a constructor it creates and initializes a new SharedArrayBuffer object.  The SharedArrayBuffer constructor is not intended to be called as a function and will throw an exception when called in that manner. </p>
 
-      <p> The SharedArrayBuffer constructor is designed to be subclassable. It may be used as the value of an extends clause of a class definition. Subclass constructors that intend to inherit the specified SharedArrayBuffer behaviour must include a super call to the SharedArrayBuffer constructor to create and initialize subclass instances with the internal state necessary to support the SharedArrayBuffer.prototype built-in methods. </p>
+      <p> The SharedArrayBuffer constructor is designed to be subclassable. It may be used as the value of an ~extends~ clause of a class definition. Subclass constructors that intend to inherit the specified SharedArrayBuffer behaviour must include a ~super~ call to the SharedArrayBuffer constructor to create and initialize subclass instances with the internal state necessary to support the ~SharedArrayBuffer.prototype~ built-in methods. </p>
+
+      <emu-note>
+        <p> Unlike an ArrayBuffer, a SharedArrayBuffer cannot become detached, and its internal [[SharedArrayBufferData]] slot is never ~undefined~.</p>
+      </emu-note>
       
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.withLength">
         <h1>SharedArrayBuffer( length )</h1>
         <p> SharedArrayBuffer called with argument length performs the following steps: </p>
         <emu-alg>
-          1. If NewTarget is undefined, throw a ~TypeError~ exception.
+          1. If NewTarget is ~undefined~, throw a ~TypeError~ exception.
           1. Let _numberLength_ be ToNumber(_length_).
-          1. ReturnIfAbrupt(_numberLength_).
           1. Let _byteLength_ be ToLength(_numberLength_).
           1. ReturnIfAbrupt(_byteLength_).
-          1. If SameValueZero(_numberLength_, _byteLength_) is false, throw a ~RangeError~ exception.
+          1. If SameValueZero(_numberLength_, _byteLength_) is ~false~, throw a ~RangeError~ exception.
           1. Return AllocateSharedArrayBuffer(NewTarget, _byteLength_).
         </emu-alg>
       </emu-clause>
@@ -345,6 +344,11 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties">
       <h1>Properties of the SharedArrayBuffer constructor</h1>
+
+      <p>The value of the [[Prototype]] internal slot of the SharedArrayBuffer constructor is the intrinsic object %FunctionPrototype% (q.v.).</p>
+
+      <p>Besides its ~length~ property (whose value is 1), the SharedArrayBuffer constructor has the following properties:</p>
+      
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.isView">
         <h1>SharedArrayBuffer.isView( arg )</h1>
         <p>The isView function takes one argument arg, and performs the following steps are taken:</p>
@@ -354,14 +358,14 @@ These call AllocateTypedArray with a specified length:
           1. Return ~false~.
         </emu-alg>
         <emu-note>
-          <p> This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views. </p>
+          <p> (Spec draft notes)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return ~true~ only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return ~false~ if its argument is viewing a SharedArrayBuffer.</p>
         </emu-note>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.prototype">
         <h1>SharedArrayBuffer.prototype</h1>
         <p> The initial value of SharedArrayBuffer.prototype is the intrinsic object %SharedArrayBufferPrototype% (q.v.).</P>
-        <p> This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false }.</p>
+        <p> This property has the attributes { [[Writable]]: ~false~, [[Enumerable]]: ~false~, [[Configurable]]: ~false~ }.</p>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.get_species">
@@ -382,7 +386,7 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.get_byteLength">
         <h1>get SharedArrayBuffer.prototype.byteLength</h1>
 
-        <p> SharedArrayBuffer.prototype.byteLength is an accessor property whose set accessor function is undefined. Its get accessor function performs the following steps: </P>
+        <p> SharedArrayBuffer.prototype.byteLength is an accessor property whose set accessor function is ~undefined~. Its get accessor function performs the following steps: </P>
 
         <emu-alg>
           1. Let _O_ be the ~this~ value.
@@ -418,7 +422,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _new_ be Construct(_ctor_, «newLen»).
           1. ReturnIfAbrupt(_new_).
           1. If _new_ does not have a [[SharedArrayBufferData]] internal slot, throw a ~TypeError~ exception.
-          1. If SameValue(_new_, _O_) is true, throw a ~TypeError~ exception.
+          1. If SameValue(_new_, _O_) is ~true~, throw a ~TypeError~ exception.
           1. If the value of _new_’s [[SharedArrayBufferByteLength]] internal slot &lt; _newLen_, throw a ~TypeError~ exception.
           1. Let _fromBuf_ be the value of _O_’s [[SharedArrayBufferData]] internal slot.
           1. Let _toBuf_ be the value of _new_’s [[SharedArrayBufferData]] internal slot.
@@ -431,7 +435,7 @@ These call AllocateTypedArray with a specified length:
         <h1>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
         <p> The initial value of the @@toStringTag property is the String value `"SharedArrayBuffer"`.</p>
 
-        <p>This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.</p>
+        <p>This property has the attributes { [[Writable]]: ~false~, [[Enumerable]]: ~false~, [[Configurable]]: ~true~ }.</p>
       </emu-clause>
     </emu-clause> <!-- prototype -->
 
@@ -473,7 +477,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.WithAtomicAccessTo">
       <h1>With atomic access to ...</h1>
       
-      <p> If two agents access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>race</em>, and the program is said to contain a <em>data race</em>.  Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable.  If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable. </p>
+      <p> If two agents access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>conflict</em>, and the program is said to contain a <em>data race</em>.  Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable.  If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable. </p>
 
       <p> A program can perform actions on shared memory <em>atomically</em>, such actions are known as <em>atomic steps</em> and are marked in the algorithms below by the phrase "With atomic access to ...".</p>
 
@@ -532,15 +536,15 @@ These call AllocateTypedArray with a specified length:
         1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot.
         1. If Type(_index_) is String then
           1. Let _numValue_ be CanonicalNumericIndexString( _index_ )
-          1. If _numValue_ is ~undefined~ then throw a RangeError exception
+          1. If _numValue_ is ~undefined~ then throw a ~RangeError~ exception
         1. Else if Type(_index_) is Number
           1. Let _numValue_ be _index_
         1. Else:
-          1. Throw a RangeError exception
-        1. If IsInteger(_numValue_) is ~false~ throw a RangeError exception
-        1. If _numValue_ = -0 throw a RangeError exception
+          1. Throw a ~RangeError~ exception
+        1. If IsInteger(_numValue_) is ~false~ throw a ~RangeError~ exception
+        1. If _numValue_ = -0 throw a ~RangeError~ exception
         1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot.
-        1. If _numValue_ &lt; 0 or _numValue_ &ge; _length_ throw a RangeError exception
+        1. If _numValue_ &lt; 0 or _numValue_ &ge; _length_ throw a ~RangeError~ exception
         1. Return _numValue_
       </emu-alg>
     </emu-clause>
@@ -701,7 +705,8 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt(_v_)
         1. If _timeout_ is not provided or is ~undefined~ then let _t_ be +Infinity.  Otherwise:
           1. Let _q_ be the result of ToNumber(_timeout_)
-          1. If _q_ is NaN then let _t_ be +Infinity, otherwise let _t_ be max(0,_q_).
+          1. ReturnIfAbrupt(_q_)
+          1. If _q_ is NaN then let _t_ be +Infinity, otherwise let _t_ be max(0, _q_).
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
         1. Within the futex critical section do:
@@ -712,7 +717,7 @@ These call AllocateTypedArray with a specified length:
           1. Call AddWaiter(_W_, _G_, _i_)
           1. Let awoken = Suspend(_W_, _t_)
           1. Call RemoveWaiter(_W_, _G_, _i_)
-        1. If awoken = ~true~ then return the original value of ~Atomics.OK~.
+        1. If awoken is ~true~ then return the original value of ~Atomics.OK~.
         1. Return the original value of ~Atomics.TIMEDOUT~.
       </emu-alg>
 
@@ -726,22 +731,22 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.futexWake( typedArray, index, count )</h1>
       <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
-        1. ReturnIfAbrupt(_buffer_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray( _typedArray_, ~true~ )
+        1. ReturnIfAbrupt( _buffer_ )
         1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
-        1. ReturnIfAbrupt(_i_)
-        1. Let _tmp_ be ToInteger(_count_)
-        1. ReturnIfAbrupt(_tmp_)
-        1. Let _c_ be max(+0,_tmp_).
+        1. ReturnIfAbrupt( _i_ )
+        1. Let _tmp_ be ToInteger( _count_ )
+        1. ReturnIfAbrupt( _tmp_ )
+        1. Let _c_ be max( +0, _tmp_ ).
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
-        1. Let _G_ be SharedDataBlockID(_bufferVal_)
+        1. Let _G_ be SharedDataBlockID( _bufferVal_ )
         1. Let _n_ = 0
         1. Within the futex critical section do:
-          1. Let _S_ be RemoveWaiters(_G_, _i_)
+          1. Let _S_ be RemoveWaiters( _G_, _i_ )
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
-            1. Call WakeWaiter(_W_)
+            1. Call WakeWaiter( _W_ )
             1. Subtract 1 from _c_
             1. Add 1 to _n_
         1. Return _n_.
@@ -792,21 +797,20 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.isLockFree">
       <h1>Atomics.isLockFree( size )</h1>
 
-      <p> An atomic operation on a range of locations (_sab_, _offset_, _size_) is said to be _lock-free_ if the algorithm section of the operation that is labeled 'With atomic access to (_sab_, _offset_, _size_)' is implemented in a way that does not require a lock outside the specified data locations to be acquired. </p>
-
       <emu-alg>
         1. Let _n_ be ToInteger(_size_)
         1. ReturnIfAbrupt(_n_)
         1. If _n_ is not the initial value of the BYTES_PER_ELEMENT property of some TypedArray then return ~false~
-        1. If an atomic operation (compareExchange, load, store, add, sub, and, or, xor, or exchange) on a datum of size _n_ bytes will be performed in a lock-free manner in the calling agent then return ~true~
+        1. If the atomic step of an atomic operation (compareExchange, load, store, add, sub, and, or, xor, or exchange) on a datum of size _n_ bytes will be performed without the calling agent acquiring a lock outside the _n_ bytes comprising the datum then return ~true~
         1. Return ~false~
       </emu-alg>
 
-      <p>If Atomics.isLockFree(k) returns v at some point in some agent then every other invocation of Atomics.isLockFree(k) in that agent must return v.</p>
-      <p>If Atomics.isLockFree(k) returns v in some agent then every invocation of Atomics.isLockFree(k) in any agent that can communicate through shared memory with the first agent must also return v.</p>
+      <p>If Atomics.isLockFree(k) returns a value <em>v</em> at some point in some agent then every other invocation of Atomics.isLockFree(k) in that agent must return <em>v</em>.</p>
+
+      <p>If Atomics.isLockFree(k) returns a value <em>v</em> in some agent then every invocation of Atomics.isLockFree(k) in any agent that can communicate through shared memory with the first agent must also return <em>v</em>.</p>
 
       <emu-note>
-        <p> Atomics.isLockFree is an optimization primitive. High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections.  If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</P>
+        <p> Atomics.isLockFree() is an optimization primitive.  High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections.  If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</P>
       </emu-note>
 
       <emu-note>
@@ -892,6 +896,14 @@ These call AllocateTypedArray with a specified length:
       <li>A postMessage to a worker happens-before the event fires in the worker.
     </ul>
 
+    <emu-note>
+      <p> (Implementation note) In current Firefox at least, a worker is not actually created until the parent has returned to its event loop and allowed the event loop to process runnables related to the worker creation.  Thus if a main thread creates a worker and then, without returning to the event loop, goes to sleep on a location waiting for the worker to wake it, it will actually deadlock.  This can be viewed as a bug in the worker specification (there is no worker-created event) or a bug in the worker implementation (the worker spec assumes immediate creation but that is not how it's implemented) or a mismatch between the synchronous style of shared memory and the asynchronous style of browsers (with messaging and events it's not possible to tell when agent creation happens, exactly).  A general fix for this is to implement the worker-created event manually, and that works cross-platform, but it's not pretty.  </p>
+    </emu-note>
+
+    <emu-note>
+      <p> There appears to be no way to determine whether a Worker has terminated. </p>
+    </emu-note>
+
   </emu-clause>
 
   <emu-clause id="WebBrowserEmbedding.Termination">
@@ -900,6 +912,11 @@ These call AllocateTypedArray with a specified length:
 
     <p>If a worker is terminated for any other reason, such as the user agent reloading or closing the window or frame, and the worker is blocked in a call to futexWait when it is terminated, then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  However, after the running script has been terminated the worker's close handler(s) will be run as if the wait had not been aborted.</p>
 
+    <p> Some corner cases are unresolved:</p>
+    <ul>
+      <li> If Service Workers have access to shared memory then it is possible for a service worker to wait on an action from another agent, say, a document's main thread.  But if the document in question is suspended (because the user is navigating away from the document) then the service worker may never be woken: the document may remain suspended and may eventually be evicted from the history.
+    </ul>
+        
   </emu-clause>
   
   <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">

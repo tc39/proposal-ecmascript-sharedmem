@@ -52,11 +52,13 @@ function transform(l) {
 		continue;
 	    }
 	}
-	if (state != CONST) {
+	if (state != CONST)
 	    o += c;
-	}
 	i++;
+    }
+    if (state == CONST) {
+	// illegal, so flush
+	o += l.substring(start, i);
     }
     return o;
 }
-

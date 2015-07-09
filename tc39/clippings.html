@@ -134,4 +134,19 @@
         <li> FIXME: Conflicts are implementation dependent and can change over time (eg, moving from a spinlock to an atomic can change behavior)
       </ul>
 -->
+
+    <emu-clause id="Atomics.loadUnordered">
+      <h1>Atomics.loadUnordered( typedArray, index )</h1>
+      <emu-note>
+        <p> This is the same operation as Atomics.load, but where the observable memory effects of Atomics.load relative to operations before and after it are defined, Atomics.loadUnordered can be rearranged (in terms of memory effects) with unordered operations that precede or succeed it, including non-atomic operations.  Atomics.loadUnordered can be implemented much more efficiently than Atomics.load on almost all platforms. </p>
+      </emu-note>
+    </emu-clause>
+    
+    <emu-clause id="Atomics.storeUnordered">
+      <h1>Atomics.storeUnordered( typedArray, index, value )</h1>
+      <emu-note>
+        <p> This is the same operation as Atomics.store, but where the observable memory effects of Atomics.store relative to operations before and after it are defined, Atomics.storeUnordered can be rearranged (in terms of memory effects) with unordered operations that precede or succeed it, including non-atomic operations.  Atomics.storeUnordered can be implemented much more efficiently than Atomics.store on almost all platforms. </p>
+      </emu-note>
+    </emu-clause>
+
       
