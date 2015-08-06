@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2015-07-09 </p>
+<p> Revised: 2015-08-06 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -37,6 +37,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2015-08-06 -- added sections on forward progress and clarifications and changes to worker semantics.
   <li> 2015-07-09 -- ongoing cleanup and minor bug fixing.  Restated the memory model.
   <li> 2015-07-08 -- initial translation from the original proposal
 </ul>
@@ -54,6 +55,9 @@
     <emu-clause id="Overview.Terms.Agent">
       <h1>Agent</h1>
       <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
+      <emu-note>
+        <p> (Spec draft note) Plausibly this should be worded in terms of running 'jobs'. </p>
+      </emu-note>
     </emu-clause>
     <emu-clause id="Overview.Terms.AgentComm">
       <h1>Agent communication</h1>
@@ -121,6 +125,20 @@
           <p>The Shared Data Block ID is used by the futex mechanism and names _block_ independently of any virtual addresses it may be mapped to in any particular agent.</p>
         </emu-note>
       </emu-clause>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="ExecutableCodeAndContexts">
+  <h1>Executable Code and Execution Contexts (ES6 8)</h1>
+  <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues">
+    <h1>Jobs and Job Queues (ES6 8.4)</h1>
+    <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
+      <h1>Forward Progress Guarantees</h1>
+      <p>Implementations should ensure that all unblocked jobs eventually make progress. </p>
+      <emu-note>
+        <p>(Spec draft note) This section may be formalized at least partly in the terms of the C++ working paper on forward progress (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf) or it may be left as-is.  An ES6 job is most plausibly a 'Concurrent agent' in the terms of that paper. </p>
+      </emu-note>
     </emu-clause>
   </emu-clause>
 </emu-clause>
@@ -884,6 +902,61 @@ These call AllocateTypedArray with a specified length:
 
   </emu-clause>
   
+  <emu-clause id="WebBrowserEmbedding.WorkerSemantics">
+    <h1>Clarifications and changes to Web Worker semantics</h1>
+
+    <emu-note>
+      <p> Several of these issues have been reported as bugs against the WHATWG spec, <a href='https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039'>see this bug report</a>. </p>
+    </emu-note>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Start">
+      <h1>Actions to start a worker</h1>
+      <p> (Clarification) The only action required to start a worker is to call "new Worker()". </p>
+      <p> (Compatible change) If a worker cannot be started for reasons of resource exhaustion (notably, no threads available, including arbitrary implementation limits on the number of threads) then an exception must be thrown. </p>
+      <emu-note>
+        <p> Some browsers currently violate those requirements. </p>
+        <ul>
+          <li> In current Firefox, a worker is not actually created until the parent has returned to its event loop and allowed the event loop to process runnables related to the worker creation.
+          <li> In current Firefox, there is a per-domain limit on the number of workers.  An attempt to create a worker will silently not start the worker if the limit has been reached; the worker will be queued and started when another worker has terminated.
+        </ul>
+        <p> If an agent creates a worker and then -- if the worker is not started because the agent does not return to its event loop or because the worker is not assigned a thread -- the agent goes to sleep on a location waiting for the worker to wake it, there will be a deadlock. </p>
+        <p> There are other error situations during worker startup that can't necessarily be signaled synchronously, notably, a load error on the URL.  Those have to be signaled via an event callback, or the creating agent must poll the state of the worker to see if it enters an error state (see more below on the state). </p>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Jobs">
+      <h1>Events and scripts run in a worker as ES6 jobs</h1>
+      <p> (Clarification) ECMAscript code running in a worker runs as an ES6 job, and scheduling of work in a Worker happens by the rules of ES6 jobs.</p>
+      <emu-note>
+        <p> Thus the forward-progress guarantee of jobs also applies to workers. </p>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.LicenseToKill">
+      <h1>Curtail the license to kill</h1>
+      <p> (Compatible change) Workers may be killed by the browser only for specific reasons.  These reasons are TBD but include evicting the owning page from the history and closing the owning page.  These reasons do not include workers that 'run too long'. </p>
+      <emu-note>
+        <p> Currently the WHATWG spec allows the browser to kill any worker at any time.  The purpose of the rule is probably a combination of the need to stop runaway scripts (without the normal slow-script dialog) and the need to remove workers once a page is evicted from the browser cache or a tab is closed.  However, the wording is overly broad.  Also, common uses of workers for computation conflict with the ability to detect 'runaway' agents:</p>
+        <ul>
+          <li> The worker may perform a genuinely long-running computation
+          <li> The worker will have its own user-implemented 'event' loop, communicating synchronously through shared memory; it will not use the browser's event loop
+        </ul>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Introspection">
+      <h1>Termination detection</h1>
+      <p> (Compatible(?) change) The worker object should have a read-only property called "state" whose value represents the state of the worker (eg a string naming the state).  One state could be "terminated", indicating the worker is dead. </p>
+      <emu-note>
+        <p> (Spec draft note) There appears to be no way at present to directly determine whether a Worker has terminated. </p>
+      </emu-note>
+      <emu-note>
+        <p> (Spec draft note) Possible complementary mechanisms include throwing an exception when a message is sent to a terminated worker, and to send an error event to the creating agent when a worker is killed. </p>
+      </emu-note>
+    </emu-clause>
+
+  </emu-clause>
+  
   <emu-clause id="WebBrowserEmbedding.MemoryModel">
     <h1>Agent communication semantics</h1>
 
@@ -894,14 +967,6 @@ These call AllocateTypedArray with a specified length:
       <li>The termination of a worker happens-before the parent of the worker (or any other agent) can determine that the worker has terminated.
       <li>A postMessage to a worker happens-before the event fires in the worker.
     </ul>
-
-    <emu-note>
-      <p> (Implementation note) In current Firefox at least, a worker is not actually created until the parent has returned to its event loop and allowed the event loop to process runnables related to the worker creation.  Thus if a main thread creates a worker and then, without returning to the event loop, goes to sleep on a location waiting for the worker to wake it, it will actually deadlock.  This can be viewed as a bug in the worker specification (there is no worker-created event) or a bug in the worker implementation (the worker spec assumes immediate creation but that is not how it's implemented) or a mismatch between the synchronous style of shared memory and the asynchronous style of browsers (with messaging and events it's not possible to tell when agent creation happens, exactly).  A general fix for this is to implement the worker-created event manually, and that works cross-platform, but it's not pretty.  </p>
-    </emu-note>
-
-    <emu-note>
-      <p> There appears to be no way to determine whether a Worker has terminated. </p>
-    </emu-note>
 
   </emu-clause>
 
