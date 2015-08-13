@@ -1,6 +1,6 @@
 # Issues not addressed elsewhere
 
-(This document is not finished.)
+(This document is not finished.  It should incorporate key points from the Rationale in the older spec document, and maybe a few other things.)
 
 ## Cross-cutting concerns
 
