@@ -122,6 +122,16 @@ console.log(ia[37]);  // Prints 123456
 
 The way this works is that once it's performed a write, the writer requests to wake up at most one agent that's sleeping on location ia[37].  Meanwhile, the reader requests to go to sleep, provided the value of ia[37] is still 163.  Thus if the writer has already performed its write the reader will just continue on, and otherwise it will sleep, waiting to be woken by the writer.
 
-## Subtleties
-
 ## Abstractions
+
+In practice some of the shared memory facilities, especially futexWait and futexWake, can be hard to use correctly and efficiently.  It is therefore useful to build abstractions (in JavaScript) around these to simplify their use.  For example, among the demos you will find traditional mutexes and condition variables; barriers; and so-called "synchronic" objects that are containers for simple atomic values and have built-in (and efficient) wait-for-update functionality.
+
+## Subtleties and advice
+
+(To be written.  Topics: race conditions; ordering of reads and writes; don't mix atomics and non-atomics; the main thread; deadlocks)
+
+## Notes on the current Firefox Nightly implementation (August 2015)
+
+Firefox Nightly implements a slightly different API at the moment, based on an older design: there is a separate set of "SharedTypedArray" types that must be used instead of the normal TypedArray types.  That is, to create a view on a SharedArrayBuffer, use the "SharedInt32Array" type instead of the Int32Array type.
+
+Firefox also has a couple of idiosyncracies around workers.  The agent that creates a worker must return to its event loop before the worker will be properly created (the worker will remain un-started until then).  Also, there's a per-domain limit on the number of workers, it defaults to 20; once the limit is exceeded new workers will remain un-started.  A program that futexWaits on an un-started worker will usually deadlock.
