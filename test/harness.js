@@ -11,6 +11,7 @@ if (!this.SharedInt32Array) {
     SharedUint32Array = Uint32Array;
     SharedFloat32Array = Float32Array;
     SharedFloat64Array = Float64Array;
+    SharedUint8ClampedArray = Uint8ClampedArray;
 }
 
 function assertEq(a, b) {
@@ -44,4 +45,20 @@ function assertEq(a, b) {
 
     if (!same(a,b))
 	throw new Error("Failed: got " + a + ", expected " + b);
+}
+
+function expectException(thunk, error) {
+    var failed = false;
+    var failure;
+    try {
+	thunk();
+    }
+    catch (e) {
+	failed = true;
+	failure = e;
+    }
+    if (!failed)
+	throw new Error("Failed: expected " + error.name + " exception, did not fail: " + thunk);
+    if (!(failure instanceof error))
+	throw new Error("Failed: expected " + error.name + ", got " + failure);
 }
