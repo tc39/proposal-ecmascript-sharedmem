@@ -53,4 +53,4 @@ for ( var View of other_views ) {
 // TODO: test that futex operations are disallowed on non-int32 arrays
 // (but can't test in a shell test whether futex operations work)
 
-// TODO: test isLockfree8
+// TODO: test isLockFree
