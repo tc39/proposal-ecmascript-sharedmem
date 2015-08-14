@@ -121,12 +121,12 @@ That that might not be true is counter-intuitive, but it can happen.  Suppose th
 ia[42] = 314159;  // was 191
 ia[37] = 123456;  // was 163
 ```
-Suppose another writer reads those two values:
+Suppose another worker reads those two values:
 ```js
 console.log(ia[37]);
 console.log(ia[42]);
 ```
-The second reader may print 123456 and 191, even though it would seem that that should not happen.  The reason is that the writes may be reordered by the compiler and (more often) the CPU.
+The reader may print 123456 and 191, even though it would seem that that should not happen.  The reason is that the writes may be reordered by the compiler and (more often) the CPU.
 
 Atomic operations create points of ordering in the program.  If ia[37] is written atomically, all writes performed before the atomic write will be observable no later than the write to ia[37] is observed:
 ```js
@@ -140,6 +140,8 @@ while (Atomics.load(ia, 37) == 163)
 console.log(ia[37]);  // Will print 123456
 console.log(ia[42]);  // Will print 314159
 ```
+
+(Similarly, it is possible for reads to be performed out of order.  Atomic operations also order the reads.)
 
 ### Atomic operations are not interruptible
 
