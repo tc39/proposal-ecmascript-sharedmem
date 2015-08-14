@@ -8,5 +8,5 @@ Note, the code in that repo still uses an API that is slightly different from th
 
 The demos and test cases in parlib-simple are written at varying abstraction levels, and in particular, many of them appear a little messy because they manage memory manually.
 
-The easiest place to start might be src/buffer.js, which implements a classical bounded buffer using the lock and condition variables implemented in src/lock.js.  These are then tied together in an example program in test/test-buffer.html.
+The easiest place to start might be src/buffer.js, which implements a classical bounded buffer using the lock and condition variables implemented in src/lock.js.  These are then tied together in an example program in test/test-buffer.html, where several workers insert values into a buffer and the main thread extracts those values.
 
