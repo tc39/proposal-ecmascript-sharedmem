@@ -2,39 +2,37 @@
 
 ## Concurrent agents
 
-The specification leaves undefined what kinds of concurrent agents there might be (that can share memory) and how they are created and managed.  In a browser setting it's most natural to use WebWorkers for shared agents, and I'll assume that in the following.
-
-To recap, workers are created by allocating ```Worker``` objects, passing a URL of the script to be loaded into the worker:
+In a browser setting it's natural to use WebWorkers for shared agents.  To recap, workers are created by allocating ```Worker``` objects, passing a URL of the script to be run in the worker:
 ```js
    var w = new Worker("myworker.js")
 ```
-The worker and its creator communicate over a message channel.  In the creator, ```w.postMessage``` sends a message to the worker, and attaching a message handler to the worker object retrieves event data.
+The worker and its creator communicate over a message channel.  In the creator,  a call to ```w.postMessage``` sends a message to the worker, and a handler on the worker object receives messages as events:
 ```js
 w.postMessage("hi");     // send "hi" to the worker
 w.onmessage = function (ev) {
   console.log(ev.data);  // prints "ho"
 }
 ```
-Meanwhile, in the worker, a global message handler receives the message as the data value of a normal event object, and the worker calls the global ```postMessage``` directly to send a message back to its creator:
+Meanwhile, in the worker, a global handler receives messages as events, and a call to the global ```postMessage``` function sends a message back to the worker's creator:
 ```js
 onmessage = function (ev) {
-    console.log(ev.data);  // prints "hi"
-    postMessage("ho");     // sends "ho" back to the creator
+  console.log(ev.data);  // prints "hi"
+  postMessage("ho");     // sends "ho" back to the creator
 }
 ```
 Many types of data - not just strings - can be sent across the channel and will arrive with the correct type and structure at the destination.
 
 ## Allocating shared memory, and sharing it
 
-To allocate shared memory, simply allocate a SharedArrayBuffer:
+To allocate shared memory, just allocate a SharedArrayBuffer:
 
 ```js
-   var sab = new SharedArrayBuffer(1024);  // 1KiB shared memory
+var sab = new SharedArrayBuffer(1024);  // 1KiB shared memory
 ```
 
-The creator can share this memory with the worker by *transfering* it using the standard ```postMessage``` syntax, where a second argument to ```postMessage``` contains the values to be transfered:
+The creator can share this memory with the worker by *transfering* it using the standard ```postMessage``` semantics, where a second argument to ```postMessage``` contains the values to be transfered:
 ```js
-   w.postMessage(sab, [sab])
+w.postMessage(sab, [sab])
 ```
 In the worker, this object is received as the data property of the event:
 ```js
@@ -44,11 +42,13 @@ onmessage = function (ev) {
 }
 ```
 
+Memory can be created in any agent and then shared with any other agent, and can be shared among many agents simultaneously.
+
 ## Creating views on shared memory
 
 A SharedArrayBuffer is like an ArrayBuffer, apart from its memory being shared, and the memory is accessed in the same way as an ArrayBuffer's memory is: by creating views on the buffer, and then accessing the memory via the view using standard array access syntax.  The same view types can be applied to SharedArrayBuffer as to ArrayBuffer, from Int8Array to Float64Array.
 
-Suppose the creator of the shared memory wants to share a large constant array of prime numbers with its workers.  It allocates the memory and then fills it:
+Suppose the creator of the shared memory wants to share a large constant array of prime numbers with its workers.  It allocates the memory, fills it, and sends it:
 
 ```js
 var sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 100000); // 100000 primes
@@ -59,33 +59,32 @@ for ( let i=0 ; i < ia.length ; i++ )
 w.postMessage(ia, [ia.buffer]);  // The array buffer goes in the transfer list
 ```
 
-The worker receives the array as usual (here it receives an Int32Array because that's what was sent):
+The worker receives an Int32Array because that's what was sent:
 
 ```js
 var ia;
 onmessage = function (ev) {
-  ia = ev.data;  // ia.length == 100000
+  ia = ev.data;        // ia.length == 100000
+  console.log(ia[37]); // prints 163, the 38th prime
 }
 ```
-
-Memory can be created in any agent and then shared with any other agent, and can be shared among many agents simultaneously.
 
 ## Updating shared memory, and visibility
 
 Since the memory is truly shared, a write in one agent will be observed in all the other agents that share that memory:
 
 ```js
-console.log(ia[37]);  // Prints 163, the 38th prime
+console.log(ia[37]);  // Prints 163
 ia[37] = 123456;
 ```
 
 A while after the assignment happened in the writer the change will show up in another agent:
 
 ```js
-console.log(ia[37]); // Prints 123456, maybe
+console.log(ia[37]); // Prints 123456, maybe, eventually
 ```
 
-One of the tricky aspects of shared memory is that it's hard to know how long it will take for a write to propagate from one agent to another.  How quickly that happens is actually system-dependent, for a very broad definition of system including the CPU, the operating system, the browser, and in fact whatever else is happening on the system at the time of the write and read.
+One of the trickiest aspects of shared memory is that it's hard to know how long it will take for a write to propagate from one agent to another.  How quickly that happens is actually system-dependent, for a very broad definition of system including the CPU, the operating system, the browser, and in fact whatever else is happening on the system at the time of the write and read.
 
 In fact, without additional *synchronization* the above program is not well-defined.  (It won't crash, but the agent that does the reading may observe other values besides 163 and 123456 - this is counter-intuitive, but it can happen.)  Synchronization is implemented using atomic operations, described next.
 
@@ -104,7 +103,7 @@ console.log(ia[37]);  // Prints 163, the 38th prime
 Atomics.store(ia, 37, 123456);
 ```
 
-then the reader can use an atomic read in a loop to wait for the value to change:
+then the reader can use an atomic read in a loop to wait for the value to change, and once it does change it will change predictably:
 
 ```js
 while (Atomics.load(ia, 37) == 163)
@@ -169,13 +168,14 @@ xor(array, index, value)                      | bitwise-xor value into array[ind
 
 ## Waiting for things to happen
 
-In the example above one agent used a loop to wait for a value to be changed by the other agent; the change is a signal that the agent can stop waiting and can go ahead with whatever it needs to do next.
+In the examples above one agent used a loop to wait for a value to be changed by the other agent; the change is a signal that the agent can stop waiting and can go ahead with whatever it needs to do next.
 
-Such *spin loops* are a poor use of computer time unless the wait is very brief; instead, a waiting agent can put itself to sleep, and can instead be explicitly woken up by the other agent.  The Atomics object provides a primitive mechanism for this in the two methods ```futexWait``` and ```futexWake```.  (The term "futex" comes from Linux, where there's a similar sleep-and-wakeup facility.)
+Such *spin loops* are a poor use of computer time unless the wait is very brief; instead, a waiting agent can put itself to sleep, and can instead be woken up explicitly by the other agent.  The Atomics object provides a primitive mechanism for this in the two methods ```futexWait``` and ```futexWake```.  (The term "futex" comes from Linux, where there's a similar sleep-and-wakeup facility.)
 
 In our example, the writing agent now does this:
+
 ```js
-console.log(ia[37]);  // Prints 163, the 38th prime
+console.log(ia[37]);  // Prints 163
 Atomics.store(ia, 37, 123456);
 Atomics.futexWake(ia, 37, 1);
 ```
@@ -187,18 +187,33 @@ Atomics.futexWait(ia, 37, 163);
 console.log(ia[37]);  // Prints 123456
 ```
 
-The way this works is that once it's performed a write, the writer requests to wake up at most one agent that's sleeping on location ia[37].  Meanwhile, the reader requests to go to sleep, provided the value of ia[37] is still 163.  Thus if the writer has already performed its write the reader will just continue on, and otherwise it will sleep, waiting to be woken by the writer.
+The way this works is that once it has performed a write, the writer requests to wake up one agent that's sleeping on location ia[37].  Meanwhile, the reader requests to go to sleep, provided the value of ia[37] is still 163.  Thus if the writer has already performed its write the reader will just continue on, and otherwise it will sleep, waiting to be woken by the writer.
 
 ## Abstractions
 
-In practice some of the shared memory facilities, especially futexWait and futexWake, can be hard to use correctly and efficiently.  It is therefore useful to build abstractions (in JavaScript) around these to simplify their use.  For example, among the demos you will find traditional mutexes and condition variables; barriers; and so-called "synchronic" objects that are containers for simple atomic values and have built-in (and efficient) wait-for-update functionality.
+In practice some of the shared memory facilities, especially futexWait and futexWake, can be hard to use correctly and efficiently.  It is therefore useful to build abstractions (in JavaScript) around these to simplify their use.  For example, among the demos you will find traditional mutexes and condition variables; barriers; and so-called "synchronic" objects that are containers for simple atomic values and which have a built-in (and efficient) wait-for-update functionality.
 
-## Subtleties and advice
+## Subtleties and practical advice
 
-(To be written.  Topics: race conditions; ordering of reads and writes; don't mix atomics and non-atomics; the main thread; deadlocks; size of objects; single heaps vs multiple objects)
+(Additional topics: race conditions; deadlocks; flatjs?; Web APIs and shared memory.)
+
+### Blocking on the browser's main thread
+
+There is nothing inherently problematic about futexWaiting in the browser's main thread - a futexWait has the same meaning as a loop that waits for a wakeup flag to be set.  However, unless there's a guarantee that the wait will be brief it's often better to avoid such a wait, and instead have a "master worker" that acts on the main thread's behalf and communicates with the main thread using message passing.  The "master worker" can wait indefinitely without impacting the responsiveness of the browser.
+
+A variation on that pattern is a control structure that doesn't need a master worker but where the workers coordinate among themselves about sending a message to the master when some condition is met.  The "asymmetric barrier" in the demo section is such a control structure.
+
+### Don't mix atomic and non-atomic accesses
+
+It is certainly possible to access the same array element safely using both atomic and non-atomic accesses, but usually only in limited situations.  In practice, it is best if any given shared array element is accessed either atomically or non-atomically; atomic elements should be used as synchronization variables and simple communication channels, while non-atomic elements can be used for larger amounts of data.
+
+### The cost of shared memory
+
+How expensive is a SharedArrayBuffer?  In the current Firefox implementation it is fairly expensive (the objects are multiples of 4KiB in size and at least 8KiB, and we sometimes reserve more address space), because we have been assuming that the easiest way to use shared memory is to allocate a few fairly large shared objects that are then partitioned by the application using multiple views.  (In a sense this is a self-fulfilling prophecy because it is awkward to transfer shared objects among agents.)  Other implementations could choose different strategies, encouraging the use of small objects (one per shared application object, say).
 
 ## Notes on the current Firefox Nightly implementation (August 2015)
 
 Firefox Nightly implements a slightly different API at the moment, based on an older design: there is a separate set of "SharedTypedArray" types that must be used instead of the normal TypedArray types.  That is, to create a view on a SharedArrayBuffer, use the "SharedInt32Array" type instead of the Int32Array type.
 
-Firefox also has a couple of idiosyncracies around workers.  The agent that creates a worker must return to its event loop before the worker will be properly created (the worker will remain un-started until then).  Also, there's a per-domain limit on the number of workers, it defaults to 20; once the limit is exceeded new workers will remain un-started.  A program that futexWaits on an un-started worker will usually deadlock.
+Firefox also has a couple of idiosyncracies around workers.  The agent that creates a worker must return to its event loop before the worker will be properly created, the worker will remain un-started until then.  Also, there's a per-domain limit on the number of workers, it defaults to 20; once the limit is exceeded new workers will remain un-started.  A program that futexWaits on an un-started worker will usually deadlock.  (Both of those idiosyncracies are arguably violations of the WebWorkers spec, see [this WHATWG bug that aims to clarify that](https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039).)
+
