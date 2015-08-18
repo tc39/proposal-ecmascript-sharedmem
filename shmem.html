@@ -5,94 +5,95 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 </head><body><h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2015-08-06 </p>
+<p> Revised: 2015-08-18 </p>
 
 <div><h2>Table of Contents</h2><ol class="toc"><li><a href="#intro"><span class="secnum"></span> Introduction</a></li><li><a href="#Overview"><span class="secnum">1</span> Overview (ES6 4)</a><ol class="toc"><li><a href="#Overview.Overview"><span class="secnum">1.1</span> ECMAScript Overview (ES6 4.2)</a></li><li><a href="#Overview.Terms"><span class="secnum">1.2</span> Terms and Definitions (ES6 4.3)</a><ol class="toc"><li><a href="#Overview.Terms.Agent"><span class="secnum">1.2.1</span> Agent</a></li><li><a href="#Overview.Terms.AgentComm"><span class="secnum">1.2.2</span> Agent communication</a></li><li><a href="#Overview.Terms.Cluster"><span class="secnum">1.2.3</span> Agent cluster</a></li></ol></li></ol></li><li><a href="#DataTypesValues"><span class="secnum">2</span> ECMAScript Data Types and Values (ES6 6)</a><ol class="toc"><li><a href="#DataTypesValues.LanguageTypes"><span class="secnum">2.1</span> ECMAScript Language Types (ES6 6.1)</a><ol class="toc"><li><a href="#DataTypesValues.LanguageTypes.Number"><span class="secnum">2.1.1</span> The Number Type (ES6 6.1.6)</a></li><li><a href="#DataTypesValues.LanguageTypes.Object"><span class="secnum">2.1.2</span> The Object Type (ES6 6.1.7)</a><ol class="toc"><li><a href="#DataTypesValues.LanguageTypes.Object.Intrinsic"><span class="secnum">2.1.2.1</span> Well-Known Intrinsic Objects (ES6 6.1.7.4)</a></li></ol></li></ol></li><li><a href="#DataTypesValues.SpecTypes"><span class="secnum">2.2</span> ECMAScript Specification Types (ES6 6.2)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks"><span class="secnum">2.2.1</span> Data blocks (ES6 6.2.6)</a><ol class="toc"><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes"><span class="secnum">2.2.1.1</span> CopyDataBlockBytes( toBlock, toIndex, fromBlock, fromIndex, count ) (ES6 6.2.6.2)</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock"><span class="secnum">2.2.1.2</span> CreateSharedByteDataBlock( size )</a></li><li><a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID"><span class="secnum">2.2.1.3</span> SharedDataBlockID( block )</a></li></ol></li></ol></li></ol></li><li><a href="#ExecutableCodeAndContexts"><span class="secnum">3</span> Executable Code and Execution Contexts (ES6 8)</a><ol class="toc"><li><a href="#ExecutableCodeAndContexts.JobsAndJobQueues"><span class="secnum">3.1</span> Jobs and Job Queues (ES6 8.4)</a><ol class="toc"><li><a href="#ExecutableCodeAndContexts.JobsAndJobQueues.Progress"><span class="secnum">3.1.1</span> Forward Progress Guarantees</a></li></ol></li></ol></li><li><a href="#GlobalObject"><span class="secnum">4</span> The Global Object (ES6 18)</a><ol class="toc"><li><a href="#GlobalObject.ConstructorProps"><span class="secnum">4.1</span> Constructor Properties of the Global Object (ES6 18.3)</a><ol class="toc"><li><a href="#GlobalObject.ConstructorProps.SharedArrayBuffer"><span class="secnum">4.1.1</span> SharedArrayBuffer</a></li><li><a href="#GlobalObject.ConstructorProps.Atomics"><span class="secnum">4.1.2</span> Atomics</a></li></ol></li></ol></li><li><a href="#IndexedCollections"><span class="secnum">5</span> Indexed Collections (ES6 22)</a><ol class="toc"><li><a href="#IndexedCollections.TypedArray"><span class="secnum">5.1</span> TypedArray Objects (ES6 22.2)</a><ol class="toc"><li><a href="#IndexedCollections.TypedArray.intrinsic"><span class="secnum">5.1.1</span> The %TypedArray% intrinsic object (ES6 22.2.1)</a><ol class="toc"><li><a href="#IndexedCollections.TypedArray.intrinsic.constructFromObject"><span class="secnum">5.1.1.1</span> %TypedArray%( object ) (ES6 22.2.1.4)</a></li><li><a href="#IndexedCollections.TypedArray.intrinsic.constructFromBuffer"><span class="secnum">5.1.1.2</span> %TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</a></li></ol></li><li><a href="#IndexedCollections.TypedArray.prototype"><span class="secnum">5.1.2</span> Properties of the %TypedArrayPrototype% object (ES6 22.2.3)</a><ol class="toc"><li><a href="#IndexedCollections.TypedArray.prototype.set"><span class="secnum">5.1.2.1</span> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES6 22.2.3.22)</a><ol class="toc"><li><a href="#IndexedCollections.TypedArray.prototype.setFromTypedArray"><span class="secnum">5.1.2.1.1</span> %TypedArray%.prototype.set( typedArray [, offset ] ) (ES6 22.2.3.22.2)</a></li></ol></li></ol></li></ol></li></ol></li><li><a href="#StructuredData"><span class="secnum">6</span> Structured Data (ES6 24)</a><ol class="toc"><li><a href="#StructuredData.ArrayBuffer"><span class="secnum">6.1</span> ArrayBuffer Objects (ES6 24.1)</a><ol class="toc"><li><a href="#StructuredData.ArrayBuffer.abstract"><span class="secnum">6.1.1</span> Abstract Operations for ArrayBuffer (ES6 24.1.1)</a><ol class="toc"><li><a href="#StructuredData.ArrayBuffer.abstract.IsDetachedBuffer"><span class="secnum">6.1.1.1</span> IsDetachedBuffer( arrayBuffer ) (ES6 24.1.1.2)</a></li><li><a href="#StructuredData.ArrayBuffer.abstract.CloneArrayBuffer"><span class="secnum">6.1.1.2</span> CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES6 24.1.1.4)</a></li><li><a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer"><span class="secnum">6.1.1.3</span> GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</a></li><li><a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer"><span class="secnum">6.1.1.4</span> SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</a></li></ol></li></ol></li><li><a href="#StructuredData.DataView"><span class="secnum">6.2</span> DataView Objects (ES6 24.2)</a><ol class="toc"><li><a href="#StructuredData.DataView.constructor"><span class="secnum">6.2.1</span> The DataView Constructor (ES6 24.2.2)</a><ol class="toc"><li><a href="#StructuredData.DataView.constructor.detail"><span class="secnum">6.2.1.1</span> DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</a></li></ol></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer"><span class="secnum">6.3</span> SharedArrayBuffer Objects</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract"><span class="secnum">6.3.1</span> Abstract Operations for SharedArrayBuffer</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer"><span class="secnum">6.3.1.1</span> AllocateSharedArrayBuffer( constructor, byteLength )</a></li><li><a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory"><span class="secnum">6.3.1.2</span> IsSharedMemory( obj )</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.constructor"><span class="secnum">6.3.2</span> The SharedArrayBuffer Constructor</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.constructor.withLength"><span class="secnum">6.3.2.1</span> SharedArrayBuffer( length )</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties"><span class="secnum">6.3.3</span> Properties of the SharedArrayBuffer constructor</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.isView"><span class="secnum">6.3.3.1</span> SharedArrayBuffer.isView( arg )</a></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.prototype"><span class="secnum">6.3.3.2</span> SharedArrayBuffer.prototype</a></li><li><a href="#StructuredData.SharedArrayBuffer.constructor.properties.get_species"><span class="secnum">6.3.3.3</span> get SharedArrayBuffer [ @@species ]</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.prototype"><span class="secnum">6.3.4</span> Properties of the SharedArrayBuffer prototype object</a><ol class="toc"><li><a href="#StructuredData.SharedArrayBuffer.prototype.get_byteLength"><span class="secnum">6.3.4.1</span> get SharedArrayBuffer.prototype.byteLength</a></li><li><a href="#StructuredData.SharedArrayBuffer.prototype.constructor"><span class="secnum">6.3.4.2</span> SharedArrayBuffer.prototype.constructor</a></li><li><a href="#StructuredData.SharedArrayBuffer.prototype.slice"><span class="secnum">6.3.4.3</span> SharedArrayBuffer.prototype.slice( start, end )</a></li><li><a href="#StructuredData.SharedArrayBuffer.prototype.toString"><span class="secnum">6.3.4.4</span> SharedArrayBuffer.prototype[ @@toStringTag ]</a></li></ol></li><li><a href="#StructuredData.SharedArrayBuffer.instances"><span class="secnum">6.3.5</span> Properties of the SharedArrayBuffer instances</a></li></ol></li></ol></li><li><a href="#AtomicsObject"><span class="secnum">7</span> The Atomics Object</a><ol class="toc"><li><a href="#AtomicsObjectValueProps"><span class="secnum">7.1</span> Value Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.OK"><span class="secnum">7.1.1</span> Atomics.OK</a></li><li><a href="#Atomics.NOTEQUAL"><span class="secnum">7.1.2</span> Atomics.NOTEQUAL</a></li><li><a href="#Atomics.TIMEDOUT"><span class="secnum">7.1.3</span> Atomics.TIMEDOUT</a></li></ol></li><li><a href="#"><span class="secnum">7.2</span> Runtime semantics</a><ol class="toc"><li><a href="#Atomics.WithAtomicAccessTo"><span class="secnum">7.2.1</span> With atomic access to ...</a></li><li><a href="#Atomics.HappensBefore"><span class="secnum">7.2.2</span> Happens-before</a></li><li><a href="#Atomics.ValidateSharedIntegerTypedArray"><span class="secnum">7.2.3</span> Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</a></li><li><a href="#Atomics.ValidateAtomicAccess"><span class="secnum">7.2.4</span> Runtime semantics: ValidateAtomicAccess( typedArray, index )</a></li><li><a href="#WithinTheFutexCriticalSection"><span class="secnum">7.2.5</span> Within the futex critical section ...</a></li><li><a href="#Atomics.AgentSignifier"><span class="secnum">7.2.6</span> Runtime semantics: AgentSignifier( )</a></li><li><a href="#Atomics.AddWaiter"><span class="secnum">7.2.7</span> Runtime semantics: AddWaiter( W, G, i )</a></li><li><a href="#Atomics.RemoveWaiter"><span class="secnum">7.2.8</span> Runtime semantics: RemoveWaiter( W, G, i )</a></li><li><a href="#Atomics.RemoveWaiters"><span class="secnum">7.2.9</span> Runtime semantics: RemoveWaiters( G, i)</a></li><li><a href="#Atomics.Suspend"><span class="secnum">7.2.10</span> Runtime semantics: Suspend( W, timeout )</a></li><li><a href="#Atomics.WakeWaiter"><span class="secnum">7.2.11</span> Runtime semantics: WakeWaiter( W )</a></li></ol></li><li><a href="#AtomicsObjectFunctionProps"><span class="secnum">7.3</span> Function Properties of the Atomics Object</a><ol class="toc"><li><a href="#Atomics.add"><span class="secnum">7.3.1</span> Atomics.add( typedArray, index, value )</a></li><li><a href="#Atomics.and"><span class="secnum">7.3.2</span> Atomics.and( typedArray, index, value )</a></li><li><a href="#Atomics.compareExchange"><span class="secnum">7.3.3</span> Atomics.compareExchange( typedArray, index, expectedValue, replacementValue )</a></li><li><a href="#Atomics.exchange"><span class="secnum">7.3.4</span> Atomics.exchange( typedArray, index, value )</a></li><li><a href="#Atomics.futexWait"><span class="secnum">7.3.5</span> Atomics.futexWait( typedArray, index, value, timeout )</a></li><li><a href="#Atomics.futexWake"><span class="secnum">7.3.6</span> Atomics.futexWake( typedArray, index, count )</a></li><li><a href="#Atomics.futexWakeOrRequeue"><span class="secnum">7.3.7</span> Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</a></li><li><a href="#Atomics.isLockFree"><span class="secnum">7.3.8</span> Atomics.isLockFree( size )</a></li><li><a href="#Atomics.load"><span class="secnum">7.3.9</span> Atomics.load( typedArray, index )</a></li><li><a href="#Atomics.or"><span class="secnum">7.3.10</span> Atomics.or( typedArray, index, value )</a></li><li><a href="#Atomics.store"><span class="secnum">7.3.11</span> Atomics.store( typedArray, index, value )</a></li><li><a href="#Atomics.sub"><span class="secnum">7.3.12</span> Atomics.sub( typedArray, index, value )</a></li><li><a href="#Atomics.xor"><span class="secnum">7.3.13</span> Atomics.xor( typedArray, index, value )</a></li></ol></li></ol></li><li><a href="#WebBrowserEmbedding"><span class="secnum">8</span> Web browser embedding (informative)</a><ol class="toc"><li><a href="#WebBrowserEmbedding.Agents"><span class="secnum">8.1</span> Agent mapping</a></li><li><a href="#WebBrowserEmbedding.WorkerSemantics"><span class="secnum">8.2</span> Clarifications and changes to Web Worker semantics</a><ol class="toc"><li><a href="#WebBrowserEmbedding.WorkerSemantics.Start"><span class="secnum">8.2.1</span> Actions to start a worker</a></li><li><a href="#WebBrowserEmbedding.WorkerSemantics.Jobs"><span class="secnum">8.2.2</span> Events and scripts run in a worker as ES6 jobs</a></li><li><a href="#WebBrowserEmbedding.WorkerSemantics.LicenseToKill"><span class="secnum">8.2.3</span> Curtail the license to kill</a></li><li><a href="#WebBrowserEmbedding.WorkerSemantics.Introspection"><span class="secnum">8.2.4</span> Termination detection</a></li></ol></li><li><a href="#WebBrowserEmbedding.MemoryModel"><span class="secnum">8.3</span> Agent communication semantics</a></li><li><a href="#WebBrowserEmbedding.Termination"><span class="secnum">8.4</span> Agent termination</a></li><li><a href="#WebBrowserEmbedding.CloneAndTransfer"><span class="secnum">8.5</span> Transmitting and Cloning SharedArrayBuffers and Views</a></li></ol></li></ol></div><emu-intro id="intro">
-<h1><span class="secnum"></span>Introduction</h1>
+<h1><span class="secnum"></span>Introduction<span class="utils"><span class="anchor"><a href="#intro">#</a></span></span></h1>
 
-<p> This proposal adds a simple form of shared memory to ECMAScript. Shared memory is being exposed in the form of a new SharedArrayBuffer type; the existing TypedArrays are adapted in such a way that they can be used to create views on shared memory. The new Atomics global object provides atomic operations on shared memory locations, including operations that can be used to create blocking synchronization primitives. Though not a part of this specification, we intend for the role of "threads" to be played by Web Workers in web browser environments.</p><p>
+<p> This proposal adds a simple form of shared memory to ECMAScript.  Shared memory is being exposed in the form of a new SharedArrayBuffer type; the existing TypedArrays are adapted in such a way that they can be used to create views on shared memory.  The new Atomics global object provides atomic operations on shared memory locations, including operations that can be used to create blocking synchronization primitives.  Though not a part of this specification, we intend for the role of "threads" to be played by Web Workers in web browser environments.</p><p>
 
-</p><p> At this time the propsal adds only low-level primitives to ECMAScript; we expect the developer community to put together abstractions that are useful in specific domains. </p>
+</p><p> At this time the propsal adds only low-level primitives to ECMAScript; we expect the developer community to put together abstractions that are useful in specific domains.  </p>
 
-<p> The work has been driven by the following use cases: </p><p>
+<p> The work has been driven by the following use cases:  </p><p>
 
 </p><ul>
   <li> Support for threaded code in programs written in other languages that are translated to asm.js or plain JS or a combination of the two, notably C++ but also JVM and CIL bytecode, Halide, Clojure, Rust, and similar safe languages.
   </li><li> Support for hand-written JS or JS+asm.js that makes use of multiprocessing facilities for select tasks, such as image processing, asset management, or game AI.
 </li></ul>
 
-<p> The proposal makes only very basic assumptions about the required hardware and should be broadly implementable with good performance. A closely related API has been available in Firefox Nightly for some time. </p>
+<p> The proposal makes only very basic assumptions about the required hardware and should be broadly implementable with good performance.  A closely related API has been available in Firefox Nightly for some time.  </p>
 
-<p>This specification constitutes a restatement and formalization of an earlier work, <a href="https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing">the spec document for which</a> also contains additional rationale, background information, discussions, implementation notes, and comments.</p>
+<p>This specification constitutes a restatement and formalization of an earlier work,  <a href="https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing">the spec document for which</a> also contains additional rationale, background information, discussions, implementation notes, and comments.</p>
 
-<p> This specification is substantially complete, apart from these aspects: </p>
+<p> This specification is substantially complete, apart from these aspects:  </p>
 <ul>
   <li> The memory model is going to be refined further (for a while).
-  </li><li> It is highly desirable to add facilities that allow conflicting shared memory operations to have defined meaning. For example, adding Atomics.loadUnordered, Atomics.storeUnordered, and perhaps an explicit Atomics.fence operation, might be enough to allow a translation from JVM bytecodes to ECMAScript.
+  </li><li> It is highly desirable to add facilities that allow conflicting shared memory operations to have defined meaning.  For example, adding Atomics.loadUnordered, Atomics.storeUnordered, and perhaps an explicit Atomics.fence operation, might be enough to allow a translation from JVM bytecodes to ECMAScript.
 </li></ul>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2015-08-06 -- added sections on forward progress and clarifications and changes to worker semantics.
-  </li><li> 2015-07-09 -- ongoing cleanup and minor bug fixing. Restated the memory model.
-  </li><li> 2015-07-08 -- initial translation from the original proposal
+  <li> 2015-08-18 -- reformat, update to ecmarkup 1.7.
+  </li><li> 2015-08-06 -- added sections on forward progress and clarifications and changes to worker semantics.
+  </li><li> 2015-07-09 -- ongoing cleanup and minor bug fixing.  Restated the memory model.
+  </li><li> 2015-07-08 -- initial translation from the original proposal.
 </li></ul>
 
 </emu-intro>
 
 <emu-clause id="Overview">
-  <h1><span class="secnum">1</span>Overview (ES6 4)</h1>
+  <h1><span class="secnum">1</span>Overview (ES6 4)<span class="utils"><span class="anchor"><a href="#Overview">#</a></span></span></h1>
   <emu-clause id="Overview.Overview">
-    <h1><span class="secnum">1.1</span>ECMAScript Overview (ES6 4.2)</h1>
-    <p>In the third paragraph, include <b>SharedArrayBuffer</b> after <b>ArrayBuffer</b>.</p>
+    <h1><span class="secnum">1.1</span>ECMAScript Overview (ES6 4.2)<span class="utils"><span class="anchor"><a href="#Overview.Overview">#</a></span></span></h1>
+    <p>In the third paragraph, include  <b>SharedArrayBuffer</b> after  <b>ArrayBuffer</b>.</p>
   </emu-clause>
   <emu-clause id="Overview.Terms">
-    <h1><span class="secnum">1.2</span>Terms and Definitions (ES6 4.3)</h1>
+    <h1><span class="secnum">1.2</span>Terms and Definitions (ES6 4.3)<span class="utils"><span class="anchor"><a href="#Overview.Terms">#</a></span></span></h1>
     <emu-clause id="Overview.Terms.Agent">
-      <h1><span class="secnum">1.2.1</span>Agent</h1>
-      <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
+      <h1><span class="secnum">1.2.1</span>Agent<span class="utils"><span class="anchor"><a href="#Overview.Terms.Agent">#</a></span></span></h1>
+      <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment.  </p>
       <emu-note><span class="note">Note</span>
-        <p> (Spec draft note) Plausibly this should be worded in terms of running 'jobs'. </p>
+        <p> (Spec draft note) Plausibly this should be worded in terms of running 'jobs'.  </p>
       </emu-note>
     </emu-clause>
     <emu-clause id="Overview.Terms.AgentComm">
-      <h1><span class="secnum">1.2.2</span>Agent communication</h1>
-      <p> Two agents are said to be able to communicate through shared memory if there can exist a Shared Data Block that can come to be referenced from both agents, not necessarily at the same time. (Note this does not require the agents to have overlapping lifetimes.) </p>
+      <h1><span class="secnum">1.2.2</span>Agent communication<span class="utils"><span class="anchor"><a href="#Overview.Terms.AgentComm">#</a></span></span></h1>
+      <p> Two agents are said to be able to communicate through shared memory if there can exist a Shared Data Block that can come to be referenced from both agents, not necessarily at the same time.  (Note this does not require the agents to have overlapping lifetimes.)  </p>
     </emu-clause>
     <emu-clause id="Overview.Terms.Cluster">
-      <h1><span class="secnum">1.2.3</span>Agent cluster</h1>
-      <p> A maximal set of agents that are able to communicate through shared memory. </p>
+      <h1><span class="secnum">1.2.3</span>Agent cluster<span class="utils"><span class="anchor"><a href="#Overview.Terms.Cluster">#</a></span></span></h1>
+      <p> A maximal set of agents that are able to communicate through shared memory.  </p>
     </emu-clause>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="DataTypesValues">
-  <h1><span class="secnum">2</span>ECMAScript Data Types and Values (ES6 6)</h1>
+  <h1><span class="secnum">2</span>ECMAScript Data Types and Values (ES6 6)<span class="utils"><span class="anchor"><a href="#DataTypesValues">#</a></span></span></h1>
   
   <emu-clause id="DataTypesValues.LanguageTypes">
-    <h1><span class="secnum">2.1</span>ECMAScript Language Types (ES6 6.1)</h1>
+    <h1><span class="secnum">2.1</span>ECMAScript Language Types (ES6 6.1)<span class="utils"><span class="anchor"><a href="#DataTypesValues.LanguageTypes">#</a></span></span></h1>
     <emu-clause id="DataTypesValues.LanguageTypes.Number">
-      <h1><span class="secnum">2.1.1</span>The Number Type (ES6 6.1.6)</h1>
-      <p>In the NOTE, include <b>SharedArrayBuffer</b> along with <b>ArrayBuffer</b>.</p>
+      <h1><span class="secnum">2.1.1</span>The Number Type (ES6 6.1.6)<span class="utils"><span class="anchor"><a href="#DataTypesValues.LanguageTypes.Number">#</a></span></span></h1>
+      <p>In the NOTE, include  <b>SharedArrayBuffer</b> along with  <b>ArrayBuffer</b>.</p>
     </emu-clause>
     <emu-clause id="DataTypesValues.LanguageTypes.Object">
-      <h1><span class="secnum">2.1.2</span>The Object Type (ES6 6.1.7)</h1>
+      <h1><span class="secnum">2.1.2</span>The Object Type (ES6 6.1.7)<span class="utils"><span class="anchor"><a href="#DataTypesValues.LanguageTypes.Object">#</a></span></span></h1>
       <emu-clause id="DataTypesValues.LanguageTypes.Object.Intrinsic">
-        <h1><span class="secnum">2.1.2.1</span>Well-Known Intrinsic Objects (ES6 6.1.7.4)</h1>
+        <h1><span class="secnum">2.1.2.1</span>Well-Known Intrinsic Objects (ES6 6.1.7.4)<span class="utils"><span class="anchor"><a href="#DataTypesValues.LanguageTypes.Object.Intrinsic">#</a></span></span></h1>
         <p>In table 7, include rows for %SharedArrayBuffer% and %SharedArrayBufferPrototype% in the manner of the rows for ArrayBuffer.</p>
       </emu-clause>
     </emu-clause>
   </emu-clause>
   
   <emu-clause id="DataTypesValues.SpecTypes">
-    <h1><span class="secnum">2.2</span>ECMAScript Specification Types (ES6 6.2)</h1>
+    <h1><span class="secnum">2.2</span>ECMAScript Specification Types (ES6 6.2)<span class="utils"><span class="anchor"><a href="#DataTypesValues.SpecTypes">#</a></span></span></h1>
     <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
-      <h1><span class="secnum">2.2.1</span>Data blocks (ES6 6.2.6)</h1>
-      <p> Insert the following paragraph after the third: </p>
-      <p> A data block that resides in memory that can be referenced from multiple agents is designated a Shared Data Block. </p>
+      <h1><span class="secnum">2.2.1</span>Data blocks (ES6 6.2.6)<span class="utils"><span class="anchor"><a href="#DataTypesValues.SpecTypes.DataBlocks">#</a></span></span></h1>
+      <p> Insert the following paragraph after the third:  </p>
+      <p> A data block that resides in memory that can be referenced from multiple agents is designated a Shared Data Block.  </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
-        <h1><span class="secnum">2.2.1.1</span>CopyDataBlockBytes( toBlock, toIndex, fromBlock, fromIndex, count ) (ES6 6.2.6.2)</h1>
+        <h1><span class="secnum">2.2.1.1</span>CopyDataBlockBytes( toBlock, toIndex, fromBlock, fromIndex, count ) (ES6 6.2.6.2)<span class="utils"><span class="anchor"><a href="#DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">#</a></span></span></h1>
         <p>Modify this algorithm as follows:</p>
         <ul>
           <li> In step 1, allow also a Shared Data Block.
@@ -100,23 +101,15 @@
       </emu-clause>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">
-        <h1><span class="secnum">2.2.1.2</span>CreateSharedByteDataBlock( size )</h1>
+        <h1><span class="secnum">2.2.1.2</span>CreateSharedByteDataBlock( size )<span class="utils"><span class="anchor"><a href="#DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">#</a></span></span></h1>
         <p>When the abstract operation CreateSharedByteDataBlock is called with integer argument size, the following steps are taken:</p>
-        <emu-alg><ol>
-  <li>Assert: <var>size</var> &gt;= 0.</li>
-  <li>Let <var>db</var> be a new Shared Data Block value consisting of <var>size</var> bytes. If it is impossible to create such a Shared Data Block, throw a <b>RangeError</b> exception.</li>
-  <li>Set all of the bytes of <var>db</var> to 0.</li>
-  <li>Return <var>db</var>.</li>
-</ol></emu-alg>
+        <emu-alg><ol><li>Assert: <var>size</var> &gt;= 0.</li><li>Let <var>db</var> be a new Shared Data Block value consisting of <var>size</var> bytes. If it is impossible to create such a Shared Data Block, throw a <emu-const>RangeError</emu-const> exception.</li><li>Set all of the bytes of <var>db</var> to 0.</li><li>Return <var>db</var>.</li></ol></emu-alg>
       </emu-clause>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID" aoid="SharedDataBlockID">
-        <h1><span class="secnum">2.2.1.3</span>SharedDataBlockID( block )</h1>
+        <h1><span class="secnum">2.2.1.3</span>SharedDataBlockID( block )<span class="utils"><span class="anchor"><a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">#</a></span></span></h1>
         <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument <var>block</var>, the following steps are taken:</p>
-        <emu-alg><ol>
-  <li>Let <var>G</var> be an address-free identifier for <var>block</var>. All agents in the same cluster have the same value for <var>G</var> for any given <var>block</var>.</li>
-  <li>Return <var>G</var>.</li>
-</ol></emu-alg>
+        <emu-alg><ol><li>Let <var>G</var> be an address-free identifier for <var>block</var>.  All agents in the same cluster have the same value for <var>G</var> for any given <var>block</var>.</li><li>Return <var>G</var>.</li></ol></emu-alg>
         <emu-note><span class="note">Note</span>
           <p>The Shared Data Block ID is used by the futex mechanism and names <var>block</var> independently of any virtual addresses it may be mapped to in any particular agent.</p>
         </emu-note>
@@ -126,29 +119,29 @@
 </emu-clause>
 
 <emu-clause id="ExecutableCodeAndContexts">
-  <h1><span class="secnum">3</span>Executable Code and Execution Contexts (ES6 8)</h1>
+  <h1><span class="secnum">3</span>Executable Code and Execution Contexts (ES6 8)<span class="utils"><span class="anchor"><a href="#ExecutableCodeAndContexts">#</a></span></span></h1>
   <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues">
-    <h1><span class="secnum">3.1</span>Jobs and Job Queues (ES6 8.4)</h1>
+    <h1><span class="secnum">3.1</span>Jobs and Job Queues (ES6 8.4)<span class="utils"><span class="anchor"><a href="#ExecutableCodeAndContexts.JobsAndJobQueues">#</a></span></span></h1>
     <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
-      <h1><span class="secnum">3.1.1</span>Forward Progress Guarantees</h1>
-      <p>Implementations should ensure that all unblocked jobs eventually make progress. </p>
+      <h1><span class="secnum">3.1.1</span>Forward Progress Guarantees<span class="utils"><span class="anchor"><a href="#ExecutableCodeAndContexts.JobsAndJobQueues.Progress">#</a></span></span></h1>
+      <p>Implementations should ensure that all unblocked jobs eventually make progress.  </p>
       <emu-note><span class="note">Note</span>
-        <p>(Spec draft note) This section may be formalized at least partly in the terms of the C++ working paper on forward progress (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf) or it may be left as-is. An ES6 job is most plausibly a 'Concurrent agent' in the terms of that paper. </p>
+        <p>(Spec draft note) This section may be formalized at least partly in the terms of the C++ working paper on forward progress (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf) or it may be left as-is.  An ES6 job is most plausibly a 'Concurrent agent' in the terms of that paper.  </p>
       </emu-note>
     </emu-clause>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="GlobalObject">
-  <h1><span class="secnum">4</span>The Global Object (ES6 18)</h1>
+  <h1><span class="secnum">4</span>The Global Object (ES6 18)<span class="utils"><span class="anchor"><a href="#GlobalObject">#</a></span></span></h1>
   <emu-clause id="GlobalObject.ConstructorProps">
-    <h1><span class="secnum">4.1</span>Constructor Properties of the Global Object (ES6 18.3)</h1>
+    <h1><span class="secnum">4.1</span>Constructor Properties of the Global Object (ES6 18.3)<span class="utils"><span class="anchor"><a href="#GlobalObject.ConstructorProps">#</a></span></span></h1>
     <emu-clause id="GlobalObject.ConstructorProps.SharedArrayBuffer">
-      <h1><span class="secnum">4.1.1</span>SharedArrayBuffer</h1>
+      <h1><span class="secnum">4.1.1</span>SharedArrayBuffer<span class="utils"><span class="anchor"><a href="#GlobalObject.ConstructorProps.SharedArrayBuffer">#</a></span></span></h1>
       <p> Add a new subsection for SharedArrayBuffer, pointing to the appropriate new section (below).</p>
     </emu-clause>
     <emu-clause id="GlobalObject.ConstructorProps.Atomics">
-      <h1><span class="secnum">4.1.2</span>Atomics</h1>
+      <h1><span class="secnum">4.1.2</span>Atomics<span class="utils"><span class="anchor"><a href="#GlobalObject.ConstructorProps.Atomics">#</a></span></span></h1>
       <p> Add a new subsection for Atomics, pointing to the appropriate new section (below).</p>
     </emu-clause>
   </emu-clause>
@@ -169,20 +162,20 @@ These call AllocateTypedArray with a specified length:
   -->
 
 <emu-clause id="IndexedCollections">
-  <h1><span class="secnum">5</span>Indexed Collections (ES6 22)</h1>
+  <h1><span class="secnum">5</span>Indexed Collections (ES6 22)<span class="utils"><span class="anchor"><a href="#IndexedCollections">#</a></span></span></h1>
   <emu-clause id="IndexedCollections.TypedArray">
-    <h1><span class="secnum">5.1</span>TypedArray Objects (ES6 22.2)</h1>
+    <h1><span class="secnum">5.1</span>TypedArray Objects (ES6 22.2)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray">#</a></span></span></h1>
     <emu-note><span class="note">Note</span>
-      <p>(Spec draft notes) This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers. There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
+      <p>(Spec draft notes)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
       <p>Additionally here is a question whether TypedArray constructors should be extended to allow them to allocate shared memory, and whether TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be extended to allow them to allocate shared memory.</p>
       <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer (or the constructors of any user-defined subclasses of SharedArrayBuffer).</p>
     </emu-note>
 
     <emu-clause id="IndexedCollections.TypedArray.intrinsic">
-      <h1><span class="secnum">5.1.1</span>The %TypedArray% intrinsic object (ES6 22.2.1)</h1>
+      <h1><span class="secnum">5.1.1</span>The %TypedArray% intrinsic object (ES6 22.2.1)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray.intrinsic">#</a></span></span></h1>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
-        <h1><span class="secnum">5.1.1.1</span>%TypedArray%( object ) (ES6 22.2.1.4)</h1>
+        <h1><span class="secnum">5.1.1.1</span>%TypedArray%( object ) (ES6 22.2.1.4)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray.intrinsic.constructFromObject">#</a></span></span></h1>
         <p>This algorithm is modified as follows:</p>
         <ul>
           <li> Add the restriction on the applicability of this constructor that it does not apply if the object has a [[SharedArrayBufferData]] internal slot.
@@ -190,7 +183,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
-        <h1><span class="secnum">5.1.1.2</span>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</h1>
+        <h1><span class="secnum">5.1.1.2</span>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray.intrinsic.constructFromBuffer">#</a></span></span></h1>
         <p>This algorithm is modified as follows:</p>
         <ul>
           <li>In the first paragraph, allow also an object that has a [[SharedArrayBufferData]] internal slot.
@@ -202,25 +195,14 @@ These call AllocateTypedArray with a specified length:
     </emu-clause> <!-- intrinsic object -->
 
     <emu-clause id="IndexedCollections.TypedArray.prototype">
-      <h1><span class="secnum">5.1.2</span>Properties of the %TypedArrayPrototype% object (ES6 22.2.3)</h1>
+      <h1><span class="secnum">5.1.2</span>Properties of the %TypedArrayPrototype% object (ES6 22.2.3)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray.prototype">#</a></span></span></h1>
       <emu-clause id="IndexedCollections.TypedArray.prototype.set">
-        <h1><span class="secnum">5.1.2.1</span> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES6 22.2.3.22)</h1>
+        <h1><span class="secnum">5.1.2.1</span> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES6 22.2.3.22)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray.prototype.set">#</a></span></span></h1>
         <emu-clause id="IndexedCollections.TypedArray.prototype.setFromTypedArray">
-          <h1><span class="secnum">5.1.2.1.1</span>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES6 22.2.3.22.2)</h1>
+          <h1><span class="secnum">5.1.2.1.1</span>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES6 22.2.3.22.2)<span class="utils"><span class="anchor"><a href="#IndexedCollections.TypedArray.prototype.setFromTypedArray">#</a></span></span></h1>
           <p> Before step 24, insert the following algorithm:</p>
-          <emu-alg><ol>
-  <li>If <a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">IsSharedMemory</a>(<var>srcBuffer</var>) is <b>true</b> and <a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">IsSharedMemory</a>(<var>targetBuffer</var>) is <b>true</b> then:
-    <ol>
-      <li>Let <var>srcBlock</var> be <var>srcBuffer</var>'s [[SharedArrayBufferData]] internal slot</li>
-      <li>Let <var>targetBlock</var> be <var>targetBuffer</var>'s [[SharedArrayBufferData]] internal slot</li>
-      <li>Let <var>srcId</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>srcBlock</var>)</li>
-      <li>Let <var>targetId</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>targetBlock</var>)</li>
-      <li>If <var>srcId</var> = <var>targetId</var> then let <var>doClone</var> be <b>true</b>, else let <var>doClone</var> be <b>false</b></li>
-    </ol>
-  </li>
-  <li>Else, let <var>doClone</var> be <b>false</b></li>
-</ol></emu-alg>
-          <p> Then, in step 24, also choose to clone srcBuffer if <var>doClone</var> is <b>true</b>. </p>
+          <emu-alg><ol><li>If <a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">IsSharedMemory</a>(<var>srcBuffer</var>) is <emu-const>true</emu-const> and <a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">IsSharedMemory</a>(<var>targetBuffer</var>) is <emu-const>true</emu-const> then:<ol><li>Let <var>srcBlock</var> be <var>srcBuffer</var>'s [[SharedArrayBufferData]] internal slot</li><li>Let <var>targetBlock</var> be <var>targetBuffer</var>'s [[SharedArrayBufferData]] internal slot</li><li>Let <var>srcId</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>srcBlock</var>)</li><li>Let <var>targetId</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>targetBlock</var>)</li><li>If <var>srcId</var> = <var>targetId</var> then let <var>doClone</var> be <emu-const>true</emu-const>, else let <var>doClone</var> be <emu-const>false</emu-const></li></ol></li><li>Else, let <var>doClone</var> be <emu-const>false</emu-const></li></ol></emu-alg>
+          <p> Then, in step 24, also choose to clone srcBuffer if <var>doClone</var> is <emu-const>true</emu-const>.  </p>
         </emu-clause>
       </emu-clause>
     </emu-clause>
@@ -228,26 +210,22 @@ These call AllocateTypedArray with a specified length:
 </emu-clause>
 
 <emu-clause id="StructuredData">
-  <h1><span class="secnum">6</span>Structured Data (ES6 24)</h1>
+  <h1><span class="secnum">6</span>Structured Data (ES6 24)<span class="utils"><span class="anchor"><a href="#StructuredData">#</a></span></span></h1>
 
   <emu-clause id="StructuredData.ArrayBuffer">
-    <h1><span class="secnum">6.1</span>ArrayBuffer Objects (ES6 24.1)</h1>
+    <h1><span class="secnum">6.1</span>ArrayBuffer Objects (ES6 24.1)<span class="utils"><span class="anchor"><a href="#StructuredData.ArrayBuffer">#</a></span></span></h1>
 
     <emu-clause id="StructuredData.ArrayBuffer.abstract">
-      <h1><span class="secnum">6.1.1</span>Abstract Operations for ArrayBuffer (ES6 24.1.1)</h1>
+      <h1><span class="secnum">6.1.1</span>Abstract Operations for ArrayBuffer (ES6 24.1.1)<span class="utils"><span class="anchor"><a href="#StructuredData.ArrayBuffer.abstract">#</a></span></span></h1>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.IsDetachedBuffer" aoid="IsDetachedBuffer">
-        <h1><span class="secnum">6.1.1.1</span>IsDetachedBuffer( arrayBuffer ) (ES6 24.1.1.2)</h1>
-        <p> This algorithm is rewritten as follows: </p>
-        <emu-alg><ol>
-  <li>Assert: <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>arrayBuffer</var>) is Object and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.</li>
-  <li>If <var>arrayBuffer</var> has an [[ArrayBufferData]] internal slot and <var>arrayBuffer</var>’s [[ArrayBufferData]] internal slot is null, return <b>true</b>.</li>
-  <li>Return <b>false</b>.</li>
-</ol></emu-alg>
+        <h1><span class="secnum">6.1.1.1</span>IsDetachedBuffer( arrayBuffer ) (ES6 24.1.1.2)<span class="utils"><span class="anchor"><a href="#StructuredData.ArrayBuffer.abstract.IsDetachedBuffer">#</a></span></span></h1>
+        <p> This algorithm is rewritten as follows:  </p>
+        <emu-alg><ol><li>Assert: <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>arrayBuffer</var>) is Object and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.</li><li>If <var>arrayBuffer</var> has an [[ArrayBufferData]] internal slot and <var>arrayBuffer</var>’s [[ArrayBufferData]] internal slot is null, return <emu-const>true</emu-const>.</li><li>Return <emu-const>false</emu-const>.</li></ol></emu-alg>
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.CloneArrayBuffer" aoid="CloneArrayBuffer">
-        <h1><span class="secnum">6.1.1.2</span>CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES6 24.1.1.4)</h1>
+        <h1><span class="secnum">6.1.1.2</span>CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES6 24.1.1.4)<span class="utils"><span class="anchor"><a href="#StructuredData.ArrayBuffer.abstract.CloneArrayBuffer">#</a></span></span></h1>
         <p>This algorithm is modified as follows:</p>
         <ul>
           <li> In the introductory paragraph, note that this function can take a SharedArrayBuffer as well.
@@ -258,26 +236,26 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
       
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
-        <h1><span class="secnum">6.1.1.3</span>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</h1>
+        <h1><span class="secnum">6.1.1.3</span>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)<span class="utils"><span class="anchor"><a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">#</a></span></span></h1>
         <p> This algorithm is modified as follows:</p>
         <ul>
           <li> The parameter <var>arrayBuffer</var> can be an ArrayBuffer or SharedArrayBuffer.
           </li><li> All agents in the same cluster must compute the same value for <var>isLittleEndian</var> if it is not present.
-          </li><li> In step 4, if IsSharedMemory( <var>arrayBuffer</var> ) is <b>true</b> then use the value of <var>arrayBuffer</var>'s [[SharedArrayBufferData]] internal slot.
+          </li><li> In step 4, if IsSharedMemory( <var>arrayBuffer</var> ) is <emu-const>true</emu-const> then use the value of <var>arrayBuffer</var>'s [[SharedArrayBufferData]] internal slot.
         </li></ul>
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
-        <h1><span class="secnum">6.1.1.4</span>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</h1>
+        <h1><span class="secnum">6.1.1.4</span>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)<span class="utils"><span class="anchor"><a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">#</a></span></span></h1>
         <p> This algorithm is modified as follows:</p>
         <ul>
           <li> The parameter <var>arrayBuffer</var> can be an ArrayBuffer or SharedArrayBuffer.
           </li><li> All agents in the same cluster must compute the same value for <var>isLittleEndian</var> if it is not present.
-          </li><li> In step 5, if IsSharedMemory( <var>arrayBuffer</var> ) is <b>true</b> then use the value of <var>arrayBuffer</var>'s [[SharedArrayBufferData]] internal slot.
+          </li><li> In step 5, if IsSharedMemory( <var>arrayBuffer</var> ) is <emu-const>true</emu-const> then use the value of <var>arrayBuffer</var>'s [[SharedArrayBufferData]] internal slot.
         </li></ul>
 
         <emu-note><span class="note">Note</span>
-          <p> When SetValueInBuffer is called to set bytes in shared memory the implementation may set several bytes at a time (and that is the normal case), but it may not use read-modify-write on a larger datum, as that might introduce data races where the source program has none. Data races are discussed in the section on the Atomics object. </p>
+          <p> When SetValueInBuffer is called to set bytes in shared memory the implementation may set several bytes at a time (and that is the normal case), but it may not use read-modify-write on a larger datum, as that might introduce data races where the source program has none.  Data races are discussed in the section on the Atomics object.  </p>
         </emu-note>
       </emu-clause>
       
@@ -285,12 +263,12 @@ These call AllocateTypedArray with a specified length:
   </emu-clause> <!-- ArrayBuffer -->
 
   <emu-clause id="StructuredData.DataView">
-    <h1><span class="secnum">6.2</span>DataView Objects (ES6 24.2)</h1>
+    <h1><span class="secnum">6.2</span>DataView Objects (ES6 24.2)<span class="utils"><span class="anchor"><a href="#StructuredData.DataView">#</a></span></span></h1>
     <emu-clause id="StructuredData.DataView.constructor">
-      <h1><span class="secnum">6.2.1</span>The DataView Constructor (ES6 24.2.2)</h1>
+      <h1><span class="secnum">6.2.1</span>The DataView Constructor (ES6 24.2.2)<span class="utils"><span class="anchor"><a href="#StructuredData.DataView.constructor">#</a></span></span></h1>
       <emu-clause id="StructuredData.DataView.constructor.detail">
-        <h1><span class="secnum">6.2.1.1</span>DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</h1>
-        <p> This algorithm is modified as follows: </p>
+        <h1><span class="secnum">6.2.1.1</span>DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)<span class="utils"><span class="anchor"><a href="#StructuredData.DataView.constructor.detail">#</a></span></span></h1>
+        <p> This algorithm is modified as follows:  </p>
         <ul>
           <li> In step 3, allow also a [[SharedArrayBufferData]] internal slot.
           </li><li> In step 9, if IsSharedMemory(<var>buffer</var>) then let <var>bufferByteLength</var> be the value of <var>buffer</var>'s [[SharedArrayBufferByteLength]] internal slot.
@@ -300,167 +278,112 @@ These call AllocateTypedArray with a specified length:
   </emu-clause> <!-- DataView -->
 
   <emu-clause id="StructuredData.SharedArrayBuffer">
-    <h1><span class="secnum">6.3</span>SharedArrayBuffer Objects</h1>
+    <h1><span class="secnum">6.3</span>SharedArrayBuffer Objects<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer">#</a></span></span></h1>
 
     <emu-clause id="StructuredData.SharedArrayBuffer.abstract">
-      <h1><span class="secnum">6.3.1</span>Abstract Operations for SharedArrayBuffer</h1>
+      <h1><span class="secnum">6.3.1</span>Abstract Operations for SharedArrayBuffer<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.abstract">#</a></span></span></h1>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer">
-        <h1><span class="secnum">6.3.1.1</span>AllocateSharedArrayBuffer( constructor, byteLength )</h1>
+        <h1><span class="secnum">6.3.1.1</span>AllocateSharedArrayBuffer( constructor, byteLength )<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.abstract.AllocateSharedArrayBuffer">#</a></span></span></h1>
         <p> The abstract operation AllocateSharedArrayBuffer with arguments <var>constructor</var> and <var>byteLength</var> is used to create a SharedArrayBuffer object. It performs the following steps:</p>
 
-        <emu-alg><ol>
-  <li>Let <var>obj</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ordinarycreatefromconstructor">OrdinaryCreateFromConstructor</a>(constructor, <code>"%SharedArrayBufferPrototype%"</code>, «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>obj</var>).</li>
-  <li>Assert: <var>byteLength</var> is a positive integer.</li>
-  <li>Let block be CreateSharedByteDataBlock(<var>byteLength</var>).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>block</var>).</li>
-  <li>Set <var>obj</var>’s [[SharedArrayBufferData]] internal slot to block.</li>
-  <li>Set <var>obj</var>’s [[SharedArrayBufferByteLength]] internal slot to <var>byteLength</var>.</li>
-  <li>Return <var>obj</var>.</li>
-</ol></emu-alg>
+        <emu-alg><ol><li>Let <var>obj</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ordinarycreatefromconstructor">OrdinaryCreateFromConstructor</a>(constructor, "%SharedArrayBufferPrototype%", «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>obj</var>).</li><li>Assert: <var>byteLength</var> is a positive integer.</li><li>Let block be CreateSharedByteDataBlock(<var>byteLength</var>).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>block</var>).</li><li>Set <var>obj</var>’s [[SharedArrayBufferData]] internal slot to block.</li><li>Set <var>obj</var>’s [[SharedArrayBufferByteLength]] internal slot to <var>byteLength</var>.</li><li>Return <var>obj</var>.</li></ol></emu-alg>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.abstract.IsSharedMemory" aoid="IsSharedMemory">
-        <h1><span class="secnum">6.3.1.2</span>IsSharedMemory( obj )</h1>
-        <p> IsSharedMemory tests whether an object represents shared memory. </p>
-        <emu-alg><ol>
-  <li>Assert: <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>obj</var>) is <b>Object</b> and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.</li>
-  <li>If <var>obj</var> has a [[SharedArrayBufferData]] internal slot then return <b>true</b>.</li>
-  <li>Return <b>false</b>.</li>
-</ol></emu-alg>
+        <h1><span class="secnum">6.3.1.2</span>IsSharedMemory( obj )<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">#</a></span></span></h1>
+        <p> IsSharedMemory tests whether an object represents shared memory.  </p>
+        <emu-alg><ol><li>Assert: <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>obj</var>) is <emu-const>Object</emu-const> and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.</li><li>If <var>obj</var> has a [[SharedArrayBufferData]] internal slot then return <emu-const>true</emu-const>.</li><li>Return <emu-const>false</emu-const>.</li></ol></emu-alg>
       </emu-clause>
 
     </emu-clause> <!-- abstract -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor">
-      <h1><span class="secnum">6.3.2</span>The SharedArrayBuffer Constructor</h1>
-      <p> The SharedArrayBuffer constructor is the %SharedArrayBuffer% intrinsic object and the initial value of the <b>SharedArrayBuffer</b> property of the global object. When called as a constructor it creates and initializes a new SharedArrayBuffer object. The SharedArrayBuffer constructor is not intended to be called as a function and will throw an exception when called in that manner. </p>
+      <h1><span class="secnum">6.3.2</span>The SharedArrayBuffer Constructor<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.constructor">#</a></span></span></h1>
+      <p> The SharedArrayBuffer constructor is the %SharedArrayBuffer% intrinsic object and the initial value of the <emu-const>SharedArrayBuffer</emu-const> property of the global object. When called as a constructor it creates and initializes a new SharedArrayBuffer object.  The SharedArrayBuffer constructor is not intended to be called as a function and will throw an exception when called in that manner.  </p>
 
-      <p> The SharedArrayBuffer constructor is designed to be subclassable. It may be used as the value of an <b>extends</b> clause of a class definition. Subclass constructors that intend to inherit the specified SharedArrayBuffer behaviour must include a <b>super</b> call to the SharedArrayBuffer constructor to create and initialize subclass instances with the internal state necessary to support the <b>SharedArrayBuffer.prototype</b> built-in methods. </p>
+      <p> The SharedArrayBuffer constructor is designed to be subclassable. It may be used as the value of an <emu-const>extends</emu-const> clause of a class definition. Subclass constructors that intend to inherit the specified SharedArrayBuffer behaviour must include a <emu-const>super</emu-const> call to the SharedArrayBuffer constructor to create and initialize subclass instances with the internal state necessary to support the <emu-const>SharedArrayBuffer.prototype</emu-const> built-in methods.  </p>
 
       <emu-note><span class="note">Note</span>
-        <p> Unlike an ArrayBuffer, a SharedArrayBuffer cannot become detached, and its internal [[SharedArrayBufferData]] slot is never <b>undefined</b>.</p>
+        <p> Unlike an ArrayBuffer, a SharedArrayBuffer cannot become detached, and its internal [[SharedArrayBufferData]] slot is never <emu-const>undefined</emu-const>.</p>
       </emu-note>
       
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.withLength">
-        <h1><span class="secnum">6.3.2.1</span>SharedArrayBuffer( length )</h1>
-        <p> SharedArrayBuffer called with argument length performs the following steps: </p>
-        <emu-alg><ol>
-  <li>If NewTarget is <b>undefined</b>, throw a <b>TypeError</b> exception.</li>
-  <li>Let <var>numberLength</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tonumber">ToNumber</a>(<var>length</var>).</li>
-  <li>Let <var>byteLength</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength">ToLength</a>(<var>numberLength</var>).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>byteLength</var>).</li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero">SameValueZero</a>(<var>numberLength</var>, <var>byteLength</var>) is <b>false</b>, throw a <b>RangeError</b> exception.</li>
-  <li>Return AllocateSharedArrayBuffer(NewTarget, <var>byteLength</var>).</li>
-</ol></emu-alg>
+        <h1><span class="secnum">6.3.2.1</span>SharedArrayBuffer( length )<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.constructor.withLength">#</a></span></span></h1>
+        <p> SharedArrayBuffer called with argument length performs the following steps:  </p>
+        <emu-alg><ol><li>If NewTarget is <emu-const>undefined</emu-const>, throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>numberLength</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a>(<var>length</var>).</li><li>Let <var>byteLength</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tolength">ToLength</a>(<var>numberLength</var>).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>byteLength</var>).</li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-samevaluezero">SameValueZero</a>(<var>numberLength</var>, <var>byteLength</var>) is <emu-const>false</emu-const>, throw a <emu-const>RangeError</emu-const> exception.</li><li>Return AllocateSharedArrayBuffer(NewTarget, <var>byteLength</var>).</li></ol></emu-alg>
       </emu-clause>
     </emu-clause> <!-- constructor -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties">
-      <h1><span class="secnum">6.3.3</span>Properties of the SharedArrayBuffer constructor</h1>
+      <h1><span class="secnum">6.3.3</span>Properties of the SharedArrayBuffer constructor<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.constructor.properties">#</a></span></span></h1>
 
       <p>The value of the [[Prototype]] internal slot of the SharedArrayBuffer constructor is the intrinsic object %FunctionPrototype% (q.v.).</p>
 
-      <p>Besides its <b>length</b> property (whose value is 1), the SharedArrayBuffer constructor has the following properties:</p>
+      <p>Besides its <emu-const>length</emu-const> property (whose value is 1), the SharedArrayBuffer constructor has the following properties:</p>
       
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.isView">
-        <h1><span class="secnum">6.3.3.1</span>SharedArrayBuffer.isView( arg )</h1>
+        <h1><span class="secnum">6.3.3.1</span>SharedArrayBuffer.isView( arg )<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.constructor.properties.isView">#</a></span></span></h1>
         <p>The isView function takes one argument arg, and performs the following steps are taken:</p>
-        <emu-alg><ol>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>arg</var>) is not <b>Object</b>, return <b>false</b>.</li>
-  <li>If <var>arg</var> has a [[ViewedArrayBuffer]] internal slot, return <b>true</b>.</li>
-  <li>Return <b>false</b>.</li>
-</ol></emu-alg>
+        <emu-alg><ol><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>arg</var>) is not <emu-const>Object</emu-const>, return <emu-const>false</emu-const>.</li><li>If <var>arg</var> has a [[ViewedArrayBuffer]] internal slot, return <emu-const>true</emu-const>.</li><li>Return <emu-const>false</emu-const>.</li></ol></emu-alg>
         <emu-note><span class="note">Note</span>
-          <p> (Spec draft notes) This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views. There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return <b>true</b> only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return <b>false</b> if its argument is viewing a SharedArrayBuffer.</p>
+          <p> (Spec draft notes)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return <emu-const>true</emu-const> only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return <emu-const>false</emu-const> if its argument is viewing a SharedArrayBuffer.</p>
         </emu-note>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.prototype">
-        <h1><span class="secnum">6.3.3.2</span>SharedArrayBuffer.prototype</h1>
+        <h1><span class="secnum">6.3.3.2</span>SharedArrayBuffer.prototype<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.constructor.properties.prototype">#</a></span></span></h1>
         <p> The initial value of SharedArrayBuffer.prototype is the intrinsic object %SharedArrayBufferPrototype% (q.v.).</p>
-        <p> This property has the attributes { [[Writable]]: <b>false</b>, [[Enumerable]]: <b>false</b>, [[Configurable]]: <b>false</b> }.</p>
+        <p> This property has the attributes { [[Writable]]: <emu-const>false</emu-const>, [[Enumerable]]: <emu-const>false</emu-const>, [[Configurable]]: <emu-const>false</emu-const> }.</p>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.get_species">
-        <h1><span class="secnum">6.3.3.3</span>get SharedArrayBuffer [ @@species ]</h1>
-        <p><code>SharedArrayBuffer[@@species]</code> is an accessor property whose set accessor function is <b>undefined</b>. Its get accessor function performs the following steps:</p>
-        <emu-alg><ol>
-  <li>Return the <b>this</b> value.</li>
-</ol></emu-alg>
+        <h1><span class="secnum">6.3.3.3</span>get SharedArrayBuffer [ @@species ]<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.constructor.properties.get_species">#</a></span></span></h1>
+        <p><code>SharedArrayBuffer[@@species]</code> is an accessor property whose set accessor function is <emu-const>undefined</emu-const>. Its get accessor function performs the following steps:</p>
+        <emu-alg><ol><li>Return the <emu-const>this</emu-const> value.</li></ol></emu-alg>
         <p> The value of the name property of this function is "<code>get [Symbol.species]</code>".</p>
       </emu-clause>
     </emu-clause> <!-- properties -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.prototype">
-      <h1><span class="secnum">6.3.4</span>Properties of the SharedArrayBuffer prototype object</h1>
+      <h1><span class="secnum">6.3.4</span>Properties of the SharedArrayBuffer prototype object<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.prototype">#</a></span></span></h1>
 
       <p>The SharedArrayBuffer prototype object is the intrinsic object %SharedArrayBufferPrototype%. The value of the [[Prototype]] internal slot of the SharedArrayBuffer prototype object is the intrinsic object %ObjectPrototype% (19.1.3). The SharedArrayBuffer prototype object is an ordinary object. It does not have a [[SharedArrayBufferData]] or [[SharedArrayBufferByteLength]] internal slot.</p>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.get_byteLength">
-        <h1><span class="secnum">6.3.4.1</span>get SharedArrayBuffer.prototype.byteLength</h1>
+        <h1><span class="secnum">6.3.4.1</span>get SharedArrayBuffer.prototype.byteLength<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.prototype.get_byteLength">#</a></span></span></h1>
 
-        <p> SharedArrayBuffer.prototype.byteLength is an accessor property whose set accessor function is <b>undefined</b>. Its get accessor function performs the following steps: </p>
+        <p> SharedArrayBuffer.prototype.byteLength is an accessor property whose set accessor function is <emu-const>undefined</emu-const>. Its get accessor function performs the following steps:  </p>
 
-        <emu-alg><ol>
-  <li>Let <var>O</var> be the <b>this</b> value.</li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>O</var>) is not <b>Object</b>, throw a <b>TypeError</b> exception.</li>
-  <li>If <var>O</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <b>TypeError</b> exception.</li>
-  <li>Let <var>length</var> be the value of <var>O</var>’s [[SharedArrayBufferByteLength]] internal slot.</li>
-  <li>Return <var>length</var>.</li>
-</ol></emu-alg>
+        <emu-alg><ol><li>Let <var>O</var> be the <emu-const>this</emu-const> value.</li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>O</var>) is not <emu-const>Object</emu-const>, throw a <emu-const>TypeError</emu-const> exception.</li><li>If <var>O</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>length</var> be the value of <var>O</var>’s [[SharedArrayBufferByteLength]] internal slot.</li><li>Return <var>length</var>.</li></ol></emu-alg>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.constructor">
-        <h1><span class="secnum">6.3.4.2</span>SharedArrayBuffer.prototype.constructor</h1>
-        <p> The initial value of <code>SharedArrayBuffer.prototype.constructor</code> is the intrinsic object %SharedArrayBuffer%. </p>
+        <h1><span class="secnum">6.3.4.2</span>SharedArrayBuffer.prototype.constructor<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.prototype.constructor">#</a></span></span></h1>
+        <p> The initial value of <code>SharedArrayBuffer.prototype.constructor</code> is the intrinsic object %SharedArrayBuffer%.  </p>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.slice">
-        <h1><span class="secnum">6.3.4.3</span>SharedArrayBuffer.prototype.slice( start, end )</h1>
-        <p> The following steps are taken: </p>
-        <emu-alg><ol>
-  <li>Let <var>O</var> be the <b>this</b> value.</li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>O</var>) is not <b>Object</b>, throw a <b>TypeError</b> exception.</li>
-  <li>If <var>O</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <b>TypeError</b> exception.</li>
-  <li>Let <var>len</var> be the value of <var>O</var>’s [[SharedArrayBufferByteLength]] internal slot.</li>
-  <li>Let <var>relativeStart</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tointeger">ToInteger</a>(<var>start</var>).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>relativeStart</var>).</li>
-  <li>If <var>relativeStart</var> &lt; 0, let first be max((<var>len</var> + <var>relativeStart</var>),0); else let first be min(<var>relativeStart</var>, <var>len</var>).</li>
-  <li>If <var>end</var> is <b>undefined</b>, let <var>relativeEnd</var> be <var>len</var>; else let <var>relativeEnd</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tointeger">ToInteger</a>(<var>end</var>).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>relativeEnd</var>).</li>
-  <li>If <var>relativeEnd</var> &lt; 0, let <var>final</var> be max((<var>len</var> + <var>relativeEnd</var>),0); else let <var>final</var> be min(<var>relativeEnd</var>, <var>len</var>).</li>
-  <li>Let <var>newLen</var> be max(<var>final</var> - <var>first</var>,0).</li>
-  <li>Let <var>ctor</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-speciesconstructor">SpeciesConstructor</a>(<var>O</var>, %SharedArrayBuffer%).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>ctor</var>).</li>
-  <li>Let <var>new</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-construct-f-argumentslist">Construct</a>(<var>ctor</var>, «newLen»).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>new</var>).</li>
-  <li>If <var>new</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <b>TypeError</b> exception.</li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevalue">SameValue</a>(<var>new</var>, <var>O</var>) is <b>true</b>, throw a <b>TypeError</b> exception.</li>
-  <li>If the value of <var>new</var>’s [[SharedArrayBufferByteLength]] internal slot &lt; <var>newLen</var>, throw a <b>TypeError</b> exception.</li>
-  <li>Let <var>fromBuf</var> be the value of <var>O</var>’s [[SharedArrayBufferData]] internal slot.</li>
-  <li>Let <var>toBuf</var> be the value of <var>new</var>’s [[SharedArrayBufferData]] internal slot.</li>
-  <li>Perform <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-copydatablockbytes">CopyDataBlockBytes</a>(<var>toBuf</var>, 0, <var>fromBuf</var>, <var>first</var>, <var>newLen</var>).</li>
-  <li>Return <var>new</var>.</li>
-</ol></emu-alg>
+        <h1><span class="secnum">6.3.4.3</span>SharedArrayBuffer.prototype.slice( start, end )<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.prototype.slice">#</a></span></span></h1>
+        <p> The following steps are taken:  </p>
+        <emu-alg><ol><li>Let <var>O</var> be the <emu-const>this</emu-const> value.</li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>O</var>) is not <emu-const>Object</emu-const>, throw a <emu-const>TypeError</emu-const> exception.</li><li>If <var>O</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>len</var> be the value of <var>O</var>’s [[SharedArrayBufferByteLength]] internal slot.</li><li>Let <var>relativeStart</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tointeger">ToInteger</a>(<var>start</var>).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>relativeStart</var>).</li><li>If <var>relativeStart</var> &lt; 0, let first be max((<var>len</var> + <var>relativeStart</var>),0); else let first be min(<var>relativeStart</var>, <var>len</var>).</li><li>If <var>end</var> is <emu-const>undefined</emu-const>, let <var>relativeEnd</var> be <var>len</var>; else let <var>relativeEnd</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tointeger">ToInteger</a>(<var>end</var>).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>relativeEnd</var>).</li><li>If <var>relativeEnd</var> &lt; 0, let <var>final</var> be max((<var>len</var> + <var>relativeEnd</var>),0); else let <var>final</var> be min(<var>relativeEnd</var>, <var>len</var>).</li><li>Let <var>newLen</var> be max(<var>final</var> - <var>first</var>,0).</li><li>Let <var>ctor</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-speciesconstructor">SpeciesConstructor</a>(<var>O</var>, %SharedArrayBuffer%).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>ctor</var>).</li><li>Let <var>new</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-construct-f-argumentslist">Construct</a>(<var>ctor</var>, «newLen»).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>new</var>).</li><li>If <var>new</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <emu-const>TypeError</emu-const> exception.</li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-samevalue">SameValue</a>(<var>new</var>, <var>O</var>) is <emu-const>true</emu-const>, throw a <emu-const>TypeError</emu-const> exception.</li><li>If the value of <var>new</var>’s [[SharedArrayBufferByteLength]] internal slot &lt; <var>newLen</var>, throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>fromBuf</var> be the value of <var>O</var>’s [[SharedArrayBufferData]] internal slot.</li><li>Let <var>toBuf</var> be the value of <var>new</var>’s [[SharedArrayBufferData]] internal slot.</li><li>Perform <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-copydatablockbytes">CopyDataBlockBytes</a>(<var>toBuf</var>, 0, <var>fromBuf</var>, <var>first</var>, <var>newLen</var>).</li><li>Return <var>new</var>.</li></ol></emu-alg>
       </emu-clause>
 
       <emu-clause id="StructuredData.SharedArrayBuffer.prototype.toString">
-        <h1><span class="secnum">6.3.4.4</span>SharedArrayBuffer.prototype[ @@toStringTag ]</h1>
+        <h1><span class="secnum">6.3.4.4</span>SharedArrayBuffer.prototype[ @@toStringTag ]<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.prototype.toString">#</a></span></span></h1>
         <p> The initial value of the @@toStringTag property is the String value <code>"SharedArrayBuffer"</code>.</p>
 
-        <p>This property has the attributes { [[Writable]]: <b>false</b>, [[Enumerable]]: <b>false</b>, [[Configurable]]: <b>true</b> }.</p>
+        <p>This property has the attributes { [[Writable]]: <emu-const>false</emu-const>, [[Enumerable]]: <emu-const>false</emu-const>, [[Configurable]]: <emu-const>true</emu-const> }.</p>
       </emu-clause>
     </emu-clause> <!-- prototype -->
 
     <emu-clause id="StructuredData.SharedArrayBuffer.instances">
-      <h1><span class="secnum">6.3.5</span>Properties of the SharedArrayBuffer instances</h1>
+      <h1><span class="secnum">6.3.5</span>Properties of the SharedArrayBuffer instances<span class="utils"><span class="anchor"><a href="#StructuredData.SharedArrayBuffer.instances">#</a></span></span></h1>
 
-      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have a [[SharedArrayBufferData]] internal slot and a [[SharedArrayBufferByteLength]] internal slot. </p>
+      <p> SharedArrayBuffer instances inherit properties from the SharedArrayBuffer prototype object. SharedArrayBuffer instances each have a [[SharedArrayBufferData]] internal slot and a [[SharedArrayBufferByteLength]] internal slot.  </p>
 
       <emu-note><span class="note">Note</span>
-        <p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached. </p>
+        <p> SharedArrayBuffer instances, unlike ArrayBuffer instances, are never detached.  </p>
       </emu-note>
     </emu-clause> <!-- instances -->
 
@@ -468,35 +391,35 @@ These call AllocateTypedArray with a specified length:
 </emu-clause> <!-- Structured data -->
 
 <emu-clause id="AtomicsObject">
-  <h1><span class="secnum">7</span>The Atomics Object</h1>
+  <h1><span class="secnum">7</span>The Atomics Object<span class="utils"><span class="anchor"><a href="#AtomicsObject">#</a></span></span></h1>
   
   <emu-clause id="AtomicsObjectValueProps">
-    <h1><span class="secnum">7.1</span>Value Properties of the Atomics Object</h1>
+    <h1><span class="secnum">7.1</span>Value Properties of the Atomics Object<span class="utils"><span class="anchor"><a href="#AtomicsObjectValueProps">#</a></span></span></h1>
     <emu-clause id="Atomics.OK">
-      <h1><span class="secnum">7.1.1</span>Atomics.OK</h1>
+      <h1><span class="secnum">7.1.1</span>Atomics.OK<span class="utils"><span class="anchor"><a href="#Atomics.OK">#</a></span></span></h1>
       <p>The value 0.</p>
     </emu-clause>
     <emu-clause id="Atomics.NOTEQUAL">
-      <h1><span class="secnum">7.1.2</span>Atomics.NOTEQUAL</h1>
+      <h1><span class="secnum">7.1.2</span>Atomics.NOTEQUAL<span class="utils"><span class="anchor"><a href="#Atomics.NOTEQUAL">#</a></span></span></h1>
       <p>The value -1.</p>
     </emu-clause>
     <emu-clause id="Atomics.TIMEDOUT">
-      <h1><span class="secnum">7.1.3</span>Atomics.TIMEDOUT</h1>
+      <h1><span class="secnum">7.1.3</span>Atomics.TIMEDOUT<span class="utils"><span class="anchor"><a href="#Atomics.TIMEDOUT">#</a></span></span></h1>
       <p>The value -2.</p>
     </emu-clause>
   </emu-clause>
 
   <emu-clause "atomicsobjectfunctionprops.semantics"="">
-    <h1><span class="secnum">7.2</span>Runtime semantics</h1>
+    <h1><span class="secnum">7.2</span>Runtime semantics<span class="utils"><span class="anchor"><a href="#">#</a></span></span></h1>
     
     <emu-clause id="Atomics.WithAtomicAccessTo">
-      <h1><span class="secnum">7.2.1</span>With atomic access to ...</h1>
+      <h1><span class="secnum">7.2.1</span>With atomic access to ...<span class="utils"><span class="anchor"><a href="#Atomics.WithAtomicAccessTo">#</a></span></span></h1>
       
-      <p> Let <em>atomic accesses</em> be those algorithm steps that are labeled 'With atomic access to ...' in the algorithms below, ie, atomic load, atomic store, and the atomic read-modify-write operations add, sub, and, or, xor, exchange, and compareExchange.</p>
+      <p> Let  <em>atomic accesses</em> be those algorithm steps that are labeled 'With atomic access to ...' in the algorithms below, ie, atomic load, atomic store, and the atomic read-modify-write operations add, sub, and, or, xor, exchange, and compareExchange.</p>
 
-      <p> Let an <em>access qualifier</em> on an atomic access be the triple comprising a Shared Data Block ID, an offset, and a size.</p>
+      <p> Let an  <em>access qualifier</em> on an atomic access be the triple comprising a Shared Data Block ID, an offset, and a size.</p>
         
-      <p> Let <em>data accesses</em> be those invocations of GetValueFromBuffer() and SetValueInBuffer() that are not part of atomic accesses.</p>
+      <p> Let  <em>data accesses</em> be those invocations of GetValueFromBuffer() and SetValueInBuffer() that are not part of atomic accesses.</p>
         
       <p> A valid execution of an agent is constrained by:</p>
       <ul>
@@ -504,21 +427,21 @@ These call AllocateTypedArray with a specified length:
         </li><li> The happens-before relation of the agent cluster (next section)
       </li></ul>
       
-      <p> If valid executions of two agents are able access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>conflict</em>. Two accesses from different agents form a <em>data race</em> if they conflict and at least one access is a data access, or if the accesses are both atomic but their access qualifiers do not match exactly. </p>
+      <p> If valid executions of two agents are able access the same shared memory cell at the same time and at least one access is a write then those accesses are said to  <em>conflict</em>.  Two accesses from different agents form a  <em>data race</em> if they conflict and at least one access is a data access, or if the accesses are both atomic but their access qualifiers do not match exactly.  </p>
 
-      <p> If the execution of an agent cluster has no data races, then the agent cluster behaves according to one of its sequentially consistent executions. </p>
+      <p> If the execution of an agent cluster has no data races, then the agent cluster behaves according to one of its sequentially consistent executions.  </p>
         
-      <p> Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable: If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable. A data race affects the reading and writing of all memory cells in the union of the access ranges of the racing accesses. </p>
+      <p> Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable:  If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable.  A data race affects the reading and writing of all memory cells in the union of the access ranges of the racing accesses.  </p>
 
       <emu-note><span class="note">Note</span>
-        <p> Two atomic accesses can race if the byte ranges being accessed are overlapping but not equal. </p>
+        <p> Two atomic accesses can race if the byte ranges being accessed are overlapping but not equal.  </p>
 
-        <p> It's probably desirable to formalize "at the same time" further. See Boehm and Adve 2008, Foundations of the C++ Concurrency Memory Model.  </p>
+        <p> It's probably desirable to formalize "at the same time" further.  See Boehm and Adve 2008, Foundations of the C++ Concurrency Memory Model.    </p>
       </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.HappensBefore">
-      <h1><span class="secnum">7.2.2</span>Happens-before</h1>
+      <h1><span class="secnum">7.2.2</span>Happens-before<span class="utils"><span class="anchor"><a href="#Atomics.HappensBefore">#</a></span></span></h1>
 
       <p> The following rules constrain the interleaving of agent steps within a cluster:</p>
       <ul>
@@ -530,59 +453,18 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
-      <h1><span class="secnum">7.2.3</span>Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</h1>
-      <emu-alg><ol>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>typedArray</var>) is not Object, throw a <b>TypeError</b> exception.</li>
-  <li>Let <var>typeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li>
-  <li>If <var>onlyInt32</var> is <b>true</b> then
-    <ol>
-      <li>If <var>typeName</var> is not <code>"Int32Array"</code> then throw a <b>TypeError</b> exception</li>
-    </ol>
-  </li>
-  <li>Else
-    <ol>
-      <li>If <var>typeName</var> is not <code>"Int8Array"</code>, <code>"Uint8Array"</code>, <code>"Int16Array"</code>, <code>"Uint16Array"</code>, <code>"Int32Array"</code>, or <code>"Uint32Array"</code> then throw a <b>TypeError</b> exception</li>
-    </ol>
-  </li>
-  <li>If <var>typedArray</var> does not have a [[ViewedArrayBuffer]] internal slot, throw a <b>TypeError</b> exception.</li>
-  <li>Let <var>buffer</var> be the value of <var>typedArray</var>’s [[ViewedArrayBuffer]] internal slot.</li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>buffer</var>) is not Object, throw a <b>TypeError</b> exception.</li>
-  <li>If <var>buffer</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <b>TypeError</b> exception.</li>
-  <li>Return <var>buffer</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.3</span>Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )<span class="utils"><span class="anchor"><a href="#Atomics.ValidateSharedIntegerTypedArray">#</a></span></span></h1>
+      <emu-alg><ol><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>typedArray</var>) is not Object, throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>typeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li><li>If <var>onlyInt32</var> is <emu-const>true</emu-const> then<ol><li>If <var>typeName</var> is not "Int32Array" then throw a <emu-const>TypeError</emu-const> exception</li></ol></li><li>Else<ol><li>If <var>typeName</var> is not "Int8Array", "Uint8Array", "Int16Array", "Uint16Array", "Int32Array", or "Uint32Array" then throw a <emu-const>TypeError</emu-const> exception</li></ol></li><li>If <var>typedArray</var> does not have a [[ViewedArrayBuffer]] internal slot, throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>buffer</var> be the value of <var>typedArray</var>’s [[ViewedArrayBuffer]] internal slot.</li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>buffer</var>) is not Object, throw a <emu-const>TypeError</emu-const> exception.</li><li>If <var>buffer</var> does not have a [[SharedArrayBufferData]] internal slot, throw a <emu-const>TypeError</emu-const> exception.</li><li>Return <var>buffer</var></li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
-      <h1><span class="secnum">7.2.4</span>Runtime semantics: ValidateAtomicAccess( typedArray, index )</h1>
-      <p> Perform the following steps: </p>
-      <emu-alg><ol>
-  <li>Assert: <var>typedArray</var> is an Object that has a [[ViewedArrayBuffer]] internal slot.</li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>index</var>) is String then
-    <ol>
-      <li>Let <var>numValue</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-canonicalnumericindexstring">CanonicalNumericIndexString</a>( <var>index</var> )</li>
-      <li>If <var>numValue</var> is <b>undefined</b> then throw a <b>RangeError</b> exception</li>
-    </ol>
-  </li>
-  <li>Else if <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>index</var>) is Number
-    <ol>
-      <li>Let <var>numValue</var> be <var>index</var></li>
-    </ol>
-  </li>
-  <li>Else:
-    <ol>
-      <li>Throw a <b>RangeError</b> exception</li>
-    </ol>
-  </li>
-  <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-isinteger">IsInteger</a>(<var>numValue</var>) is <b>false</b> throw a <b>RangeError</b> exception</li>
-  <li>If <var>numValue</var> = -0 throw a <b>RangeError</b> exception</li>
-  <li>Let <var>length</var> be the value of <var>typedArray</var>'s [[ArrayLength]] internal slot.</li>
-  <li>If <var>numValue</var> &lt; 0 or <var>numValue</var> ≥ <var>length</var> throw a <b>RangeError</b> exception</li>
-  <li>Return <var>numValue</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.4</span>Runtime semantics: ValidateAtomicAccess( typedArray, index )<span class="utils"><span class="anchor"><a href="#Atomics.ValidateAtomicAccess">#</a></span></span></h1>
+      <p> Perform the following steps:  </p>
+      <emu-alg><ol><li>Assert: <var>typedArray</var> is an Object that has a [[ViewedArrayBuffer]] internal slot.</li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>index</var>) is String then<ol><li>Let <var>numValue</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-canonicalnumericindexstring">CanonicalNumericIndexString</a>( <var>index</var> )</li><li>If <var>numValue</var> is <emu-const>undefined</emu-const> then throw a <emu-const>RangeError</emu-const> exception</li></ol></li><li>Else if <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-ecmascript-data-types-and-values">Type</a>(<var>index</var>) is Number<ol><li>Let <var>numValue</var> be <var>index</var></li></ol></li><li>Else:<ol><li>Throw a <emu-const>RangeError</emu-const> exception</li></ol></li><li>If <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-isinteger">IsInteger</a>(<var>numValue</var>) is <emu-const>false</emu-const> throw a <emu-const>RangeError</emu-const> exception</li><li>If <var>numValue</var> = -0 throw a <emu-const>RangeError</emu-const> exception</li><li>Let <var>length</var> be the value of <var>typedArray</var>'s [[ArrayLength]] internal slot.</li><li>If <var>numValue</var> &lt; 0 or <var>numValue</var> ≥ <var>length</var> throw a <emu-const>RangeError</emu-const> exception</li><li>Return <var>numValue</var></li></ol></emu-alg>
     </emu-clause>
     
     <emu-clause id="WithinTheFutexCriticalSection">
-      <h1><span class="secnum">7.2.5</span>Within the futex critical section ...</h1>
+      <h1><span class="secnum">7.2.5</span>Within the futex critical section ...<span class="utils"><span class="anchor"><a href="#WithinTheFutexCriticalSection">#</a></span></span></h1>
       <p> In the algorithms below, the algorithm step 'Within the futex critical section' means the following:</p>
       <ul>
         <li> There is a single critical section for the futex operations that is shared among all agents in a cluster.
@@ -591,291 +473,108 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.AgentSignifier" aoid="AgentSignifier">
-      <h1><span class="secnum">7.2.6</span>Runtime semantics: AgentSignifier( )</h1>
+      <h1><span class="secnum">7.2.6</span>Runtime semantics: AgentSignifier( )<span class="utils"><span class="anchor"><a href="#Atomics.AgentSignifier">#</a></span></span></h1>
       <p> When AgentSignifier is called without arguments then the following steps are taken.</p>
-      <emu-alg><ol>
-  <li>Let <var>W</var> be an identifier that identifies the calling agent within its cluster.</li>
-  <li>Return <var>W</var>.</li>
-</ol></emu-alg>
+      <emu-alg><ol><li>Let <var>W</var> be an identifier that identifies the calling agent within its cluster.</li><li>Return <var>W</var>.</li></ol></emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
-      <h1><span class="secnum">7.2.7</span>Runtime semantics: AddWaiter( W, G, i )</h1>
-      <p> When AddWaiter is called with an agent signifier <var>W</var>, a Shared Data Block ID <var>G</var>, and a nonnegative integer <var>i</var>, then the following steps are taken. </p>
-      <emu-alg><ol>
-  <li>Assert: The calling agent is in the futex critical section.</li>
-  <li>Assert: <var>W</var> is not in any global list of waiters</li>
-  <li>Add <var>W</var> to the end of the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.7</span>Runtime semantics: AddWaiter( W, G, i )<span class="utils"><span class="anchor"><a href="#Atomics.AddWaiter">#</a></span></span></h1>
+      <p> When AddWaiter is called with an agent signifier <var>W</var>, a Shared Data Block ID <var>G</var>, and a nonnegative integer <var>i</var>, then the following steps are taken.  </p>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: <var>W</var> is not in any global list of waiters</li><li>Add <var>W</var> to the end of the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.RemoveWaiter" aoid="RemoveWaiter">
-      <h1><span class="secnum">7.2.8</span>Runtime semantics: RemoveWaiter( W, G, i )</h1>
-      <p> When RemoveWaiter is called with an agent signifier <var>W</var>, a Shared Data Block ID <var>G</var>, and a nonnegative integer <var>i</var>, then the following steps are taken. </p>
-      <emu-alg><ol>
-  <li>Assert: The calling agent is in the futex critical section.</li>
-  <li>Assert: <var>W</var> is in the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
-  <li>Remove <var>W</var> from the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.8</span>Runtime semantics: RemoveWaiter( W, G, i )<span class="utils"><span class="anchor"><a href="#Atomics.RemoveWaiter">#</a></span></span></h1>
+      <p> When RemoveWaiter is called with an agent signifier <var>W</var>, a Shared Data Block ID <var>G</var>, and a nonnegative integer <var>i</var>, then the following steps are taken.  </p>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: <var>W</var> is in the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li><li>Remove <var>W</var> from the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li></ol></emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1><span class="secnum">7.2.9</span>Runtime semantics: RemoveWaiters( G, i)</h1>
-      <p> When RemoveWaiters is called with Shared Data Block ID <var>G</var> and a nonnegative integer <var>i</var>, then the following steps are taken. </p>
-      <emu-alg><ol>
-  <li>Assert: The calling agent is in the futex critical section.</li>
-  <li>Let <var>L</var> be a copy of the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li>
-  <li>Set the global list of all waiters that wait on (<var>G</var>, <var>i</var>) to the empty list</li>
-  <li>Return <var>L</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.9</span>Runtime semantics: RemoveWaiters( G, i)<span class="utils"><span class="anchor"><a href="#Atomics.RemoveWaiters">#</a></span></span></h1>
+      <p> When RemoveWaiters is called with Shared Data Block ID <var>G</var> and a nonnegative integer <var>i</var>, then the following steps are taken.  </p>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Let <var>L</var> be a copy of the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li><li>Set the global list of all waiters that wait on (<var>G</var>, <var>i</var>) to the empty list</li><li>Return <var>L</var></li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.Suspend" aoid="Suspend">
-      <h1><span class="secnum">7.2.10</span>Runtime semantics: Suspend( W, timeout )</h1>
-      <p> When Suspend is called with a an agent signifier <var>W</var> and nonnegative number <var>timeout</var>, then the following steps are taken. </p>
-      <emu-alg><ol>
-  <li>Assert: The calling agent is in the futex critical section.</li>
-  <li>Assert: The calling agent is on some global list of waiters</li>
-  <li>Assert: <var>W</var> is equal to <a href="#Atomics.AgentSignifier">AgentSignifier</a>()</li>
-  <li>Atomically relinquish the futex critical section and suspend <var>W</var> for up to <var>timeout</var> milliseconds. <var>W</var> can wake up either because the timeout expired or because it was woken explicitly by another agent calling <a href="#Atomics.WakeWaiter">WakeWaiter</a>(<var>W</var>), and not for any other reasons at all.</li>
-  <li>Re-acquire the futex critical section.</li>
-  <li>If <var>W</var> was woken explicitly by another agent calling <a href="#Atomics.WakeWaiter">WakeWaiter</a>(<var>W</var>), then return <b>true</b></li>
-  <li>Return <b>false</b></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.10</span>Runtime semantics: Suspend( W, timeout )<span class="utils"><span class="anchor"><a href="#Atomics.Suspend">#</a></span></span></h1>
+      <p> When Suspend is called with a an agent signifier <var>W</var> and nonnegative number <var>timeout</var>, then the following steps are taken.  </p>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: The calling agent is on some global list of waiters</li><li>Assert: <var>W</var> is equal to <a href="#Atomics.AgentSignifier">AgentSignifier</a>()</li><li>Atomically relinquish the futex critical section and suspend <var>W</var> for up to <var>timeout</var> milliseconds.  <var>W</var> can wake up either because the timeout expired or because it was woken explicitly by another agent calling <a href="#Atomics.WakeWaiter">WakeWaiter</a>(<var>W</var>), and not for any other reasons at all.</li><li>Re-acquire the futex critical section.</li><li>If <var>W</var> was woken explicitly by another agent calling <a href="#Atomics.WakeWaiter">WakeWaiter</a>(<var>W</var>), then return <emu-const>true</emu-const></li><li>Return <emu-const>false</emu-const></li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
-      <h1><span class="secnum">7.2.11</span>Runtime semantics: WakeWaiter( W )</h1>
-      <p> When WakeWaiter is called with an agent signifier <var>W</var>, then the following steps are taken. </p>
-      <emu-alg><ol>
-  <li>Assert: The calling agent is in the futex critical section.</li>
-  <li>Assert: <var>W</var> is on some global list of waiters</li>
-  <li>Wake the agent <var>W</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.2.11</span>Runtime semantics: WakeWaiter( W )<span class="utils"><span class="anchor"><a href="#Atomics.WakeWaiter">#</a></span></span></h1>
+      <p> When WakeWaiter is called with an agent signifier <var>W</var>, then the following steps are taken.  </p>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: <var>W</var> is on some global list of waiters</li><li>Wake the agent <var>W</var></li></ol></emu-alg>
     </emu-clause>
 
   </emu-clause> <!-- runtime semantics -->
 
   <emu-clause id="AtomicsObjectFunctionProps">
-    <h1><span class="secnum">7.3</span>Function Properties of the Atomics Object</h1>
+    <h1><span class="secnum">7.3</span>Function Properties of the Atomics Object<span class="utils"><span class="anchor"><a href="#AtomicsObjectFunctionProps">#</a></span></span></h1>
 
     <emu-clause id="Atomics.add">
-      <h1><span class="secnum">7.3.1</span>Atomics.add( typedArray, index, value )</h1>
-      <p> The following steps are taken: </p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li>
-  <li>Let <var>v</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tonumber">ToNumber</a>(<var>value</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>value</var>).</li>
-  <li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li>
-  <li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li>
-  <li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li>
-  <li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementSize</var> ), do:
-    <ol>
-      <li>Let <var>r</var> be the result of <a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var> )</li>
-      <li>Compute: Let <var>w</var> be <var>r</var> + <var>v</var></li>
-      <li>Call <a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var>, <var>w</var> )</li>
-    </ol>
-  </li>
-  <li>Return <var>r</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.3.1</span>Atomics.add( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.add">#</a></span></span></h1>
+      <p> The following steps are taken:  </p>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li><li>Let <var>v</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a>(<var>value</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>value</var>).</li><li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li><li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li><li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li><li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementSize</var> ), do:<ol><li>Let <var>r</var> be the result of <a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var> )</li><li>Compute: Let <var>w</var> be <var>r</var> + <var>v</var></li><li>Call <a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var>, <var>w</var> )</li></ol></li><li>Return <var>r</var></li></ol></emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.and">
-      <h1><span class="secnum">7.3.2</span>Atomics.and( typedArray, index, value )</h1>
+      <h1><span class="secnum">7.3.2</span>Atomics.and( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.and">#</a></span></span></h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> &amp; <var>v</var>.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.compareExchange">
-      <h1><span class="secnum">7.3.3</span>Atomics.compareExchange( typedArray, index, expectedValue, replacementValue )</h1>
-      <p> The following steps are taken: </p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li>
-  <li>Let <var>expected</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tonumber">ToNumber</a>(<var>expectedValue</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>expected</var>)</li>
-  <li>Let <var>replacement</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tonumber">ToNumber</a>(<var>replacedValue</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>replacement</var>)</li>
-  <li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li>
-  <li>Let <var>convOp</var> be the conversion operation specified in Table 49 for <var>arrayTypeName</var></li>
-  <li>Let <var>x</var> be <var>convOp</var> ( <var>expected</var> )</li>
-  <li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li>
-  <li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li>
-  <li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementType</var> ), do:
-    <ol>
-      <li>Let <var>r</var> be <a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var> )</li>
-      <li>If <var>r</var> is the same number value as <var>x</var> then:
-        <ol>
-          <li>Call <a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var>, <var>replacement</var> )</li>
-        </ol>
-      </li>
-    </ol>
-  </li>
-  <li>Return <var>r</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.3.3</span>Atomics.compareExchange( typedArray, index, expectedValue, replacementValue )<span class="utils"><span class="anchor"><a href="#Atomics.compareExchange">#</a></span></span></h1>
+      <p> The following steps are taken:  </p>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li><li>Let <var>expected</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a>(<var>expectedValue</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>expected</var>)</li><li>Let <var>replacement</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a>(<var>replacedValue</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>replacement</var>)</li><li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li><li>Let <var>convOp</var> be the conversion operation specified in Table 49 for <var>arrayTypeName</var></li><li>Let <var>x</var> be <var>convOp</var> ( <var>expected</var> )</li><li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li><li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li><li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementType</var> ), do:<ol><li>Let <var>r</var> be <a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var> )</li><li>If <var>r</var> is the same number value as <var>x</var> then:<ol><li>Call <a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var>, <var>replacement</var> )</li></ol></li></ol></li><li>Return <var>r</var></li></ol></emu-alg>
 
     </emu-clause>
 
     <emu-clause id="Atomics.exchange">
-      <h1><span class="secnum">7.3.4</span>Atomics.exchange( typedArray, index, value )</h1>
+      <h1><span class="secnum">7.3.4</span>Atomics.exchange( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.exchange">#</a></span></span></h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>v</var>.</p>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWait">
-      <h1><span class="secnum">7.3.5</span>Atomics.futexWait( typedArray, index, value, timeout )</h1>
+      <h1><span class="secnum">7.3.5</span>Atomics.futexWait( typedArray, index, value, timeout )<span class="utils"><span class="anchor"><a href="#Atomics.futexWait">#</a></span></span></h1>
       <p> Atomics.futexWait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>, <b>true</b>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li>
-  <li>Let <var>v</var> be the result of <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-toint32">ToInt32</a>(<var>value</var>).</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>v</var>)</li>
-  <li>If <var>timeout</var> is not provided or is <b>undefined</b> then let <var>t</var> be +Infinity. Otherwise:
-    <ol>
-      <li>Let <var>q</var> be the result of <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tonumber">ToNumber</a>(<var>timeout</var>)</li>
-      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>q</var>)</li>
-      <li>If <var>q</var> is NaN then let <var>t</var> be +Infinity, otherwise let <var>t</var> be max(0, <var>q</var>).</li>
-    </ol>
-  </li>
-  <li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>bufferVal</var>)</li>
-  <li>Within the futex critical section do:
-    <ol>
-      <li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li>
-      <li>If <var>v</var> does not equal <var>w</var> then:
-        <ol>
-          <li>Return the original value of <b>Atomics.NOTEQUAL</b>.</li>
-        </ol>
-      </li>
-      <li>Let <var>W</var> be <a href="#Atomics.AgentSignifier">AgentSignifier</a>().</li>
-      <li>Call <a href="#Atomics.AddWaiter">AddWaiter</a>(<var>W</var>, <var>G</var>, <var>i</var>)</li>
-      <li>Let awoken = <a href="#Atomics.Suspend">Suspend</a>(<var>W</var>, <var>t</var>)</li>
-      <li>Call <a href="#Atomics.RemoveWaiter">RemoveWaiter</a>(<var>W</var>, <var>G</var>, <var>i</var>)</li>
-    </ol>
-  </li>
-  <li>If awoken is <b>true</b> then return the original value of <b>Atomics.OK</b>.</li>
-  <li>Return the original value of <b>Atomics.TIMEDOUT</b>.</li>
-</ol></emu-alg>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>, <emu-const>true</emu-const>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li><li>Let <var>v</var> be the result of <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-toint32">ToInt32</a>(<var>value</var>).</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>v</var>)</li><li>If <var>timeout</var> is not provided or is <emu-const>undefined</emu-const> then let <var>t</var> be +Infinity.  Otherwise:<ol><li>Let <var>q</var> be the result of <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a>(<var>timeout</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>q</var>)</li><li>If <var>q</var> is NaN then let <var>t</var> be +Infinity, otherwise let <var>t</var> be max(0, <var>q</var>).</li></ol></li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>bufferVal</var>)</li><li>Within the futex critical section do:<ol><li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li><li>If <var>v</var> does not equal <var>w</var> then:<ol><li>Return the original value of <emu-const>Atomics.NOTEQUAL</emu-const>.</li></ol></li><li>Let <var>W</var> be <a href="#Atomics.AgentSignifier">AgentSignifier</a>().</li><li>Call <a href="#Atomics.AddWaiter">AddWaiter</a>(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Let awoken = <a href="#Atomics.Suspend">Suspend</a>(<var>W</var>, <var>t</var>)</li><li>Call <a href="#Atomics.RemoveWaiter">RemoveWaiter</a>(<var>W</var>, <var>G</var>, <var>i</var>)</li></ol></li><li>If awoken is <emu-const>true</emu-const> then return the original value of <emu-const>Atomics.OK</emu-const>.</li><li>Return the original value of <emu-const>Atomics.TIMEDOUT</emu-const>.</li></ol></emu-alg>
 
       <emu-note><span class="note">Note</span>
-        <p> The name "futex" comes from Linux, where it means "fast user-space mutex". Linux has wait/wake system calls with names and functionality similar to what's defined here. The mechanism described here is however not Linux-dependent in any way. </p>
+        <p> The name "futex" comes from Linux, where it means "fast user-space mutex".  Linux has wait/wake system calls with names and functionality similar to what's defined here. The mechanism described here is however not Linux-dependent in any way.  </p>
       </emu-note>
 
     </emu-clause>
 
     <emu-clause id="Atomics.futexWake">
-      <h1><span class="secnum">7.3.6</span>Atomics.futexWake( typedArray, index, count )</h1>
-      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue. The following steps are taken: </p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>( <var>typedArray</var>, <b>true</b> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>( <var>buffer</var> )</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>( <var>i</var> )</li>
-  <li>Let <var>tmp</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tointeger">ToInteger</a>( <var>count</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>( <var>tmp</var> )</li>
-  <li>Let <var>c</var> be max( +0, <var>tmp</var> ).</li>
-  <li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>( <var>bufferVal</var> )</li>
-  <li>Let <var>n</var> = 0</li>
-  <li>Within the futex critical section do:
-    <ol>
-      <li>Let <var>S</var> be <a href="#Atomics.RemoveWaiters">RemoveWaiters</a>( <var>G</var>, <var>i</var> )</li>
-      <li>While <var>c</var> &gt; 0 and <var>S</var> is not the empty list:
-        <ol>
-          <li>Let <var>W</var> be the first agent in <var>S</var></li>
-          <li>Remove <var>W</var> from the front of <var>S</var></li>
-          <li>Call <a href="#Atomics.WakeWaiter">WakeWaiter</a>( <var>W</var> )</li>
-          <li>Subtract 1 from <var>c</var></li>
-          <li>Add 1 to <var>n</var></li>
-        </ol>
-      </li>
-    </ol>
-  </li>
-  <li>Return <var>n</var>.</li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.3.6</span>Atomics.futexWake( typedArray, index, count )<span class="utils"><span class="anchor"><a href="#Atomics.futexWake">#</a></span></span></h1>
+      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue.  The following steps are taken:  </p>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>( <var>typedArray</var>, <emu-const>true</emu-const> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>( <var>buffer</var> )</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>( <var>i</var> )</li><li>Let <var>tmp</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tointeger">ToInteger</a>( <var>count</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>( <var>tmp</var> )</li><li>Let <var>c</var> be max( +0, <var>tmp</var> ).</li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>( <var>bufferVal</var> )</li><li>Let <var>n</var> = 0</li><li>Within the futex critical section do:<ol><li>Let <var>S</var> be <a href="#Atomics.RemoveWaiters">RemoveWaiters</a>( <var>G</var>, <var>i</var> )</li><li>While <var>c</var> &gt; 0 and <var>S</var> is not the empty list:<ol><li>Let <var>W</var> be the first agent in <var>S</var></li><li>Remove <var>W</var> from the front of <var>S</var></li><li>Call <a href="#Atomics.WakeWaiter">WakeWaiter</a>( <var>W</var> )</li><li>Subtract 1 from <var>c</var></li><li>Add 1 to <var>n</var></li></ol></li></ol></li><li>Return <var>n</var>.</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1><span class="secnum">7.3.7</span>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</h1>
-      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue and moves other waiting agents to the back of the queue. The following steps are taken: </p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>, <b>true</b>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index1</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li>
-  <li>Let <var>tmp</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tointeger">ToInteger</a>(<var>count</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>tmp</var>)</li>
-  <li>Let <var>c</var> be max(+0,<var>tmp</var>)</li>
-  <li>Let <var>j</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index2</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>j</var>)</li>
-  <li>Let <var>v</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-toint32">ToInt32</a>(<var>value</var>)</li>
-  <li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var></li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>bufferVal</var>)</li>
-  <li>Let <var>n</var> = 0</li>
-  <li>Within the futex critical section do:
-    <ol>
-      <li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li>
-      <li>If <var>v</var> does not equal <var>w</var> then:
-        <ol>
-          <li>Return the original value of <b>Atomics.NOTEQUAL</b></li>
-        </ol>
-      </li>
-      <li>Let <var>S</var> be <a href="#Atomics.RemoveWaiters">RemoveWaiters</a>(<var>G</var>, <var>i</var>)</li>
-      <li>While <var>c</var> &gt; 0 and <var>S</var> is not the empty list:
-        <ol>
-          <li>Let <var>W</var> be the first agent in <var>S</var></li>
-          <li>Remove <var>W</var> from the front of <var>S</var></li>
-          <li>Call <a href="#Atomics.WakeWaiter">WakeWaiter</a>(<var>W</var>)</li>
-          <li>Subtract 1 from <var>c</var></li>
-          <li>Add 1 to <var>n</var></li>
-        </ol>
-      </li>
-      <li>While <var>S</var> is not the empty list:
-        <ol>
-          <li>Let <var>W</var> be the first agent in <var>S</var></li>
-          <li>Remove <var>W</var> from the front of <var>S</var></li>
-          <li>Call <a href="#Atomics.AddWaiter">AddWaiter</a>(<var>W</var>, <var>G</var>, <var>j</var>)</li>
-        </ol>
-      </li>
-    </ol>
-  </li>
-  <li>Return <var>n</var>.</li>
-</ol></emu-alg>        
+      <h1><span class="secnum">7.3.7</span>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )<span class="utils"><span class="anchor"><a href="#Atomics.futexWakeOrRequeue">#</a></span></span></h1>
+      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue and moves other waiting agents to the back of the queue.  The following steps are taken:  </p>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>, <emu-const>true</emu-const>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index1</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li><li>Let <var>tmp</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tointeger">ToInteger</a>(<var>count</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>tmp</var>)</li><li>Let <var>c</var> be max(+0,<var>tmp</var>)</li><li>Let <var>j</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index2</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>j</var>)</li><li>Let <var>v</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-toint32">ToInt32</a>(<var>value</var>)</li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var></li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>bufferVal</var>)</li><li>Let <var>n</var> = 0</li><li>Within the futex critical section do:<ol><li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li><li>If <var>v</var> does not equal <var>w</var> then:<ol><li>Return the original value of <emu-const>Atomics.NOTEQUAL</emu-const></li></ol></li><li>Let <var>S</var> be <a href="#Atomics.RemoveWaiters">RemoveWaiters</a>(<var>G</var>, <var>i</var>)</li><li>While <var>c</var> &gt; 0 and <var>S</var> is not the empty list:<ol><li>Let <var>W</var> be the first agent in <var>S</var></li><li>Remove <var>W</var> from the front of <var>S</var></li><li>Call <a href="#Atomics.WakeWaiter">WakeWaiter</a>(<var>W</var>)</li><li>Subtract 1 from <var>c</var></li><li>Add 1 to <var>n</var></li></ol></li><li>While <var>S</var> is not the empty list:<ol><li>Let <var>W</var> be the first agent in <var>S</var></li><li>Remove <var>W</var> from the front of <var>S</var></li><li>Call <a href="#Atomics.AddWaiter">AddWaiter</a>(<var>W</var>, <var>G</var>, <var>j</var>)</li></ol></li></ol></li><li>Return <var>n</var>.</li></ol></emu-alg>        
 
       <emu-note><span class="note">Note</span>
-        <p> Atomics.futexWaitOrRequeue is an optimization that helps programs avoid a "thundering herd" problem when many agents are woken and compete for a lock (as in a broadcast). </p>
+        <p> Atomics.futexWaitOrRequeue is an optimization that helps programs avoid a "thundering herd" problem when many agents are woken and compete for a lock (as in a broadcast).  </p>
       </emu-note>
 
     </emu-clause>
 
     <emu-clause id="Atomics.isLockFree">
-      <h1><span class="secnum">7.3.8</span>Atomics.isLockFree( size )</h1>
+      <h1><span class="secnum">7.3.8</span>Atomics.isLockFree( size )<span class="utils"><span class="anchor"><a href="#Atomics.isLockFree">#</a></span></span></h1>
 
-      <emu-alg><ol>
-  <li>Let <var>n</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tointeger">ToInteger</a>(<var>size</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>n</var>)</li>
-  <li>If <var>n</var> is not the initial value of the BYTES<var>PER</var>ELEMENT property of some TypedArray then return <b>false</b></li>
-  <li>If the atomic step of an atomic operation (compareExchange, load, store, add, sub, and, or, xor, or exchange) on a datum of size <var>n</var> bytes will be performed without the calling agent acquiring a lock outside the <var>n</var> bytes comprising the datum then return <b>true</b></li>
-  <li>Return <b>false</b></li>
-</ol></emu-alg>
+      <emu-alg><ol><li>Let <var>n</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tointeger">ToInteger</a>(<var>size</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>n</var>)</li><li>If <var>n</var> is not the initial value of the BYTES_PER_ELEMENT property of some TypedArray then return <emu-const>false</emu-const></li><li>If the atomic step of an atomic operation (compareExchange, load, store, add, sub, and, or, xor, or exchange) on a datum of size <var>n</var> bytes will be performed without the calling agent acquiring a lock outside the <var>n</var> bytes comprising the datum then return <emu-const>true</emu-const></li><li>Return <emu-const>false</emu-const></li></ol></emu-alg>
 
-      <p>If Atomics.isLockFree(k) returns a value <em>v</em> at some point in some agent then every other invocation of Atomics.isLockFree(k) in that agent must return <em>v</em>.</p>
+      <p>If Atomics.isLockFree(k) returns a value  <em>v</em> at some point in some agent then every other invocation of Atomics.isLockFree(k) in that agent must return  <em>v</em>.</p>
 
-      <p>If Atomics.isLockFree(k) returns a value <em>v</em> in some agent then every invocation of Atomics.isLockFree(k) in any agent in the same cluster as the first agent must also return <em>v</em>.</p>
+      <p>If Atomics.isLockFree(k) returns a value  <em>v</em> in some agent then every invocation of Atomics.isLockFree(k) in any agent in the same cluster as the first agent must also return  <em>v</em>.</p>
 
       <emu-note><span class="note">Note 1</span>
-        <p> Atomics.isLockFree() is an optimization primitive. High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections. If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</p>
+        <p> Atomics.isLockFree() is an optimization primitive.  High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections.  If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</p>
       </emu-note>
 
       <emu-note><span class="note">Note 2</span>
@@ -885,114 +584,78 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.load">
-      <h1><span class="secnum">7.3.9</span>Atomics.load( typedArray, index )</h1>
-      <p> The following steps are taken: </p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li>
-  <li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li>
-  <li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li>
-  <li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li>
-  <li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementSize</var> ), do:
-    <ol>
-      <li>Let <var>r</var> be the result of <a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var> )</li>
-    </ol>
-  </li>
-  <li>Return <var>r</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.3.9</span>Atomics.load( typedArray, index )<span class="utils"><span class="anchor"><a href="#Atomics.load">#</a></span></span></h1>
+      <p> The following steps are taken:  </p>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li><li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li><li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li><li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li><li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementSize</var> ), do:<ol><li>Let <var>r</var> be the result of <a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var> )</li></ol></li><li>Return <var>r</var></li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.or">
-      <h1><span class="secnum">7.3.10</span>Atomics.or( typedArray, index, value )</h1>
+      <h1><span class="secnum">7.3.10</span>Atomics.or( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.or">#</a></span></span></h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> | <var>v</var>.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.store">
-      <h1><span class="secnum">7.3.11</span>Atomics.store( typedArray, index, value )</h1>
-      <p> The following steps are taken: </p>
-      <emu-alg><ol>
-  <li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li>
-  <li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li>
-  <li>Let <var>v</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tonumber">ToNumber</a>(<var>value</var>)</li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>v</var>)</li>
-  <li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li>
-  <li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li>
-  <li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li>
-  <li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li>
-  <li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li>
-  <li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementSize</var> ), do:
-    <ol>
-      <li>Call <a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var>, <var>v</var> )</li>
-    </ol>
-  </li>
-  <li>Return <var>v</var></li>
-</ol></emu-alg>
+      <h1><span class="secnum">7.3.11</span>Atomics.store( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.store">#</a></span></span></h1>
+      <p> The following steps are taken:  </p>
+      <emu-alg><ol><li>Let <var>buffer</var> be <a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a>(<var>typedArray</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>buffer</var>)</li><li>Let <var>i</var> be <a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a>( <var>typedArray</var>, <var>index</var> )</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>i</var>)</li><li>Let <var>v</var> be <a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a>(<var>value</var>)</li><li><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>v</var>)</li><li>Let <var>arrayTypeName</var> be the value of <var>typedArray</var>'s [[TypedArrayName]] internal slot</li><li>Let <var>elementSize</var> be the Number value of the Element Size value specified in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>elementType</var> be the String value of the Element Type value in Table 49 for <var>arrayTypeName</var>.</li><li>Let <var>offset</var> be the value of <var>typedArray</var>’s [[ByteOffset]] internal slot.</li><li>Let <var>indexedPosition</var> be (<var>i</var> × <var>elementSize</var>) + <var>offset</var></li><li>Let <var>G</var> be <a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a>(<var>buffer</var>'s [[SharedArrayBufferData]] internal slot)</li><li>With atomic access to ( <var>G</var>, <var>indexedPosition</var>, <var>elementSize</var> ), do:<ol><li>Call <a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a>( <var>buffer</var>, <var>indexedPosition</var>, <var>elementType</var>, <var>v</var> )</li></ol></li><li>Return <var>v</var></li></ol></emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.sub">
-      <h1><span class="secnum">7.3.12</span>Atomics.sub( typedArray, index, value )</h1>
+      <h1><span class="secnum">7.3.12</span>Atomics.sub( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.sub">#</a></span></span></h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> - <var>v</var>.</p>
     </emu-clause>
     
     <emu-clause id="Atomics.xor">
-      <h1><span class="secnum">7.3.13</span>Atomics.xor( typedArray, index, value )</h1>
+      <h1><span class="secnum">7.3.13</span>Atomics.xor( typedArray, index, value )<span class="utils"><span class="anchor"><a href="#Atomics.xor">#</a></span></span></h1>
       <p> Use the same algorithm as for Atomics.add but in the "Compute" step let <var>w</var> be <var>r</var> ^ <var>v</var>.</p>
     </emu-clause>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="WebBrowserEmbedding">
-  <h1><span class="secnum">8</span>Web browser embedding (informative)</h1>
+  <h1><span class="secnum">8</span>Web browser embedding (informative)<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding">#</a></span></span></h1>
 
   <emu-clause id="WebBrowserEmbedding.Agents">
-    <h1><span class="secnum">8.1</span>Agent mapping</h1>
-    <p> In a web browser setting, the <em>agents</em> comprise a document's main thread environment and worker thread environments. At a minimum, normal Web Workers must be supported. (In some browsers, ServiceWorkers and Shared Workers may be technically incapable of receiving shared memory segments due to process separation.) </p>
+    <h1><span class="secnum">8.1</span>Agent mapping<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.Agents">#</a></span></span></h1>
+    <p> In a web browser setting, the  <em>agents</em> comprise a document's main thread environment and worker thread environments.  At a minimum, normal Web Workers must be supported.  (In some browsers, ServiceWorkers and Shared Workers may be technically incapable of receiving shared memory segments due to process separation.)  </p>
 
   </emu-clause>
   
   <emu-clause id="WebBrowserEmbedding.WorkerSemantics">
-    <h1><span class="secnum">8.2</span>Clarifications and changes to Web Worker semantics</h1>
+    <h1><span class="secnum">8.2</span>Clarifications and changes to Web Worker semantics<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.WorkerSemantics">#</a></span></span></h1>
 
     <emu-note><span class="note">Note</span>
-      <p> Several of these issues have been reported as bugs against the WHATWG spec, <a href="https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039">see this bug report</a>. </p>
+      <p> Several of these issues have been reported as bugs against the WHATWG spec,  <a href="https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039">see this bug report</a>.  </p>
     </emu-note>
 
     <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Start">
-      <h1><span class="secnum">8.2.1</span>Actions to start a worker</h1>
-      <p> (Clarification) The only action required to start a worker is to call "new Worker()". </p>
-      <p> (Compatible change) If a worker cannot be started for reasons of resource exhaustion (notably, no threads available, including arbitrary implementation limits on the number of threads) then an exception must be thrown. </p>
+      <h1><span class="secnum">8.2.1</span>Actions to start a worker<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.WorkerSemantics.Start">#</a></span></span></h1>
+      <p> (Clarification) The only action required to start a worker is to call "new Worker()".  </p>
+      <p> (Compatible change) If a worker cannot be started for reasons of resource exhaustion (notably, no threads available, including arbitrary implementation limits on the number of threads) then an exception must be thrown.  </p>
       <emu-note><span class="note">Note</span>
-        <p> Some browsers currently violate those requirements. </p>
+        <p> Some browsers currently violate those requirements.  </p>
         <ul>
           <li> In current Firefox, a worker is not actually created until the parent has returned to its event loop and allowed the event loop to process runnables related to the worker creation.
-          </li><li> In current Firefox, there is a per-domain limit on the number of workers. An attempt to create a worker will silently not start the worker if the limit has been reached; the worker will be queued and started when another worker has terminated.
+          </li><li> In current Firefox, there is a per-domain limit on the number of workers.  An attempt to create a worker will silently not start the worker if the limit has been reached; the worker will be queued and started when another worker has terminated.
         </li></ul>
-        <p> If an agent creates a worker and then -- if the worker is not started because the agent does not return to its event loop or because the worker is not assigned a thread -- the agent goes to sleep on a location waiting for the worker to wake it, there will be a deadlock. </p>
-        <p> There are other error situations during worker startup that can't necessarily be signaled synchronously, notably, a load error on the URL. Those have to be signaled via an event callback, or the creating agent must poll the state of the worker to see if it enters an error state (see more below on the state). </p>
+        <p> If an agent creates a worker and then -- if the worker is not started because the agent does not return to its event loop or because the worker is not assigned a thread -- the agent goes to sleep on a location waiting for the worker to wake it, there will be a deadlock.  </p>
+        <p> There are other error situations during worker startup that can't necessarily be signaled synchronously, notably, a load error on the URL.  Those have to be signaled via an event callback, or the creating agent must poll the state of the worker to see if it enters an error state (see more below on the state).  </p>
       </emu-note>
     </emu-clause>
 
     <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Jobs">
-      <h1><span class="secnum">8.2.2</span>Events and scripts run in a worker as ES6 jobs</h1>
+      <h1><span class="secnum">8.2.2</span>Events and scripts run in a worker as ES6 jobs<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.WorkerSemantics.Jobs">#</a></span></span></h1>
       <p> (Clarification) ECMAscript code running in a worker runs as an ES6 job, and scheduling of work in a Worker happens by the rules of ES6 jobs.</p>
       <emu-note><span class="note">Note</span>
-        <p> Thus the forward-progress guarantee of jobs also applies to workers. </p>
+        <p> Thus the forward-progress guarantee of jobs also applies to workers.  </p>
       </emu-note>
     </emu-clause>
 
     <emu-clause id="WebBrowserEmbedding.WorkerSemantics.LicenseToKill">
-      <h1><span class="secnum">8.2.3</span>Curtail the license to kill</h1>
-      <p> (Compatible change) Workers may be killed by the browser only for specific reasons. These reasons are TBD but include evicting the owning page from the history and closing the owning page. These reasons do not include workers that 'run too long'. </p>
+      <h1><span class="secnum">8.2.3</span>Curtail the license to kill<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.WorkerSemantics.LicenseToKill">#</a></span></span></h1>
+      <p> (Compatible change) Workers may be killed by the browser only for specific reasons.  These reasons are TBD but include evicting the owning page from the history and closing the owning page.  These reasons do not include workers that 'run too long'.  </p>
       <emu-note><span class="note">Note</span>
-        <p> Currently the WHATWG spec allows the browser to kill any worker at any time. The purpose of the rule is probably a combination of the need to stop runaway scripts (without the normal slow-script dialog) and the need to remove workers once a page is evicted from the browser cache or a tab is closed. However, the wording is overly broad. Also, common uses of workers for computation conflict with the ability to detect 'runaway' agents:</p>
+        <p> Currently the WHATWG spec allows the browser to kill any worker at any time.  The purpose of the rule is probably a combination of the need to stop runaway scripts (without the normal slow-script dialog) and the need to remove workers once a page is evicted from the browser cache or a tab is closed.  However, the wording is overly broad.  Also, common uses of workers for computation conflict with the ability to detect 'runaway' agents:</p>
         <ul>
           <li> The worker may perform a genuinely long-running computation
           </li><li> The worker will have its own user-implemented 'event' loop, communicating synchronously through shared memory; it will not use the browser's event loop
@@ -1001,20 +664,20 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Introspection">
-      <h1><span class="secnum">8.2.4</span>Termination detection</h1>
-      <p> (Compatible(?) change) The worker object should have a read-only property called "state" whose value represents the state of the worker (eg a string naming the state). One state could be "terminated", indicating the worker is dead. </p>
+      <h1><span class="secnum">8.2.4</span>Termination detection<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.WorkerSemantics.Introspection">#</a></span></span></h1>
+      <p> (Compatible(?) change) The worker object should have a read-only property called "state" whose value represents the state of the worker (eg a string naming the state).  One state could be "terminated", indicating the worker is dead.  </p>
       <emu-note><span class="note">Note 1</span>
-        <p> (Spec draft note) There appears to be no way at present to directly determine whether a Worker has terminated. </p>
+        <p> (Spec draft note) There appears to be no way at present to directly determine whether a Worker has terminated.  </p>
       </emu-note>
       <emu-note><span class="note">Note 2</span>
-        <p> (Spec draft note) Possible complementary mechanisms include throwing an exception when a message is sent to a terminated worker, and to send an error event to the creating agent when a worker is killed. </p>
+        <p> (Spec draft note) Possible complementary mechanisms include throwing an exception when a message is sent to a terminated worker, and to send an error event to the creating agent when a worker is killed.  </p>
       </emu-note>
     </emu-clause>
 
   </emu-clause>
   
   <emu-clause id="WebBrowserEmbedding.MemoryModel">
-    <h1><span class="secnum">8.3</span>Agent communication semantics</h1>
+    <h1><span class="secnum">8.3</span>Agent communication semantics<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.MemoryModel">#</a></span></span></h1>
 
     <p>Agent-to-agent communication extends the happens-before relation of the program, as follows:</p>
 
@@ -1027,30 +690,30 @@ These call AllocateTypedArray with a specified length:
   </emu-clause>
 
   <emu-clause id="WebBrowserEmbedding.Termination">
-    <h1><span class="secnum">8.4</span>Agent termination</h1>
-    <p>If a worker is terminated by a call to its terminate method while it is blocked in a call to futexWait then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait). There are no provisions for cleaning up locked state unless the browser supports a close handler.</p>
+    <h1><span class="secnum">8.4</span>Agent termination<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.Termination">#</a></span></span></h1>
+    <p>If a worker is terminated by a call to its terminate method while it is blocked in a call to futexWait then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  There are no provisions for cleaning up locked state unless the browser supports a close handler.</p>
 
-    <p>If a worker is terminated for any other reason, such as the user agent reloading or closing the window or frame, and the worker is blocked in a call to futexWait when it is terminated, then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait). However, after the running script has been terminated the worker's close handler(s) will be run as if the wait had not been aborted.</p>
+    <p>If a worker is terminated for any other reason, such as the user agent reloading or closing the window or frame, and the worker is blocked in a call to futexWait when it is terminated, then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  However, after the running script has been terminated the worker's close handler(s) will be run as if the wait had not been aborted.</p>
 
     <p> Some corner cases are unresolved:</p>
     <ul>
-      <li> If Service Workers have access to shared memory then it is possible for a service worker to wait on an action from another agent, say, a document's main thread. But if the document in question is suspended (because the user is navigating away from the document) then the service worker may never be woken: the document may remain suspended and may eventually be evicted from the history.
+      <li> If Service Workers have access to shared memory then it is possible for a service worker to wait on an action from another agent, say, a document's main thread.  But if the document in question is suspended (because the user is navigating away from the document) then the service worker may never be woken: the document may remain suspended and may eventually be evicted from the history.
     </li></ul>
         
   </emu-clause>
   
   <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
-    <h1><span class="secnum">8.5</span>Transmitting and Cloning SharedArrayBuffers and Views</h1>
+    <h1><span class="secnum">8.5</span>Transmitting and Cloning SharedArrayBuffers and Views<span class="utils"><span class="anchor"><a href="#WebBrowserEmbedding.CloneAndTransfer">#</a></span></span></h1>
 
     <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffers can be transmitted from one worker to another using postMessage() and are handled by the HTML5 structured clone algorithm as follows.</p>
 
-    <p>When a SharedArrayBuffer input object is cloned in the originating agent the result is a new SharedArrayBuffer object in the receiving agent that references the same Shared Data Block as the input object. The input object must be present in the transfer map for the clone operation; if not, a standard clone exception will be thrown.</p>
+    <p>When a SharedArrayBuffer input object is cloned in the originating agent the result is a new SharedArrayBuffer object in the receiving agent that references the same Shared Data Block as the input object.  The input object must be present in the transfer map for the clone operation; if not, a standard clone exception will be thrown.</p>
 
     <p>When a SharedArrayBuffer object is cloned its Shared Data Block is not detached (SharedArrayBuffers are never detached).</p>
 
     <p>A Shared Data Block remains accessible so long as at least one SharedArrayBuffer object references it in some agent.</p>
 
-    <p>When a TypedArray object that is a view on a SharedArrayBuffer is cloned the result is a new TypedArray object of the same element type. The "buffer" property of the new TypedArray will reference a clone of the input object's "buffer" property. The input object's "buffer" property must be present in the transfer map for the clone, or a standard clone exception will be thrown.</p>
+    <p>When a TypedArray object that is a view on a SharedArrayBuffer is cloned the result is a new TypedArray object of the same element type.  The "buffer" property of the new TypedArray will reference a clone of the input object's "buffer" property.  The input object's "buffer" property must be present in the transfer map for the clone, or a standard clone exception will be thrown.</p>
 
   </emu-clause>
 
