@@ -2,7 +2,9 @@
 
 ## Cross-cutting concerns
 
-### Using TypedArray
+This is a run-down of aspects of the Shared memory and Atomics specification that affect ECMAScript as a whole.
+
+### Reusing TypedArray for shared views
 
 The current spec uses TypedArrays for views on shared memory, this has several negative aspects:
 
@@ -22,7 +24,7 @@ One alternative is to move the static methods from Atomics to SharedArrayBuffer.
 
 Shared memory adds significant, though localized, language complexity, in that the shared memory model is complicated (even if it is a simple model, as such models go) and in that pervasive system dependencies cannot reasonably be hidden by the language.  Programs with data races may perform differently on machines with weak and strong memory ordering, but behavior may also depend on whether a program becomes jitted or deoptimized, for example, if the interpreter executes synchronizing operations as part of its operation where the jitted code does not.
 
-Data-race free programs are predictable (they are sequentially consistent) but can be hard to write.  The low level of the shared memory API increases the likelihood of races.
+Data-race free programs are predictable (they are sequentially consistent) but can be hard to write.  The low level of the shared memory API increases the likelihood of creating racy programs.  Those problems can be mitigated by using safe abstractions.  However, the semantic complexity remains in the language.
 
 ### Deadlocks
 
@@ -32,11 +34,16 @@ The futex mechanism increases the risk of having deadlocked scripts.  This failu
 
 More generally, this low-level facility probably makes it more difficult in the future to introduce higher-level facilities that are strictly safer to use.
 
-We believe however that the low-level facility is good for building reasonably safe and performant abstractions and that no such higher-level facility will actually be desired.
+We believe however that the low-level facility is good for building reasonably safe and performant abstractions and that no such higher-level facility will actually be desired, or, if one does become desired, we will want it to be compatible with the low-level facility, in the Extensible Web fashion.
 
 ## Select rationale
 
-* asm.js compatibility + desire to support eg musl has steered us toward some decisions, such as futexes over a direct implementation of Synchronic (which requires some objects and garbage collection)
+(Note, this section is not finished.  It will eventually incorporate additional key points from the Rationale in the older spec document, at least.)
 
-Note, this section is not finished.  It will eventually incorporate additional key points from the Rationale in the older spec document, at least.
+### Futexes
 
+Obviously futexes are very low level and quite hard to use effectively, and indeed they can be tricky to use efficiently.
+
+The primary reason futexes were chosen as the blocking mechanism rather than a high-level mechanism such as mutexes or [synchronic objects](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4195.pdf) is that futexes do not require storage management or any kind of complex initialization, and as such, are a much better fit for asm.js than higher-level mechanisms.  Unlike SIMD, for example, mutexes and synchronic objects would have to be true references and would require cross-agent storage management, and might require a construction protocol that would be incompatible with translated C and C++ code.
+
+In practice, reusable mutexes and synchronic objects for plain JS can be constructed on top of futexes fairly easily.  (We are still experimenting with implementation techniques for the very best performance, however.)
