@@ -1,7 +1,7 @@
 <!doctype html>
 <head><meta charset="utf8">
 <title>ECMAScript Shared Memory and Atomics</title>
-<link rel="stylesheet" href="https://bterlson.github.com/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 </head><body><h1>ECMAScript Shared Memory and Atomics</h1>
@@ -12,7 +12,7 @@
 
 <p> This proposal adds a simple form of shared memory to ECMAScript.  Shared memory is being exposed in the form of a new SharedArrayBuffer type; the existing TypedArrays are adapted in such a way that they can be used to create views on shared memory.  The new Atomics global object provides atomic operations on shared memory locations, including operations that can be used to create blocking synchronization primitives.  Though not a part of this specification, we intend for the role of "threads" to be played by Web Workers in web browser environments.</p><p>
 
-</p><p> At this time the propsal adds only low-level primitives to ECMAScript; we expect the developer community to put together abstractions that are useful in specific domains.  </p>
+</p><p> At this time the proposal adds only low-level primitives to ECMAScript; we expect the developer community to put together abstractions that are useful in specific domains.  </p>
 
 <p> The work has been driven by the following use cases:  </p><p>
 
