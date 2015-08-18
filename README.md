@@ -8,3 +8,5 @@ http://lars-t-hansen.github.io/ecmascript_sharedmem/shmem.html.  (The source for
 A simple tutorial introduction is in [TUTORIAL.md](TUTORIAL.md).
 
 A run-down of demo programs and other examples is in [DEMOS.md](DEMOS.md).
+
+A run-down of some high-level design issues, cross-cutting concerns, etc are in [DISCUSSION.md](DISCUSSION.md).
