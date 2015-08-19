@@ -36,6 +36,10 @@ More generally, this low-level facility probably makes it more difficult in the 
 
 We believe however that the low-level facility is good for building reasonably safe and performant abstractions and that no such higher-level facility will actually be desired, or, if one does become desired, we will want it to be compatible with the low-level facility, in the Extensible Web fashion.
 
+## Security issues
+
+The only known security issue with this feature is that it allows the construction of high-resolution timers.  Such timers can be used to construct some types of side-channel attacks.  See [the issues](https://github.com/lars-t-hansen/ecmascript_sharedmem/issues) for a deeper discussion; more information will be coming by and by.
+
 ## Select rationale
 
 (Note, this section is not finished.  It will eventually incorporate additional key points from the Rationale in the older spec document, at least.)
