@@ -2,9 +2,12 @@
 
 var sab = new SharedArrayBuffer(1024);
 
+// TODO: These are not the official view names, harness.js corrects
+// for that but we should rename here once Firefox has been fixed.
+
 var int_views = [SharedInt8Array, SharedUint8Array, SharedInt16Array, SharedUint16Array, SharedInt32Array, SharedUint32Array];
 
-// TODO: SharedUint8ClampedArray actually allows atomics in Firefox
+// TODO: SharedUint8ClampedArray in Firefox allows atomics
 var other_views = [/*SharedUint8ClampedArray,*/ SharedFloat32Array, SharedFloat64Array];
 
 // Test allowed atomic operations on integer views
