@@ -56,8 +56,6 @@ for ( var View of int_views ) {
     assertEq(tmp[0], 0);
 }
 
-// TODO: Check that the appropriate bytes in the SAB were affected
-
 var cuview = new SharedUint8ClampedArray(sab, 8, 10);
 cuview[3] = 1;
 assertEq(cuview[3], 1);
@@ -79,5 +77,16 @@ f32view[0] = 0;
 
 ////////////////////////////////////////////////////////////
 
-// TODO:
-// - TA methods perform correctly on shared memory
+// TypedArray methods:
+//
+// All existing TypedArray methods should work the same (in a
+// single-threaded setting) if the underlying buffer is a shared
+// buffer, so I'm delegating most functional tests to existing test
+// suites (that will have to be adapted mildly).
+
+// The spec has a change to the set() method to prevent overwriting
+// elements when the underlying memory of two SharedArrayBuffers is
+// the same (as can happen if a SAB is sent to another agent and then
+// back to the first one; we end up with two SAB objects that
+// reference the same memory).  That change can't be tested in a
+// shell, it needs to be tested in a browser.
