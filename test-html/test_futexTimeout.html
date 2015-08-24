@@ -1,0 +1,227 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>wait, wake, and timeout </title>
+</head>
+
+<body>
+
+<p> Tests futexWait, futexWake, and timeout functionality. </p>
+
+<p> The tests run when the page is loaded.  The output from these
+tests will appear below.  If everything goes OK it should end with the
+line DONE after a while, and there should be no lines that start with
+FAIL. </p>
+
+<P> Also check the console for errors; there should be none. </p>
+
+<script src="harness.js"></script>
+
+<script>
+var stage = 0;
+var tests = [];
+var mem = new SharedInt32Array(10);
+var WAITLOC = 0;
+var time_before, time_after;
+var timeout;
+var w = new Array(2);
+
+for ( var i=0 ; i < w.length ; i++ ) {
+    w[i] = new Worker("futexTimeout_slave.js");
+    w[i].postMessage(["start", mem.buffer, WAITLOC], [mem.buffer]);
+    w[i].onmessage = function (ev) {
+        var x = ev.data;
+        if (Array.isArray(x) && x[0] == "msg")
+            msg(String(x[1]));
+        else {
+            time_after = Date.now();
+	    nextStage(x);
+        }
+    };
+    w[i].onerror = function (ev) {
+	msg("ERROR callback from worker");
+    };
+}
+
+setTimeout(function () {
+    stage = 0;
+    runNext();
+}, 0);
+
+function runNext() {
+    if (stage >= tests.length) {
+	msg("DONE");
+	return;
+    }
+    time_before = Date.now();
+    tests[stage].run();
+}
+
+function nextStage(x) {
+    if (timeout)
+	clearTimeout(timeout);
+    timeout = null;
+    if (tests[stage].test(x)) {
+	if (tests[stage].hasOwnProperty("count"))
+	    if (--tests[stage].count > 0)
+		return;
+        msg("Stage " + (stage+1) + " passed: remote=" + x[2] + ", local=" + (time_after - time_before) + ", expected=" + tests[stage].t);
+	++stage;
+	runNext();
+    }
+    else
+        msg("FAIL: Stage " + stage + ": unexpected result: " + x);
+}
+
+
+////////////////////////////////////////////////////////////
+//
+// Stage 1: test that a 1s timeout works in the worker.  The worker
+// will wait, and time out, and then post the argument string back to
+// us.  Wait locally for 3x the time and if no callback is received
+// then declare failure.
+
+tests.push({
+    run:
+    function () {
+	timeout = setTimeout(function () {
+	    msg("FAIL: Stage 1: - no callback received");
+	}, 3000);
+	w[0].postMessage(["timeout", 1000, "stage1"]);
+    },
+    test:
+    function (x) {
+	return Array.isArray(x) && x[0] == "timedout" && x[1] == "stage1";
+    },
+    t: 1000
+});
+
+////////////////////////////////////////////////////////////
+//
+// Stage 2: test that we can wakeup a worker that is in a wait that
+// has a timeout.  The worker will wait, but be woken explicitly, and
+// then post the argument string back to us.
+
+tests.push({
+    run:
+    function () {
+	timeout = setTimeout(function () {
+            Atomics.futexWake(mem, WAITLOC, 1);
+	    timeout = setTimeout(function () {
+		msg("FAIL: Stage 2: - no callback received");
+            }, 20000);
+	}, 3000);
+	w[0].postMessage(["timeout", 10000, "stage2"]);
+    },
+    test:
+    function (x) {
+	return (Array.isArray(x) && x[0] == "woken" && x[1] == "stage2");
+    },
+    t: 3000
+});
+
+////////////////////////////////////////////////////////////
+//
+// Stage 3: Try to wait, but the location will have the wrong value
+// and the wait should return immediately.
+
+tests.push({
+    run:
+    function () {
+	timeout = setTimeout(function () {
+            msg("FAIL: Stage 3: - no callback received");
+	}, 3000);
+	mem[WAITLOC] = 0x1337;
+	w[0].postMessage(["timeout", 1000, "stage3"]);
+    },
+    test:
+    function (x) {
+        mem[WAITLOC] = 0;
+        return (Array.isArray(x) && x[0] == "notequal" && x[1] == "stage3");
+    },
+    t: 0
+});
+
+////////////////////////////////////////////////////////////
+//
+// Stage 4: Send several wake signals on the location before the wait;
+// these should not affect the wait, which should time out.
+
+tests.push({
+    run:
+    function () {
+	timeout = setTimeout(function () {
+            msg("FAIL: Stage 4: - no callback received");
+	}, 3000);
+	Atomics.futexWake(mem, WAITLOC, 1);
+	Atomics.futexWake(mem, WAITLOC, 1);
+	Atomics.futexWake(mem, WAITLOC, 1);
+	Atomics.futexWake(mem, WAITLOC, 1);
+	w[0].postMessage(["timeout", 1000, "stage4"]);
+    },
+    test:
+    function (x) {
+        return (Array.isArray(x) && x[0] == "timedout" && x[1] == "stage4");
+    },
+    t: 1000
+});
+
+////////////////////////////////////////////////////////////
+//
+// Stage 5: wait for 3s in the worker; meanwhile request to wake zero
+// workers.  The timeout should happen as expected: the worker should
+// not be woken by the request.
+
+tests.push({
+    run:
+    function () {
+	timeout = setTimeout(function () { Atomics.futexWake(mem, WAITLOC, 0); }, 500);
+	w[0].postMessage(["timeout", 3000, "stage5"]);
+    },
+    test:
+    function (x) {
+        return (Array.isArray(x) && x[0] == "timedout" && x[1] == "stage5");
+    },
+    t: 3000
+});
+
+////////////////////////////////////////////////////////////
+//
+// Stage 6: wait for 3s in both workers; meanwhile request to wake one
+// worker.  One worker should be woken, one should timeout.
+
+var s6_timedout = false;
+var s6_woken = false;
+
+tests.push({
+    run:
+    function () {
+	timeout = setTimeout(function () { Atomics.futexWake(mem, WAITLOC, 1); }, 500);
+	w[0].postMessage(["timeout", 3000, "stage6"]);
+	w[1].postMessage(["timeout", 3000, "stage6"]);
+    },
+    count:
+    2,
+    test:
+    function (x) {
+        if (!Array.isArray(x))
+	    return false;
+	if (x[0] == "timedout") {
+	    if (s6_timedout)
+		return false;
+	    s6_timedout = true;
+	    return true;
+	}
+	if (s6_woken)
+	    return false;
+	s6_woken = true;
+	return true;
+    },
+    t: 3000
+});
+
+</script>
+
+</body>
+</html>

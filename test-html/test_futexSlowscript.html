@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests the slow script dialog within a futexWait on the main thread </title>
+</head>
+
+<body>
+
+<p> Tests the slow script dialog within a futexWait on the main thread.  This may be Firefox-specific at the moment. </p>
+
+<p> Just load the page, click <button onclick="runTest()">This
+Button</button>, and leave the browser alone.  The slow script dialog
+should appear after a while.  You should be able to Continue the
+script without anything happening except the dialog appearing again
+later.  You should be able to Stop the script and have the browser go
+back to being its responsive self, without any scary-looking output
+appearing below (there will be some output).
+
+<P> Remember to <button onclick="counter=0">Reset the test state</button> beween
+each test, when the script is killed
+it leaves global status variables in an inconsistent state.
+
+<P> Also check the console, once you kill the script there should be a
+stack trace there.
+
+<P> Try these experiments:
+<ul>
+<li> Click the button several times to see if that provokes nested events (it should not)
+<li> Type eg Ctrl-Shift-K to bring up the dev console while the script is waiting to see
+     what that does (it should not hang)
+</ul>
+
+<P> Additionally you should be able to bring up the script in a debugger by
+clicking "Debug script" in the slow-script dialog.  (On my system this causes
+one of my cores to stay at 100% utilization.)
+
+<script src="harness.js"></script>
+
+<script>
+var mem = new SharedInt32Array(1);
+var counter = 0;
+
+function runTest() {
+    msg("Enter, counter=" + counter);
+    if (counter > 0)
+        msg("Event received while inside futexWait (recursive event delivery), very QUESTIONABLE");
+    ++counter;
+    try {
+        Atomics.futexWait(mem, 0, 0, Number.POSITIVE_INFINITY); // Just hang
+    }
+    finally {
+        --counter;
+        msg("If you see this then the script FAILED because the exiting wait was observed, counter=" + counter);
+    }
+}
+</script>
+
+</body>
+</html>

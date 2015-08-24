@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests of mutual exclusion on SharedArrayBuffer using Atomics</title>
+</head>
+
+<body>
+<p> This test case tests that mutual exclusion on SharedArrayBuffer
+using Atomics operations works.</p>
+
+<p> The test runs when you load the page.  It usually takes 1-5
+seconds and the output appears below.  There should be no error
+messages and finally a line that says SUCCESS (there may be even more
+output after that).  Also check the browser console for errors, there should
+be none.</p>
+
+<script src="harness.js"></script>
+
+<script>
+var w = new Worker("sharedMemCriticalSection_master.js");
+w.onmessage = 
+    function(event) {
+        msg(String(event.data));
+	switch (event.data.substring(0,7)) {
+	case "FAILURE":
+	    break;
+	case "SUCCESS":
+	    break;
+	}
+    };
+w.postMessage("START");
+</script>
+</body>
+</html>

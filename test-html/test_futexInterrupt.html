@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests that futexes can be interrupted on tab close or browser shutdown</title>
+</head>
+
+<body>
+
+<p> This tests that futexes that are blocked will be interrupted and will
+not block the browser when the tab is closed or the browser is shut
+down. </p>
+
+<p> Open this page in the browser.  It will create a worker that
+blocks indefinitely in futexWait().  No line should appear below that
+says "THIS SHOULD NOT HAPPEN". </p>
+
+<script src="harness.js"></script>
+  
+<p> Now try to close the tab or close the browser!  If the code works
+as it should, the tab or browser should close; if you close the
+browser you should see no trace of the browser process in a process
+monitor or similar.</p>
+
+<p>(Firefox devs: try ./mach run from the command prompt, ideally in a debug build,
+since release builds will tend to just exit in a hard way if things get stuck.)</p>
+  
+<script>
+var w = new Worker("futexInterrupt-worker.js");
+w.onmessage = function (ev) { msg(String(ev.data)); }
+var iab = new SharedInt32Array(1);
+w.postMessage(iab.buffer, [iab.buffer]);
+</script>
+
+</body>
+</html>
