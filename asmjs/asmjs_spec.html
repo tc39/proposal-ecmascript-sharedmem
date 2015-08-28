@@ -1,0 +1,250 @@
+<!-- -*- indent-tabs-mode: nil -*-
+
+     Process this file with ../format.sh to produce asmjs_shmem.html.  See comments in that file.
+-->
+<!doctype html>
+<meta charset="utf8">
+<title>ECMAScript Shared Memory and Atomics - asm.js addenda</title>
+<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<h1>ECMAScript Shared Memory and Atomics - asm.js addenda</h1>
+<p> Revised: 2015-08-28 </p>
+
+<emu-intro id="intro">
+<h1>Introduction</h1>
+
+<p> This document defines the changes and amendments to asm.js
+  semantics to support
+  <a href="https://github.com/lars-t-hansen/ecmascript_sharedmem">the proposal for ECMAScript shared memory and atomics</a>.
+  Please refer to that document for full information about the semantics. </p>
+  
+<p>This specification is a restatement of
+  <a href="https://docs.google.com/document/d/19X8Geo_7OMyyUICMvIqzEgSDms0rRMDODdMIkXIm9m0/edit?usp=sharing">an earlier work</a>,
+  along with later bug fixes.  The earlier work is obsolete. </p>
+
+<p>Changelog:</p>
+<ul>
+  <li> 2015-08-28 -- initial translation from the original proposal.
+</ul>
+</emu-intro>
+
+<emu-clause id="views">
+  <h1>Views</h1>
+
+  <p> New constructors ~SharedInt8Array~, ~SharedUint8Array~, ..., 
+    ~SharedFloat32Array~, and ~SharedFloat64Array~ can be used to
+    create views on the heap memory if the heap memory is a
+    SharedArrayBuffer. </p>
+
+  <p> It is a static error to reference, even for the purposes of
+    storing it in a local binding, a shared-view constructor (eg,
+    SharedInt32Array) and an unshared-view constructor (eg,
+    Float64Array) in the same compilation unit. </p>
+
+  <p> It is a link error to map a shared view onto an unshared buffer,
+    or an unshared view onto a shared buffer. </p>
+
+  <p> Loading from and storing to the heap have the same semantics
+    regardless of whether the heap is shared or unshared memory. </p>
+
+</emu-clause>
+
+<emu-clause id="atomics">
+  <h1>Atomics</h1>
+
+  <p> There is a new known stdlib object ~Atomics~.  This object
+    provides a number of known, static methods, a subset of the
+    methods provided in the full specification. </p>
+  
+  <emu-note>
+    <p>The following Atomics names are not available as intrinsics in asm.js:</p>
+    <ul>
+      <li> Atomics.futexWait()
+      <li> Atomics.futexWake()
+      <li> Atomics.futexWakeOrRequeue()
+      <li> Atomics.OK
+      <li> Atomics.NOTEQUAL
+      <li> Atomics.TIMEDOUT
+    </ul>
+
+    <p> The futex methods can be accessed through the FFI (with the
+      heap passed implicitly) and the operation result values can be
+      expanded into constant values, as they have known values.</p>
+
+  </emu-note>
+  
+  <emu-clause id="atomics.load">
+    <h1>Atomics.load(view, index)</h1>
+
+    <emu-clause id="atomics.load.static">
+      <h1>Static constraints</h1>
+      
+      <p> The _view_ must name a shared integer-typed array. </p>
+
+      <p> The _index_ must be an expression of static type Intish.  If
+      the byte size of _view_ is not 1 then _index_ must have the form
+      _C_, where _C_ is a constant, or the form _E>>K_, where _E_ is
+      some expression and _K_ is a constant that is the log-base-2 of
+      the element byte size of _view_. </p>
+
+      <p> The result type of Atomics.load is Signed. (BUG) </p>
+      
+      <emu-note>
+	<p> Treating atomic accesses as "syntax" rather than as
+	"calls" fits in with how they will be used and allows for
+	simplifictions in code generation, and is not a particular
+	hardship. </p>
+      </emu-note>
+
+    </emu-clause>
+
+    <emu-clause id="atomics.load.dynamic">
+      <h1>Dynamic behavior</h1>
+
+      <p> If the _index_ is not in the range of _view_ then a memory
+      barrier appropriate to the operation is performed, no read or
+      write operation is performed, and the result value is zero. (BUG) </p>
+    </emu-clause>
+
+  </emu-clause>
+
+  <emu-clause id="atomics.store">
+    <h1> Atomics.store(view, index, value) </h1>
+    
+    <emu-clause id="atomics.store.static">
+      <h1>Static constraints</h1>
+      <p> The _view_ and _index_ arguments are constrained as for Atomics.load. </p>
+
+      <p> The static type of _value_ must be Intish. </p>
+
+      <p> The result type is Signed (BUG). </p>
+    </emu-clause>
+    
+    <emu-clause id="atomics.store.dynamic">
+      <h1>Dynamic behavior</h1>
+      <p> The result value is the third argument value, coerced to Signed (BUG). </p>
+    </emu-clause>
+    
+  </emu-clause>
+
+  <emu-clause id="atomics.exchange">
+    <h1> Atomics.exchange(view, index, value) </h1>
+    
+    <emu-clause id="atomics.exchange.static">
+      <h1>Static constraints</h1>
+      <p> The _view_, _index_, and _value_ arguments are constrained as for Atomics.store. </p>
+
+      <p> The result type is Signed (BUG). </p>
+    </emu-clause>
+    
+    <emu-clause id="atomics.exchange.dynamic">
+      <h1>Dynamic behavior</h1>
+      <p> If the _index_ is not in the range of _view_ then a memory
+      barrier appropriate to the operation is performed, no read or
+      write operation is performed, and the result value is zero. (BUG) </p>
+
+      <p> The result value is the value previously in memory, coerced to Signed (BUG). </p>
+    </emu-clause>
+    
+  </emu-clause>
+
+  <emu-clause id="atomics.add">
+    <h1> Atomics.add(view, index, value) </h1>
+
+    <p> As for Atomics.exchange. </p>
+    
+  </emu-clause>
+  
+  <emu-clause id="atomics.sub">
+    <h1> Atomics.sub(view, index, value) </h1>
+
+    <p> As for Atomics.exchange. </p>
+    
+  </emu-clause>
+  
+  <emu-clause id="atomics.and">
+    <h1> Atomics.and(view, index, value) </h1>
+
+    <p> As for Atomics.exchange. </p>
+    
+  </emu-clause>
+  
+  <emu-clause id="atomics.or">
+    <h1> Atomics.or(view, index, value) </h1>
+
+    <p> As for Atomics.exchange. </p>
+    
+  </emu-clause>
+  
+  <emu-clause id="atomics.xor">
+    <h1> Atomics.xor(view, index, value) </h1>
+
+    <p> As for Atomics.exchange. </p>
+    
+  </emu-clause>
+  
+  <emu-clause id="atomics.compareExchange">
+    <h1> Atomics.compareExchange(view, index, expected, replacement) </h1>
+
+    <emu-clause id="atomics.compareExchange.static">
+      <h1>Static constraints</h1>
+      <p> The _view_ and _index_ arguments are constrained as for Atomics.load. </p>
+
+      <p> The static types of _expected_ and _replacement_ must be Intish. </p>
+
+      <p> The result type is Signed (BUG). </p>
+    </emu-clause>
+
+    <emu-clause id="atomics.compareExchange.dynamic">
+      <h1>Dynamic behavior</h1>
+      <p> If the _index_ is not in the range of _view_ then a memory
+      barrier appropriate to the operation is performed, no read or
+      write operation is performed, and the result value is zero. (BUG) </p>
+
+      <p> Otherwise the result value is the value previously in memory, coerced to Signed (BUG). </p>
+    </emu-clause>
+    
+  </emu-clause>
+  
+  <emu-clause id="atomics.fence">
+    <h1> Atomics.fence() </h1>
+
+    <p> Implements a full memory barrier. </p>
+
+    <emu-note>
+      <p> Atomics.fence() is no longer a part of the Shared Memory and
+      Atomics specification and we do not expect to reintroduce it.
+      It is implemented in Firefox, for now, but may be removed. </p>
+    </emu-note>
+
+    <emu-clause id="atomics.fence.static">
+      <h1>Static constraints</h1>
+
+      <p> The result type is void. </p>
+
+    </emu-clause>
+
+  </emu-clause>
+  
+  <emu-clause id="atomics.isLockFree">
+    <h1> Atomics.isLockFree(size) </h1>
+
+    <emu-clause id="atomics.isLockFree.static">
+      <h1>Static constraints</h1>
+      <p> The _size_ argument must be an integer constant. <p>
+
+      <p> The result type is Int, a boolean value. </p>
+
+      <emu-note>
+	<p> Again, treating Atomics.isLockFree as syntax rather than
+	  as a call fits in with how it will be used and provides
+	  guarantees that it will be resolved at compile time. </p>
+      </emu-note>
+      
+    </emu-clause>
+
+  </emu-clause>
+  
+</emu-clause
