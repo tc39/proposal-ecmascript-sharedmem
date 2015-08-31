@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics - asm.js addenda</h1>
-<p> Revised: 2015-08-28 </p>
+<p> Revised: 2015-08-31 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -26,28 +26,26 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2015-08-31 -- Correct return types on atomic operations.  (For load, exchange, compareExchange, add, sub, and, or, and xor the return type is Int, not Signed.  For store it is the type of the _value_ argument, not Signed).  Remove non-throwing behavior on out-of-range accesses; the operations throw, as they do for non-asm.js code.  Move mention of the old SharedTypedArray views to the Firefox section.  Clarify wording throughout.
   <li> 2015-08-28 -- initial translation from the original proposal.
 </ul>
 </emu-intro>
 
+<emu-clause id="terminology">
+  <h1>Terminology</h1>
+  <p> An "integer-typed array" is one of the ~TypedArray~ views ~Int8Array~, ~Uint8Array~, ~Int16Array~, ~Uint16Array~, ~Int32Array~, and ~Uint32Array~. </p>
+
+  <p> A "float-typed array" is one of the TypedArray views ~Float32Array~ and ~Float64Array~. </p>
+</emu-clause>
+    
 <emu-clause id="views">
   <h1>Views</h1>
 
-  <p> New constructors ~SharedInt8Array~, ~SharedUint8Array~, ..., 
-    ~SharedFloat32Array~, and ~SharedFloat64Array~ can be used to
-    create views on the heap memory if the heap memory is a
-    SharedArrayBuffer. </p>
-
-  <p> It is a static error to reference, even for the purposes of
-    storing it in a local binding, a shared-view constructor (eg,
-    SharedInt32Array) and an unshared-view constructor (eg,
-    Float64Array) in the same compilation unit. </p>
-
-  <p> It is a link error to map a shared view onto an unshared buffer,
-    or an unshared view onto a shared buffer. </p>
-
-  <p> Loading from and storing to the heap have the same semantics
-    regardless of whether the heap is shared or unshared memory. </p>
+  <p> The heap memory passed to the asm.js module at link time must be
+    a ~SharedArrayBuffer~ if and only if the module references the 
+    ~Atomics~ object (see below).  If this constraint fails then a
+    soft link error ensues and execution falls back to non-asm.js, cf
+    the asm.js spec section 7. </p>
 
 </emu-clause>
 
@@ -56,7 +54,8 @@
 
   <p> There is a new known stdlib object ~Atomics~.  This object
     provides a number of known, static methods, a subset of the
-    methods provided in the full specification. </p>
+    methods provided in the full specification.  The atomic operations
+    have the same dynamic semantics in asm.js as in full JS. </p>
   
   <emu-note>
     <p>The following Atomics names are not available as intrinsics in asm.js:</p>
@@ -81,31 +80,24 @@
     <emu-clause id="atomics.load.static">
       <h1>Static constraints</h1>
       
-      <p> The _view_ must name a shared integer-typed array. </p>
+      <p> The _view_ must name an integer-typed array mapped onto
+      shared memory. </p>
 
       <p> The _index_ must be an expression of static type Intish.  If
-      the byte size of _view_ is not 1 then _index_ must have the form
-      _C_, where _C_ is a constant, or the form _E>>K_, where _E_ is
-      some expression and _K_ is a constant that is the log-base-2 of
-      the element byte size of _view_. </p>
+      the element byte size of _view_ is not 1 then _index_ must have
+      the form _C_, where _C_ is a constant, or the form _E>>K_, where
+      _E_ is some expression and _K_ is a constant that is the
+      log-base-2 of the element byte size of _view_. </p>
 
-      <p> The result type of Atomics.load is Signed. (BUG) </p>
-      
+      <p> The result type of Atomics.load is Int. </p>
+
       <emu-note>
 	<p> Treating atomic accesses as "syntax" rather than as
-	"calls" fits in with how they will be used and allows for
-	simplifictions in code generation, and is not a particular
-	hardship. </p>
+	  "calls" -- ie, requiring a shift for the index expression --
+	  fits in with how they will be used and allows for
+	  simplifictions in code generation. </p>
       </emu-note>
 
-    </emu-clause>
-
-    <emu-clause id="atomics.load.dynamic">
-      <h1>Dynamic behavior</h1>
-
-      <p> If the _index_ is not in the range of _view_ then a memory
-      barrier appropriate to the operation is performed, no read or
-      write operation is performed, and the result value is zero. (BUG) </p>
     </emu-clause>
 
   </emu-clause>
@@ -117,14 +109,9 @@
       <h1>Static constraints</h1>
       <p> The _view_ and _index_ arguments are constrained as for Atomics.load. </p>
 
-      <p> The static type of _value_ must be Intish. </p>
+      <p> The _value_ must be an expression of static type Intish. </p>
 
-      <p> The result type is Signed (BUG). </p>
-    </emu-clause>
-    
-    <emu-clause id="atomics.store.dynamic">
-      <h1>Dynamic behavior</h1>
-      <p> The result value is the third argument value, coerced to Signed (BUG). </p>
+      <p> The result type of Atomics.store is the actual type of _value_. </p>
     </emu-clause>
     
   </emu-clause>
@@ -136,16 +123,7 @@
       <h1>Static constraints</h1>
       <p> The _view_, _index_, and _value_ arguments are constrained as for Atomics.store. </p>
 
-      <p> The result type is Signed (BUG). </p>
-    </emu-clause>
-    
-    <emu-clause id="atomics.exchange.dynamic">
-      <h1>Dynamic behavior</h1>
-      <p> If the _index_ is not in the range of _view_ then a memory
-      barrier appropriate to the operation is performed, no read or
-      write operation is performed, and the result value is zero. (BUG) </p>
-
-      <p> The result value is the value previously in memory, coerced to Signed (BUG). </p>
+      <p> The result type of Atomics.exchange is Int. </p>
     </emu-clause>
     
   </emu-clause>
@@ -192,20 +170,12 @@
       <h1>Static constraints</h1>
       <p> The _view_ and _index_ arguments are constrained as for Atomics.load. </p>
 
-      <p> The static types of _expected_ and _replacement_ must be Intish. </p>
+      <p> The _expected_ and _replacement_ arguments must be
+      expressions of static type Intish. </p>
 
-      <p> The result type is Signed (BUG). </p>
+      <p> The result type of Atomics.compareExchange is Int. </p>
     </emu-clause>
 
-    <emu-clause id="atomics.compareExchange.dynamic">
-      <h1>Dynamic behavior</h1>
-      <p> If the _index_ is not in the range of _view_ then a memory
-      barrier appropriate to the operation is performed, no read or
-      write operation is performed, and the result value is zero. (BUG) </p>
-
-      <p> Otherwise the result value is the value previously in memory, coerced to Signed (BUG). </p>
-    </emu-clause>
-    
   </emu-clause>
   
   <emu-clause id="atomics.fence">
@@ -216,13 +186,13 @@
     <emu-note>
       <p> Atomics.fence() is no longer a part of the Shared Memory and
       Atomics specification and we do not expect to reintroduce it.
-      It is implemented in Firefox, for now, but may be removed. </p>
+      It is implemented in Firefox, for now, but will likely be removed. </p>
     </emu-note>
 
     <emu-clause id="atomics.fence.static">
       <h1>Static constraints</h1>
 
-      <p> The result type is void. </p>
+      <p> The result type of Atomics.fence is void. </p>
 
     </emu-clause>
 
@@ -235,7 +205,7 @@
       <h1>Static constraints</h1>
       <p> The _size_ argument must be an integer constant. <p>
 
-      <p> The result type is Int, a boolean value. </p>
+      <p> The result type of Atomics.isLockFree is Int, a boolean value. </p>
 
       <emu-note>
 	<p> Again, treating Atomics.isLockFree as syntax rather than
@@ -247,4 +217,23 @@
 
   </emu-clause>
   
+</emu-clause>
+
+<emu-clause id="firefox">
+  <h1>Firefox</h1>
+
+  <p> Firefox has new constructors ~SharedInt8Array~,
+    ~SharedUint8Array~, ..., ~SharedFloat32Array~, and
+    ~SharedFloat64Array~.  These must be used to create views on the
+    heap memory if the heap memory is a SharedArrayBuffer. </p>
+
+  <p> It is a static error to reference, even for the purposes of
+    storing it in a local binding, a shared-view constructor (eg,
+    SharedInt32Array) and an unshared-view constructor (eg,
+    Float64Array) in the same compilation unit. </p>
+
+  <p> It is a hard link error (no fallback to full JS) to map a shared
+    view onto an unshared buffer, or an unshared view onto a shared
+    buffer. </p>
+
 </emu-clause
