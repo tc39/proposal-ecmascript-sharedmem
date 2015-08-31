@@ -48,11 +48,13 @@ The [original proposal](https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0Ao
 
 Obviously futexes are very low level and quite hard to use.
 
-The primary reason futexes were chosen as the blocking mechanism rather than a high-level mechanism such as mutexes or [synchronic objects](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4195.pdf) is that futexes do not require storage management or any kind of complex initialization, and as such, are a much better fit for asm.js than higher-level mechanisms.  Unlike SIMD, for example, mutex objects and synchronic objects would have to be true references and would require cross-agent storage management, and might require a construction protocol that would be incompatible with translated C and C++ code.
+The primary reason futexes were chosen as the blocking mechanism rather than a high-level mechanism such as mutexes or [synchronic objects](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4195.pdf) is that futexes do not require storage management or any kind of complex initialization, and as such are a better fit for asm.js than higher-level mechanisms.  Unlike SIMD values, for example, mutex objects and synchronic objects would have to be true references and would require cross-agent storage management, and might require a construction protocol that would be incompatible with translated C and C++ code.
 
-In practice, reusable mutexes and synchronic objects for plain JS can be constructed on top of futexes fairly easily.  (We are still experimenting with implementation techniques for the very best performance, however.)
+In practice, reusable mutexes and synchronic objects for plain JS can be constructed on top of futexes fairly easily, though getting the very best performance can be hard.
 
-Clearly SharedArrayBuffers must be reference counted across agents (requiring the use of finalization mechanisms already available in all JS engines), and there will be some storage management associated with the futex implementation, but the garbage collectors need not trace through shared objects.
+Clearly SharedArrayBuffers must be reference counted across agents (requiring the use of finalization mechanisms already available in all JS engines), and there will be some storage management associated with using the futex implementation, but the garbage collectors need not trace through shared objects.
+
+Finally, even if we were to adopt synchronic objects there would be a need for the lower-level atomics.  See [Issue #12](https://github.com/lars-t-hansen/ecmascript_sharedmem/issues/12) as well as [the draft proposal for synchronic](https://docs.google.com/document/d/1YE_DECtwc4v3tSmWMN8grMWMEwA3hifuQOOYtGti8kM/edit?usp=sharing) for discussion.
 
 ### Only sequentially consistent atomics
 
