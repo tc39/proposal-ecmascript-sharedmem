@@ -5,8 +5,8 @@
 <link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
-</head><body><div id="menu-toggle">☰</div><div id="menu"><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#intro" title="Introduction"><span class="secnum"></span> Introduction</a></li><li><span class="item-toggle-none"></span><a href="#views" title="Views"><span class="secnum">1</span> Views</a></li><li><span class="item-toggle">◢</span><a href="#atomics" title="Atomics"><span class="secnum">2</span> Atomics</a><ol class="toc"><li><span class="item-toggle">◢</span><a href="#atomics.load" title="Atomics.load(view, index)"><span class="secnum">2.1</span> Atomics.load(view, index)</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.load.static" title="Static constraints"><span class="secnum">2.1.1</span> Static constraints</a></li><li><span class="item-toggle-none"></span><a href="#atomics.load.dynamic" title="Dynamic behavior"><span class="secnum">2.1.2</span> Dynamic behavior</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.store" title=" Atomics.store(view, index, value) "><span class="secnum">2.2</span> Atomics.store(view, index, value) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.store.static" title="Static constraints"><span class="secnum">2.2.1</span> Static constraints</a></li><li><span class="item-toggle-none"></span><a href="#atomics.store.dynamic" title="Dynamic behavior"><span class="secnum">2.2.2</span> Dynamic behavior</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.exchange" title=" Atomics.exchange(view, index, value) "><span class="secnum">2.3</span> Atomics.exchange(view, index, value) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.exchange.static" title="Static constraints"><span class="secnum">2.3.1</span> Static constraints</a></li><li><span class="item-toggle-none"></span><a href="#atomics.exchange.dynamic" title="Dynamic behavior"><span class="secnum">2.3.2</span> Dynamic behavior</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#atomics.add" title=" Atomics.add(view, index, value) "><span class="secnum">2.4</span> Atomics.add(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.sub" title=" Atomics.sub(view, index, value) "><span class="secnum">2.5</span> Atomics.sub(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.and" title=" Atomics.and(view, index, value) "><span class="secnum">2.6</span> Atomics.and(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.or" title=" Atomics.or(view, index, value) "><span class="secnum">2.7</span> Atomics.or(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.xor" title=" Atomics.xor(view, index, value) "><span class="secnum">2.8</span> Atomics.xor(view, index, value) </a></li><li><span class="item-toggle">◢</span><a href="#atomics.compareExchange" title=" Atomics.compareExchange(view, index, expected, replacement) "><span class="secnum">2.9</span> Atomics.compareExchange(view, index, expected, replacement) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.compareExchange.static" title="Static constraints"><span class="secnum">2.9.1</span> Static constraints</a></li><li><span class="item-toggle-none"></span><a href="#atomics.compareExchange.dynamic" title="Dynamic behavior"><span class="secnum">2.9.2</span> Dynamic behavior</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.fence" title=" Atomics.fence() "><span class="secnum">2.10</span> Atomics.fence() </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.fence.static" title="Static constraints"><span class="secnum">2.10.1</span> Static constraints</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.isLockFree" title=" Atomics.isLockFree(size) "><span class="secnum">2.11</span> Atomics.isLockFree(size) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.isLockFree.static" title="Static constraints"><span class="secnum">2.11.1</span> Static constraints</a></li></ol></li></ol></li></ol></div></div><h1>ECMAScript Shared Memory and Atomics - asm.js addenda</h1>
-<p> Revised: 2015-08-28 </p>
+</head><body><div id="menu-toggle">☰</div><div id="menu"><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#intro" title="Introduction"><span class="secnum"></span> Introduction</a></li><li><span class="item-toggle-none"></span><a href="#terminology" title="Terminology"><span class="secnum">1</span> Terminology</a></li><li><span class="item-toggle-none"></span><a href="#views" title="Views"><span class="secnum">2</span> Views</a></li><li><span class="item-toggle">◢</span><a href="#atomics" title="Atomics"><span class="secnum">3</span> Atomics</a><ol class="toc"><li><span class="item-toggle">◢</span><a href="#atomics.load" title="Atomics.load(view, index)"><span class="secnum">3.1</span> Atomics.load(view, index)</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.load.static" title="Static constraints"><span class="secnum">3.1.1</span> Static constraints</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.store" title=" Atomics.store(view, index, value) "><span class="secnum">3.2</span> Atomics.store(view, index, value) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.store.static" title="Static constraints"><span class="secnum">3.2.1</span> Static constraints</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.exchange" title=" Atomics.exchange(view, index, value) "><span class="secnum">3.3</span> Atomics.exchange(view, index, value) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.exchange.static" title="Static constraints"><span class="secnum">3.3.1</span> Static constraints</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#atomics.add" title=" Atomics.add(view, index, value) "><span class="secnum">3.4</span> Atomics.add(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.sub" title=" Atomics.sub(view, index, value) "><span class="secnum">3.5</span> Atomics.sub(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.and" title=" Atomics.and(view, index, value) "><span class="secnum">3.6</span> Atomics.and(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.or" title=" Atomics.or(view, index, value) "><span class="secnum">3.7</span> Atomics.or(view, index, value) </a></li><li><span class="item-toggle-none"></span><a href="#atomics.xor" title=" Atomics.xor(view, index, value) "><span class="secnum">3.8</span> Atomics.xor(view, index, value) </a></li><li><span class="item-toggle">◢</span><a href="#atomics.compareExchange" title=" Atomics.compareExchange(view, index, expected, replacement) "><span class="secnum">3.9</span> Atomics.compareExchange(view, index, expected, replacement) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.compareExchange.static" title="Static constraints"><span class="secnum">3.9.1</span> Static constraints</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.fence" title=" Atomics.fence() "><span class="secnum">3.10</span> Atomics.fence() </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.fence.static" title="Static constraints"><span class="secnum">3.10.1</span> Static constraints</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#atomics.isLockFree" title=" Atomics.isLockFree(size) "><span class="secnum">3.11</span> Atomics.isLockFree(size) </a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#atomics.isLockFree.static" title="Static constraints"><span class="secnum">3.11.1</span> Static constraints</a></li></ol></li></ol></li><li><span class="item-toggle-none"></span><a href="#firefox" title="Firefox"><span class="secnum">4</span> Firefox</a></li></ol></div></div><h1>ECMAScript Shared Memory and Atomics - asm.js addenda</h1>
+<p> Revised: 2015-08-31 </p>
 
 <emu-intro id="intro">
 <h1><span class="secnum"></span>Introduction<span class="utils"><span class="anchor"><a href="#intro">#</a></span></span></h1>
@@ -22,36 +22,35 @@
 
 <p>Changelog:</p>
 <ul>
-  <li> 2015-08-28 -- initial translation from the original proposal.
+  <li> 2015-08-31 -- Correct return types on atomic operations.  (For load, exchange, compareExchange, add, sub, and, or, and xor the return type is Int, not Signed.  For store it is the type of the <var>value</var> argument, not Signed).  Remove non-throwing behavior on out-of-range accesses; the operations throw, as they do for non-asm.js code.  Move mention of the old SharedTypedArray views to the Firefox section.  Clarify wording throughout.
+  </li><li> 2015-08-28 -- initial translation from the original proposal.
 </li></ul>
 </emu-intro>
 
+<emu-clause id="terminology">
+  <h1><span class="secnum">1</span>Terminology<span class="utils"><span class="anchor"><a href="#terminology">#</a></span></span></h1>
+  <p> An "integer-typed array" is one of the <emu-const>TypedArray</emu-const> views <emu-const>Int8Array</emu-const>, <emu-const>Uint8Array</emu-const>, <emu-const>Int16Array</emu-const>, <emu-const>Uint16Array</emu-const>, <emu-const>Int32Array</emu-const>, and <emu-const>Uint32Array</emu-const>.  </p>
+
+  <p> A "float-typed array" is one of the TypedArray views <emu-const>Float32Array</emu-const> and <emu-const>Float64Array</emu-const>.  </p>
+</emu-clause>
+    
 <emu-clause id="views">
-  <h1><span class="secnum">1</span>Views<span class="utils"><span class="anchor"><a href="#views">#</a></span></span></h1>
+  <h1><span class="secnum">2</span>Views<span class="utils"><span class="anchor"><a href="#views">#</a></span></span></h1>
 
-  <p> New constructors <emu-const>SharedInt8Array</emu-const>, <emu-const>SharedUint8Array</emu-const>, ..., <emu-const>SharedFloat32Array</emu-const>, and <emu-const>SharedFloat64Array</emu-const> can be used to
-    create views on the heap memory if the heap memory is a
-    SharedArrayBuffer.  </p>
-
-  <p> It is a static error to reference, even for the purposes of
-    storing it in a local binding, a shared-view constructor (eg,
-    SharedInt32Array) and an unshared-view constructor (eg,
-    Float64Array) in the same compilation unit.  </p>
-
-  <p> It is a link error to map a shared view onto an unshared buffer,
-    or an unshared view onto a shared buffer.  </p>
-
-  <p> Loading from and storing to the heap have the same semantics
-    regardless of whether the heap is shared or unshared memory.  </p>
+  <p> The heap memory passed to the asm.js module at link time must be
+    a <emu-const>SharedArrayBuffer</emu-const> if and only if the module references the <emu-const>Atomics</emu-const> object (see below).  If this constraint fails then a
+    soft link error ensues and execution falls back to non-asm.js, cf
+    the asm.js spec section 7.  </p>
 
 </emu-clause>
 
 <emu-clause id="atomics">
-  <h1><span class="secnum">2</span>Atomics<span class="utils"><span class="anchor"><a href="#atomics">#</a></span></span></h1>
+  <h1><span class="secnum">3</span>Atomics<span class="utils"><span class="anchor"><a href="#atomics">#</a></span></span></h1>
 
   <p> There is a new known stdlib object <emu-const>Atomics</emu-const>.  This object
     provides a number of known, static methods, a subset of the
-    methods provided in the full specification.  </p>
+    methods provided in the full specification.  The atomic operations
+    have the same dynamic semantics in asm.js as in full JS.  </p>
   
   <emu-note><span class="note">Note</span>
     <p>The following Atomics names are not available as intrinsics in asm.js:</p>
@@ -71,165 +70,136 @@
   </emu-note>
   
   <emu-clause id="atomics.load">
-    <h1><span class="secnum">2.1</span>Atomics.load(view, index)<span class="utils"><span class="anchor"><a href="#atomics.load">#</a></span></span></h1>
+    <h1><span class="secnum">3.1</span>Atomics.load(view, index)<span class="utils"><span class="anchor"><a href="#atomics.load">#</a></span></span></h1>
 
     <emu-clause id="atomics.load.static">
-      <h1><span class="secnum">2.1.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.load.static">#</a></span></span></h1>
+      <h1><span class="secnum">3.1.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.load.static">#</a></span></span></h1>
       
-      <p> The <var>view</var> must name a shared integer-typed array.  </p>
+      <p> The <var>view</var> must name an integer-typed array mapped onto
+      shared memory.  </p>
 
       <p> The <var>index</var> must be an expression of static type Intish.  If
-      the byte size of <var>view</var> is not 1 then <var>index</var> must have the form<var>C</var>, where <var>C</var> is a constant, or the form <var>E&gt;&gt;K</var>, where <var>E</var> is
-      some expression and <var>K</var> is a constant that is the log-base-2 of
-      the element byte size of <var>view</var>.  </p>
+      the element byte size of <var>view</var> is not 1 then <var>index</var> must have
+      the form <var>C</var>, where <var>C</var> is a constant, or the form <var>E&gt;&gt;K</var>, where<var>E</var> is some expression and <var>K</var> is a constant that is the
+      log-base-2 of the element byte size of <var>view</var>.  </p>
 
-      <p> The result type of Atomics.load is Signed. (BUG)  </p>
-      
+      <p> The result type of Atomics.load is Int.  </p>
+
       <emu-note><span class="note">Note</span>
 	<p> Treating atomic accesses as "syntax" rather than as
-	"calls" fits in with how they will be used and allows for
-	simplifictions in code generation, and is not a particular
-	hardship.  </p>
+	  "calls" -- ie, requiring a shift for the index expression --
+	  fits in with how they will be used and allows for
+	  simplifictions in code generation.  </p>
       </emu-note>
 
-    </emu-clause>
-
-    <emu-clause id="atomics.load.dynamic">
-      <h1><span class="secnum">2.1.2</span>Dynamic behavior<span class="utils"><span class="anchor"><a href="#atomics.load.dynamic">#</a></span></span></h1>
-
-      <p> If the <var>index</var> is not in the range of <var>view</var> then a memory
-      barrier appropriate to the operation is performed, no read or
-      write operation is performed, and the result value is zero. (BUG)  </p>
     </emu-clause>
 
   </emu-clause>
 
   <emu-clause id="atomics.store">
-    <h1><span class="secnum">2.2</span> Atomics.store(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.store">#</a></span></span></h1>
+    <h1><span class="secnum">3.2</span> Atomics.store(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.store">#</a></span></span></h1>
     
     <emu-clause id="atomics.store.static">
-      <h1><span class="secnum">2.2.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.store.static">#</a></span></span></h1>
+      <h1><span class="secnum">3.2.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.store.static">#</a></span></span></h1>
       <p> The <var>view</var> and <var>index</var> arguments are constrained as for Atomics.load.  </p>
 
-      <p> The static type of <var>value</var> must be Intish.  </p>
+      <p> The <var>value</var> must be an expression of static type Intish.  </p>
 
-      <p> The result type is Signed (BUG).  </p>
-    </emu-clause>
-    
-    <emu-clause id="atomics.store.dynamic">
-      <h1><span class="secnum">2.2.2</span>Dynamic behavior<span class="utils"><span class="anchor"><a href="#atomics.store.dynamic">#</a></span></span></h1>
-      <p> The result value is the third argument value, coerced to Signed (BUG).  </p>
+      <p> The result type of Atomics.store is the actual type of <var>value</var>.  </p>
     </emu-clause>
     
   </emu-clause>
 
   <emu-clause id="atomics.exchange">
-    <h1><span class="secnum">2.3</span> Atomics.exchange(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.exchange">#</a></span></span></h1>
+    <h1><span class="secnum">3.3</span> Atomics.exchange(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.exchange">#</a></span></span></h1>
     
     <emu-clause id="atomics.exchange.static">
-      <h1><span class="secnum">2.3.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.exchange.static">#</a></span></span></h1>
+      <h1><span class="secnum">3.3.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.exchange.static">#</a></span></span></h1>
       <p> The <var>view</var>, <var>index</var>, and <var>value</var> arguments are constrained as for Atomics.store.  </p>
 
-      <p> The result type is Signed (BUG).  </p>
-    </emu-clause>
-    
-    <emu-clause id="atomics.exchange.dynamic">
-      <h1><span class="secnum">2.3.2</span>Dynamic behavior<span class="utils"><span class="anchor"><a href="#atomics.exchange.dynamic">#</a></span></span></h1>
-      <p> If the <var>index</var> is not in the range of <var>view</var> then a memory
-      barrier appropriate to the operation is performed, no read or
-      write operation is performed, and the result value is zero. (BUG)  </p>
-
-      <p> The result value is the value previously in memory, coerced to Signed (BUG).  </p>
+      <p> The result type of Atomics.exchange is Int.  </p>
     </emu-clause>
     
   </emu-clause>
 
   <emu-clause id="atomics.add">
-    <h1><span class="secnum">2.4</span> Atomics.add(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.add">#</a></span></span></h1>
+    <h1><span class="secnum">3.4</span> Atomics.add(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.add">#</a></span></span></h1>
 
     <p> As for Atomics.exchange.  </p>
     
   </emu-clause>
   
   <emu-clause id="atomics.sub">
-    <h1><span class="secnum">2.5</span> Atomics.sub(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.sub">#</a></span></span></h1>
+    <h1><span class="secnum">3.5</span> Atomics.sub(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.sub">#</a></span></span></h1>
 
     <p> As for Atomics.exchange.  </p>
     
   </emu-clause>
   
   <emu-clause id="atomics.and">
-    <h1><span class="secnum">2.6</span> Atomics.and(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.and">#</a></span></span></h1>
+    <h1><span class="secnum">3.6</span> Atomics.and(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.and">#</a></span></span></h1>
 
     <p> As for Atomics.exchange.  </p>
     
   </emu-clause>
   
   <emu-clause id="atomics.or">
-    <h1><span class="secnum">2.7</span> Atomics.or(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.or">#</a></span></span></h1>
+    <h1><span class="secnum">3.7</span> Atomics.or(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.or">#</a></span></span></h1>
 
     <p> As for Atomics.exchange.  </p>
     
   </emu-clause>
   
   <emu-clause id="atomics.xor">
-    <h1><span class="secnum">2.8</span> Atomics.xor(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.xor">#</a></span></span></h1>
+    <h1><span class="secnum">3.8</span> Atomics.xor(view, index, value)  <span class="utils"><span class="anchor"><a href="#atomics.xor">#</a></span></span></h1>
 
     <p> As for Atomics.exchange.  </p>
     
   </emu-clause>
   
   <emu-clause id="atomics.compareExchange">
-    <h1><span class="secnum">2.9</span> Atomics.compareExchange(view, index, expected, replacement)  <span class="utils"><span class="anchor"><a href="#atomics.compareExchange">#</a></span></span></h1>
+    <h1><span class="secnum">3.9</span> Atomics.compareExchange(view, index, expected, replacement)  <span class="utils"><span class="anchor"><a href="#atomics.compareExchange">#</a></span></span></h1>
 
     <emu-clause id="atomics.compareExchange.static">
-      <h1><span class="secnum">2.9.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.compareExchange.static">#</a></span></span></h1>
+      <h1><span class="secnum">3.9.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.compareExchange.static">#</a></span></span></h1>
       <p> The <var>view</var> and <var>index</var> arguments are constrained as for Atomics.load.  </p>
 
-      <p> The static types of <var>expected</var> and <var>replacement</var> must be Intish.  </p>
+      <p> The <var>expected</var> and <var>replacement</var> arguments must be
+      expressions of static type Intish.  </p>
 
-      <p> The result type is Signed (BUG).  </p>
+      <p> The result type of Atomics.compareExchange is Int.  </p>
     </emu-clause>
 
-    <emu-clause id="atomics.compareExchange.dynamic">
-      <h1><span class="secnum">2.9.2</span>Dynamic behavior<span class="utils"><span class="anchor"><a href="#atomics.compareExchange.dynamic">#</a></span></span></h1>
-      <p> If the <var>index</var> is not in the range of <var>view</var> then a memory
-      barrier appropriate to the operation is performed, no read or
-      write operation is performed, and the result value is zero. (BUG)  </p>
-
-      <p> Otherwise the result value is the value previously in memory, coerced to Signed (BUG).  </p>
-    </emu-clause>
-    
   </emu-clause>
   
   <emu-clause id="atomics.fence">
-    <h1><span class="secnum">2.10</span> Atomics.fence()  <span class="utils"><span class="anchor"><a href="#atomics.fence">#</a></span></span></h1>
+    <h1><span class="secnum">3.10</span> Atomics.fence()  <span class="utils"><span class="anchor"><a href="#atomics.fence">#</a></span></span></h1>
 
     <p> Implements a full memory barrier.  </p>
 
     <emu-note><span class="note">Note</span>
       <p> Atomics.fence() is no longer a part of the Shared Memory and
       Atomics specification and we do not expect to reintroduce it.
-      It is implemented in Firefox, for now, but may be removed.  </p>
+      It is implemented in Firefox, for now, but will likely be removed.  </p>
     </emu-note>
 
     <emu-clause id="atomics.fence.static">
-      <h1><span class="secnum">2.10.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.fence.static">#</a></span></span></h1>
+      <h1><span class="secnum">3.10.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.fence.static">#</a></span></span></h1>
 
-      <p> The result type is void.  </p>
+      <p> The result type of Atomics.fence is void.  </p>
 
     </emu-clause>
 
   </emu-clause>
   
   <emu-clause id="atomics.isLockFree">
-    <h1><span class="secnum">2.11</span> Atomics.isLockFree(size)  <span class="utils"><span class="anchor"><a href="#atomics.isLockFree">#</a></span></span></h1>
+    <h1><span class="secnum">3.11</span> Atomics.isLockFree(size)  <span class="utils"><span class="anchor"><a href="#atomics.isLockFree">#</a></span></span></h1>
 
     <emu-clause id="atomics.isLockFree.static">
-      <h1><span class="secnum">2.11.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.isLockFree.static">#</a></span></span></h1>
+      <h1><span class="secnum">3.11.1</span>Static constraints<span class="utils"><span class="anchor"><a href="#atomics.isLockFree.static">#</a></span></span></h1>
       <p> The <var>size</var> argument must be an integer constant.  </p><p>
 
-      </p><p> The result type is Int, a boolean value.  </p>
+      </p><p> The result type of Atomics.isLockFree is Int, a boolean value.  </p>
 
       <emu-note><span class="note">Note</span>
 	<p> Again, treating Atomics.isLockFree as syntax rather than
@@ -241,4 +211,21 @@
 
   </emu-clause>
   
+</emu-clause>
+
+<emu-clause id="firefox">
+  <h1><span class="secnum">4</span>Firefox<span class="utils"><span class="anchor"><a href="#firefox">#</a></span></span></h1>
+
+  <p> Firefox has new constructors <emu-const>SharedInt8Array</emu-const>,<emu-const>SharedUint8Array</emu-const>, ..., <emu-const>SharedFloat32Array</emu-const>, and<emu-const>SharedFloat64Array</emu-const>.  These must be used to create views on the
+    heap memory if the heap memory is a SharedArrayBuffer.  </p>
+
+  <p> It is a static error to reference, even for the purposes of
+    storing it in a local binding, a shared-view constructor (eg,
+    SharedInt32Array) and an unshared-view constructor (eg,
+    Float64Array) in the same compilation unit.  </p>
+
+  <p> It is a hard link error (no fallback to full JS) to map a shared
+    view onto an unshared buffer, or an unshared view onto a shared
+    buffer.  </p>
+
 </emu-clause></body>
