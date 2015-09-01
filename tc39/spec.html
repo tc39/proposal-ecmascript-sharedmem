@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2015-08-21 </p>
+<p> Revised: 2015-09-01 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -67,6 +67,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2015-09-01 -- (Issue 21) isLockFree returns false if its argument is not the byte size of some *integer* array.
   <li> 2015-08-21 -- expanded the discussion of Service Workers and Shared Workers.
   <li> 2015-08-18 -- reformat, update to ecmarkup 1.7.
   <li> 2015-08-06 -- added sections on forward progress and clarifications and changes to worker semantics.
@@ -847,7 +848,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Let _n_ be ToInteger(_size_)
         1. ReturnIfAbrupt(_n_)
-        1. If _n_ is not the initial value of the BYTES_PER_ELEMENT property of some TypedArray then return ~false~
+        1. If _n_ is not the initial value of the BYTES_PER_ELEMENT property of some integer TypedArray then return ~false~
         1. If the atomic step of an atomic operation (compareExchange, load, store, add, sub, and, or, xor, or exchange) on a datum of size _n_ bytes will be performed without the calling agent acquiring a lock outside the _n_ bytes comprising the datum then return ~true~
         1. Return ~false~
       </emu-alg>
