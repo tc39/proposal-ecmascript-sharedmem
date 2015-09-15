@@ -299,6 +299,11 @@ These call AllocateTypedArray with a specified length:
           <li> All agents in the same cluster must compute the same value for _isLittleEndian_ if it is not present.
           <li> In step 4, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
         </ul>
+
+        <emu-note>
+          <p> If IsSharedMemory( _arrayBuffer_ ) is ~true~ then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer.  This restricts compiler optimizations as follows.  If a program loads a value, and then uses the loaded value several places, an ECMAScript implementation must not re-load the value for any of the uses even if it can prove the agent does not overwrite the value in memory.  It must also prove that no concurrent agent overwrites the value. </p>
+        </emu-note>
+
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
