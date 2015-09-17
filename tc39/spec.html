@@ -530,14 +530,134 @@ These call AllocateTypedArray with a specified length:
     <h1>Runtime semantics</h1>
     
     <emu-clause id="Atomics.WithAtomicAccessTo">
-      <h1>With atomic access to ...</h1>
-      
-      <p> Let <em>atomic accesses</em> be those algorithm steps that are labeled 'With atomic access to ...' in the algorithms below, ie, atomic load, atomic store, and the atomic read-modify-write operations add, sub, and, or, xor, exchange, and compareExchange.</p>
+      <h1>With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ )</h1>
 
-      <p> Let an <em>access qualifier</em> on an atomic access be the triple comprising a Shared Data Block ID, an offset, and a size.</p>
-        
-      <p> Let <em>data accesses</em> be those invocations of GetValueFromBuffer() and SetValueInBuffer() that are not part of atomic accesses.</p>
-        
+      <!-- There can be multiple program orders?  Or is this one special runtime trace?  Clarify.  -->
+
+      <p> Let the <em>program order</em> of an agent's execution be
+        the sequence of steps (according to E262) the agent makes at
+        runtime. </p>
+
+      <p> Let <em>atomic accesses</em> be those execution steps that
+        are labeled 'With atomic access to ...' in the algorithms
+        below, ie, atomic load, atomic store, and the atomic
+        read-modify-write operations add, sub, and, or, xor, exchange,
+        and compareExchange. </p>
+
+      <p> Let <em>data accesses</em> be those invocations of
+        GetValueFromBuffer() and SetValueInBuffer() that are not part of
+        atomic accesses.</p>
+
+      <p> Atomic and data accesses alike affect (read or write) some
+        consecutive cells in memory.  Two access events that are
+        adjacent in any valid ordering of the events of an agent
+        cluster execution are said to <em> conflict </em> if at least
+        one of the events is a write. </p>
+
+      <p> All atomic accesses are performed in a single total order
+        (the <em>synchronization order</em>) for the agent cluster,
+        consistent with each agent's program order.  </p>
+
+      <em-note>
+        <p> (Spec draft note) The memory model is made complicated by
+          two low-level aspects of the language: atomic accesses are
+          made to ranges of locations, not to atomic objects, and
+          typed views can alias.  As a consequence, we have to take
+          into account concurrent atomic accesses to overlapping but
+          non-matching location ranges. The main consequence of this
+          is that the atomic accesses of an agent cluster cannot be
+          placed in a single total order. </p>
+      </em-note>
+          
+
+      <!-- Serialization by that rule requires that even overlapping
+           atomic accesses behave properly, ie, that they are mutually
+           excluded.  It does not require that an atomic access that
+           races with a data access is aborted.
+
+           On x86 it's obvious, we have the bus lock, so atomics are
+           completely serialized already.
+
+           On mips and power8 any store into the reserved region from
+           another cpu will clear the reservation, even if the store
+           is overlapping (eg a word store into the tail end of a
+           doubleword reservation).  On power8 the reservation region
+           is 16 bytes, on mips it's unspecified but it doesn't
+           matter.
+
+           On ARM the reservation region is at least 8 bytes, which is
+           good enough for exclusive instructions; additionally,
+           non-exclusive stores from another CPU clear the global
+           monitor for the reservation.
+
+           However we CANNOT use a sharded lock for some sizes and
+           atomics for others.  Suppose we access a byte via a lock
+           and a word via an atomic instruction and we interleave like
+           this:
+
+             acquire lock
+             load
+                                   load exclusive
+                                   store exclusive
+             store
+             release lock
+
+           Thread 1 will not observe that the datum has been changed.
+
+           Ergo once we use sharded locks we must use the sharded lock
+           for all sizes, to do this.
+        -->
+
+
+      <p> An <em>event</em> in an agent is an atomic access, a data
+      access, the sending of a SharedArrayBuffer, the receipt of a
+      SharedArrayBuffer, the action of waking up a sleeping agent, or
+      a sleeping agent being woken up.  Events can also be
+      embedding-specific, for example, starting and stopping agents
+      and communicating via other channels than shared memory. </p>
+  
+      <p> An event A <em>happens before</em> another event B if either:</p>
+      <ul>
+        <li> A precedes B in an agent's program order,
+        <li> A is the sending of a SharedArrayBuffer and B is the
+        receipt in another agent of that buffer,
+        <li> A is the waking up a sleeping agent and B the agent being
+        woken up,
+        <li> A and B are paired embedding-specific events in separate
+        agents and the embedding guarantees that A happens before B,
+        <li> A and B are both atomic accesses to the same memory
+        cells, B follows A in the synchronization order, and B reads
+        the value written by A, or
+        <li> A happens before C and C happens before B (transitivity)
+      </ul>
+
+      <p> Executions must be such that <em>happens before</em> is
+      irreflexive (acyclic). </p>
+
+      <!-- again, some abstract execution or some concrete executions?  -->
+
+
+      <p> A data access read R only sees a write W that happens before
+        R, and such that there is no write V such that V happens
+        before R and W happens before V. </p>
+      
+      <p> An atomic read R sees either the last preceding (in
+        synchronization order) atomic write U to the same location, or a
+        non-atomic write that follows the rules in the last bullet. </p>
+
+      <p> Two conflicting operations constitute a data race if neither
+        happens before the other and at least one of them is not
+        atomic, or if they are both atomic but not to the same memory
+        cells. </p>
+
+      <p> A write involved in a data race stores a poison value that
+        can read back as anything whatsoever. </p>
+
+
+<!--
+<p> If valid executions of two agents are able access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>conflict</em>.  Two accesses from different agents form a <em>data race</em> if they conflict and at least one access is a data access, or if the accesses are both atomic but their access qualifiers do not match exactly. </p>
+
+
       <p> A valid execution of an agent is constrained by:</p>
       <ul>
         <li> The ordering of the agent's programs' steps in the dynamic semantics
@@ -545,7 +665,38 @@ These call AllocateTypedArray with a specified length:
       </ul>
       
       <p> If valid executions of two agents are able access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>conflict</em>.  Two accesses from different agents form a <em>data race</em> if they conflict and at least one access is a data access, or if the accesses are both atomic but their access qualifiers do not match exactly. </p>
+      -->
 
+<!--
+1) All atomics and futex etc. operations are performed in a single total order consistent with each thread's program order.  Unimaginatively call this the synchronization order.
+
+2) A happens before B if either
+    a) A precedes B in an agent's program order,
+    b) conditions from 7.2.2, 
+    c) A and B are both atomic operations, B follows A in the synchronization order, and B reads the value written by A, or
+    d) A happens before C and C happens before B (transitivity)
+
+3) Executions must be such that happens before is irreflexive (acyclic)
+
+We can then say:
+
+- ordinary non-atomic reads only see writes that happen before them, and such that no other writes "happen between" the two.
+- atomic reads see either the last preceding (in synchronization order) atomic write to the same location, or a non-atomic write that follows the rules in the last bullet.
+- two conflicting operations constitute a data race if neither happens before the other and at least one of them is not atomic.
+- a write involved in a data race actually stores a "poison" value that can read back as anything whatsoever.  (This takes the place of "undefined behavior" in C++.)
+-->
+
+<!-- 
+Is it useful for the atomic access to use _G_?  Probably not, because data accesses don't use _G_.
+
+Is it instead better to talk about "atomically do" and say that GetValueFromBuffer and SetValueInBuffer are somehow affected?
+
+Clearly the affected byte ranges matter.  So for an atomic operation as well as for a data access there is a byte range.  But 
+
+What about futex operations?
+-->
+      
+<!--
       <p> If the execution of an agent cluster has no data races, then the agent cluster behaves according to one of its sequentially consistent executions. </p>
         
       <p> Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable:  If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable.  A data race affects the reading and writing of all memory cells in the union of the access ranges of the racing accesses. </p>
@@ -555,19 +706,35 @@ These call AllocateTypedArray with a specified length:
 
         <p> It's probably desirable to formalize "at the same time" further.  See Boehm and Adve 2008, Foundations of the C++ Concurrency Memory Model.  </p>
       </emu-note>
+      -->
+
     </emu-clause>
 
+<!-- 
     <emu-clause id="Atomics.HappensBefore">
       <h1>Happens-before</h1>
 
       <p> The following rules constrain the interleaving of agent steps within a cluster:</p>
       <ul>
-        <li> When an agent calls Atomics.futexWake or Atomics.futexWakeOrRequeue and another agent that was in a call to Atomics.futexWait wakes up as a result of the first agent's call, then the call to Atomics.futexWake or Atomics.futexWakeOrRequeue in the first agent happens-before the return from Atomics.futexWait in the second agent.
-        <li> When a Shared Data Block is passed from one agent to the other, the sending of the block from the sender happens-before the receipt of the block in the recipient.
-        <li> The ECMAScript embedding may extend the happens-before relation to take into account agent creation and destruction and inter-agent communication that does not go through shared memory.
+        <li> When an agent calls Atomics.futexWake or
+        Atomics.futexWakeOrRequeue and another agent that was in a
+        call to Atomics.futexWait wakes up as a result of the first
+        agent's call, then the call to Atomics.futexWake or
+        Atomics.futexWakeOrRequeue in the first agent happens-before
+        the return from Atomics.futexWait in the second agent.
+
+        <li> When a Shared Data Block is passed from one agent to the
+        other, the sending of the block from the sender happens-before
+        the receipt of the block in the recipient.
+
+        <li> The ECMAScript embedding may extend the happens-before
+        relation to take into account agent creation and destruction
+        and inter-agent communication that does not go through shared
+        memory.
       </ul>
 
     </emu-clause>
+    -->
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
       <h1>Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</h1>
@@ -699,8 +866,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. Compute: Let _w_ be _r_ + _v_
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
@@ -732,8 +898,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementType_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementType_ ), do:
           1. Let _r_ be GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. If _r_ is the same number value as _x_ then:
             1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
@@ -886,8 +1051,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
         1. Return _r_
       </emu-alg>
