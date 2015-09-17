@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2015-09-15 </p>
+<p> Revised: 2015-09-17 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -67,6 +67,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2015-09-17 -- cleaned up minor awkwardness around atomics.
   <li> 2015-09-15 -- (Issue 24) Spell out constraints on optimization.
   <li> 2015-09-01 -- (Issue 21) isLockFree returns false if its argument is not the byte size of some *integer* array.
   <li> 2015-08-21 -- expanded the discussion of Service Workers and Shared Workers.
@@ -530,13 +531,25 @@ These call AllocateTypedArray with a specified length:
     <h1>Runtime semantics</h1>
     
     <emu-clause id="Atomics.WithAtomicAccessTo">
-      <h1>With atomic access to ...</h1>
+      <h1>With atomic access to ( buffer, indexedPosition, elementSize )</h1>
       
-      <p> Let <em>atomic accesses</em> be those algorithm steps that are labeled 'With atomic access to ...' in the algorithms below, ie, atomic load, atomic store, and the atomic read-modify-write operations add, sub, and, or, xor, exchange, and compareExchange.</p>
+      <emu-note>
+        <p> The memory model is incomplete at this time - it is too
+        informal and does not provide all necessary constraints. </p>
+      </emu-note>
 
-      <p> Let an <em>access qualifier</em> on an atomic access be the triple comprising a Shared Data Block ID, an offset, and a size.</p>
+      <p> Let <em>atomic accesses</em> be those algorithm steps that
+      are labeled 'With atomic access to ...' in the algorithms below,
+      ie, atomic load, atomic store, and the atomic read-modify-write
+      operations add, sub, and, or, xor, exchange, and
+      compareExchange.</p>
+
+      <p> Let <em>data accesses</em> be those invocations of
+      GetValueFromBuffer() and SetValueInBuffer() that are not part of
+      atomic accesses.</p>
         
-      <p> Let <em>data accesses</em> be those invocations of GetValueFromBuffer() and SetValueInBuffer() that are not part of atomic accesses.</p>
+      <p> Let the <em>access range</em> of an atomic or data access be the
+      memory cells read or written by the access.  </p>
         
       <p> A valid execution of an agent is constrained by:</p>
       <ul>
@@ -544,16 +557,30 @@ These call AllocateTypedArray with a specified length:
         <li> The happens-before relation of the agent cluster (next section)
       </ul>
       
-      <p> If valid executions of two agents are able access the same shared memory cell at the same time and at least one access is a write then those accesses are said to <em>conflict</em>.  Two accesses from different agents form a <em>data race</em> if they conflict and at least one access is a data access, or if the accesses are both atomic but their access qualifiers do not match exactly. </p>
+      <p> If valid executions of two agents are able access the same
+      shared memory cell at the same time and at least one access is a
+      write then those accesses are said to <em>conflict</em>.  Two
+      accesses from different agents form a <em>data race</em> if they
+      conflict and at least one access is a data access, or if the
+      accesses are both atomic but their access ranges do not
+      match exactly. </p>
 
-      <p> If the execution of an agent cluster has no data races, then the agent cluster behaves according to one of its sequentially consistent executions. </p>
+      <p> If the execution of an agent cluster has no data races, then
+      the agent cluster behaves according to one of its sequentially
+      consistent executions. </p>
         
-      <p> Data races are allowed in ECMAScript programs, but their effects are hardware and implementation dependent and the result values of racing operations are unpredictable:  If two writes race, the value written to memory is unpredictable; if a read races with a write then the value read from memory is unpredictable.  A data race affects the reading and writing of all memory cells in the union of the access ranges of the racing accesses. </p>
+      <p> Data races are allowed in ECMAScript programs, but their
+      effects are hardware and implementation dependent and the result
+      values of racing operations are unpredictable: If two writes
+      race, the value written to memory is unpredictable; if a read
+      races with a write then the value read from memory is
+      unpredictable.  A data race affects the reading and writing of
+      all memory cells in the union of the access ranges of the racing
+      accesses. </p>
 
       <emu-note>
-        <p> Two atomic accesses can race if the byte ranges being accessed are overlapping but not equal. </p>
-
-        <p> It's probably desirable to formalize "at the same time" further.  See Boehm and Adve 2008, Foundations of the C++ Concurrency Memory Model.  </p>
+        <p> Two atomic accesses can race if their access ranges 
+        are overlapping but not equal. </p>
       </emu-note>
     </emu-clause>
 
@@ -562,9 +589,21 @@ These call AllocateTypedArray with a specified length:
 
       <p> The following rules constrain the interleaving of agent steps within a cluster:</p>
       <ul>
-        <li> When an agent calls Atomics.futexWake or Atomics.futexWakeOrRequeue and another agent that was in a call to Atomics.futexWait wakes up as a result of the first agent's call, then the call to Atomics.futexWake or Atomics.futexWakeOrRequeue in the first agent happens-before the return from Atomics.futexWait in the second agent.
-        <li> When a Shared Data Block is passed from one agent to the other, the sending of the block from the sender happens-before the receipt of the block in the recipient.
-        <li> The ECMAScript embedding may extend the happens-before relation to take into account agent creation and destruction and inter-agent communication that does not go through shared memory.
+        <li> When an agent calls Atomics.futexWake or
+        Atomics.futexWakeOrRequeue and another agent that was in a
+        call to Atomics.futexWait wakes up as a result of the first
+        agent's call, then the call to Atomics.futexWake or
+        Atomics.futexWakeOrRequeue in the first agent happens-before
+        the return from Atomics.futexWait in the second agent.
+
+        <li> When a Shared Data Block is passed from one agent to the
+        other, the sending of the block from the sender happens-before
+        the receipt of the block in the recipient.
+
+        <li> The ECMAScript embedding may extend the happens-before
+        relation to take into account agent creation and destruction
+        and inter-agent communication that does not go through shared
+        memory.
       </ul>
 
     </emu-clause>
@@ -699,8 +738,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. Compute: Let _w_ be _r_ + _v_
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
@@ -732,8 +770,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementType_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementType_ ), do:
           1. Let _r_ be GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. If _r_ is the same number value as _x_ then:
             1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
@@ -886,8 +923,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
         1. Return _r_
       </emu-alg>
@@ -913,8 +949,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. Let _G_ be SharedDataBlockID(_buffer_'s [[SharedArrayBufferData]] internal slot)
-        1. With atomic access to ( _G_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _v_ )
         1. Return _v_
       </emu-alg>
