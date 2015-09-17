@@ -67,7 +67,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2015-09-17 -- cleaned up minor awkwardness around atomics.
+  <li> 2015-09-17 -- restated the memory model (again) after discussions.
   <li> 2015-09-15 -- (Issue 24) Spell out constraints on optimization.
   <li> 2015-09-01 -- (Issue 21) isLockFree returns false if its argument is not the byte size of some *integer* array.
   <li> 2015-08-21 -- expanded the discussion of Service Workers and Shared Workers.
@@ -533,79 +533,121 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.WithAtomicAccessTo">
       <h1>With atomic access to ( buffer, indexedPosition, elementSize )</h1>
       
-      <emu-note>
-        <p> The memory model is incomplete at this time - it is too
-        informal and does not provide all necessary constraints. </p>
-      </emu-note>
-
       <p> Let <em>atomic accesses</em> be those algorithm steps that
-      are labeled 'With atomic access to ...' in the algorithms below,
-      ie, atomic load, atomic store, and the atomic read-modify-write
-      operations add, sub, and, or, xor, exchange, and
-      compareExchange.</p>
+        are labeled 'With atomic access to ...' in the algorithms below,
+        ie, atomic load, atomic store, and the atomic read-modify-write
+        operations add, sub, and, or, xor, exchange, and
+        compareExchange.</p>
 
       <p> Let <em>data accesses</em> be those invocations of
-      GetValueFromBuffer() and SetValueInBuffer() that are not part of
-      atomic accesses.</p>
+        GetValueFromBuffer() and SetValueInBuffer() that are not part of
+        atomic accesses.</p>
         
       <p> Let the <em>access range</em> of an atomic or data access be the
-      memory cells read or written by the access.  </p>
-        
-      <p> A valid execution of an agent is constrained by:</p>
-      <ul>
-        <li> The ordering of the agent's programs' steps in the dynamic semantics
-        <li> The happens-before relation of the agent cluster (next section)
-      </ul>
-      
-      <p> If valid executions of two agents are able access the same
-      shared memory cell at the same time and at least one access is a
-      write then those accesses are said to <em>conflict</em>.  Two
-      accesses from different agents form a <em>data race</em> if they
-      conflict and at least one access is a data access, or if the
-      accesses are both atomic but their access ranges do not
-      match exactly. </p>
+        memory cells read or written by the access. </p>
 
-      <p> If the execution of an agent cluster has no data races, then
-      the agent cluster behaves according to one of its sequentially
-      consistent executions. </p>
-        
-      <p> Data races are allowed in ECMAScript programs, but their
-      effects are hardware and implementation dependent and the result
-      values of racing operations are unpredictable: If two writes
-      race, the value written to memory is unpredictable; if a read
-      races with a write then the value read from memory is
-      unpredictable.  A data race affects the reading and writing of
-      all memory cells in the union of the access ranges of the racing
-      accesses. </p>
+      <p> Atomic accesses that are <em>viable</em> are performed in a
+        single total order (the <em>synchronization order</em>)
+        consistent with each agent's program order.  An atomic access
+        is not viable if its access range intersects with but is not
+        equal to the access range of another atomic access that could
+        be adjacent to it in the total order.  </p>
 
       <emu-note>
-        <p> Two atomic accesses can race if their access ranges 
-        are overlapping but not equal. </p>
+        <p> ECMAScript allows TypedArrays to alias each other and
+          exposes atomic accesses directly on TypedArrays.  It is thus
+          possible for atomic accesses of different size to partly
+          overlapping access ranges to be performed concurrently.
+          Requiring overlapping concurrent atomic accesses to be part
+          of the total atomics order would impose significant run-time
+          costs on some, possibly all, platforms.</p>
+
+        <p> For example, on a platform such as MIPS32 that only has
+          4-byte atomics, an 8-byte atomic access (eg for Int64) must
+          be implemented with a lock, yet it is desirable to implement
+          4-byte atomic accesses directly.  Requiring overlapping
+          concurrent accesses to be part of the total atomics order
+          would require all atomic accesses to use the lock. </p>
+
+        <p> In a more general case, if we were to provide a method to
+          (say) atomically compare-and-exchange a larger region of
+          memory, such a primitive would have to use a lock on
+          virtually all platforms, forcing all platforms to use locks
+          even for smaller atomic accesses. </p>
       </emu-note>
-    </emu-clause>
 
-    <emu-clause id="Atomics.HappensBefore">
-      <h1>Happens-before</h1>
+      <p> In the following, "atomic access" refers only to viable
+        atomic accesses, and "data access" refers also to non-viable
+        atomic accesses. </p>
+      
+      <p> An <em>event</em> in an agent is a atomic access, a
+        data access, the sending of a SharedArrayBuffer, the receipt
+        of a SharedArrayBuffer, the action of waking up a sleeping
+        agent, or a sleeping agent being woken up.  Events can also be
+        embedding-specific. </p>
 
-      <p> The following rules constrain the interleaving of agent steps within a cluster:</p>
-      <ul>
-        <li> When an agent calls Atomics.futexWake or
-        Atomics.futexWakeOrRequeue and another agent that was in a
-        call to Atomics.futexWait wakes up as a result of the first
-        agent's call, then the call to Atomics.futexWake or
-        Atomics.futexWakeOrRequeue in the first agent happens-before
-        the return from Atomics.futexWait in the second agent.
+      <emu-note>
+        <p> Examples of embedding-specific events are starting and stopping agents
+          and communicating via other channels than shared memory. </p>
+      </emu-note>
 
-        <li> When a Shared Data Block is passed from one agent to the
-        other, the sending of the block from the sender happens-before
-        the receipt of the block in the recipient.
+      <p> An event A <em>happens before</em> another event B if either:</p>
+      <ol>
+        <li> A precedes B in an agent's program order,
+        <li> A is the sending of a SharedArrayBuffer and B is the
+        receipt in another agent of that buffer,
+        <li> A is the waking up a sleeping agent and B the agent being
+        woken up,
+        <li> A and B are paired embedding-specific events in separate
+        agents where the embedding states that A happens before B,
+        <li> A and B are both atomic accesses to identical access ranges,
+          B follows A in the synchronization order, and B reads
+          the value written by A, or
+        <li> A happens before C and C happens before B (transitivity).
+      </ol>
 
-        <li> The ECMAScript embedding may extend the happens-before
-        relation to take into account agent creation and destruction
-        and inter-agent communication that does not go through shared
-        memory.
-      </ul>
+      <p> Executions must be such that <em>happens before</em> is
+        irreflexive (acyclic). </p>
 
+      <p> A data access read R only sees a write W that happens before
+        R, where there is no write V such that V happens before R and
+        W happens before V. </p>
+      
+      <p> An atomic read R sees either the last preceding (in
+        synchronization order) atomic write U to the same location, or
+        a non-atomic write W that happens before R, where there is no
+        write V such that V happens before R and W happens before
+        V. </p>
+
+      <p> Two memory accesses whose access ranges intersect constitute
+        a <em>data race</em> if neither happens before the other and
+        at least one of them is not an atomic access. </p>
+
+      <p> A write involved in a data race stores a poison value that
+        can read back as anything whatsoever. </p>
+
+      <emu-note>
+        <p> (Spec draft note) There are problems with the preceding
+          clause.  One problem is that the affected memory region is
+          not defined.  Another problem is semantic: The intent of the
+          clause is that a race poisons a delimited part of memory,
+          and subsequent reads from that area of memory will see
+          garbage.  However, "subsequent" is slippery and not well
+          defined.  C++ has made races undefined behavior because of
+          this, and Java has a complicated memory model to deal with
+          it.  What is most appropriate for ES is not yet known. </p>
+
+        <p> Also see the NOTE on GetValueFromBuffer() that clarifies
+          that a compiler may not generate re-loads from shared
+          memory. </p>
+      </emu-note>
+
+      <emu-note>
+        <p> If the execution of an agent cluster has no data races, then
+          the agent cluster behaves according to one of its sequentially
+          consistent executions. </p>
+      </emu-note>
+        
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
