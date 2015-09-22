@@ -28,7 +28,9 @@ Data-race free programs are predictable (they are sequentially consistent) but c
 
 ### Deadlocks
 
-The futex mechanism increases the risk of having deadlocked scripts.  This failure mode is not new - workers failing to communicate properly due to program bugs can already deadlock - but the synchronous wait mode renders the browser unresponsive, until some slow-script timeout breaks the deadlock and kills the script.
+The futex mechanism increases the risk of having deadlocked scripts.  This failure mode is not new - workers failing to communicate properly due to program bugs can already deadlock - but the synchronous wait mode renders the browser unresponsive, until some slow-script timeout breaks the deadlock and kills the script.  These deadlocks are a consequence of user program logic and thus correctable.
+
+A more difficult issue is deadlocks resulting from reasonable implementation choices in the embedding.  If a browser uses the main thread to perform work on behalf of a worker or UI or the browser at large, then a waiting main thread can block progress on a worker whose user program is not (yet) trying to communicate with the main thread, but trying to do some task that requires access from the main thread.  While in principle a problem in the browser - workers are not the independent agents that they need to be - it may be difficult to adapt the browser.
 
 ### Closing off the design space
 
