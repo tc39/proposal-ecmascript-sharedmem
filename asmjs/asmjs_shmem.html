@@ -1,5 +1,5 @@
 <!doctype html>
-<head><meta charset="utf8">
+<head><meta charset="utf-8">
 <title>ECMAScript Shared Memory and Atomics - asm.js addenda</title>
 <script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
 <link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
@@ -13,17 +13,21 @@
 
 <p> This document defines the changes and amendments to asm.js
   semantics to support
+  
   <a href="https://github.com/lars-t-hansen/ecmascript_sharedmem">the proposal for ECMAScript shared memory and atomics</a>.
   Please refer to that document for full information about the semantics.  </p>
   
 <p>This specification is a restatement of
+  
   <a href="https://docs.google.com/document/d/19X8Geo_7OMyyUICMvIqzEgSDms0rRMDODdMIkXIm9m0/edit?usp=sharing">an earlier work</a>,
   along with later bug fixes.  The earlier work is obsolete.  </p>
 
 <p>Changelog:</p>
 <ul>
   <li> 2015-08-31 -- Correct return types on atomic operations.  (For load, exchange, compareExchange, add, sub, and, or, and xor the return type is Int, not Signed.  For store it is the type of the <var>value</var> argument, not Signed).  Remove non-throwing behavior on out-of-range accesses; the operations throw, as they do for non-asm.js code.  Move mention of the old SharedTypedArray views to the Firefox section.  Clarify wording throughout.
+  
   </li><li> 2015-08-28 -- initial translation from the original proposal.
+
 </li></ul>
 </emu-intro>
 
@@ -38,7 +42,8 @@
   <h1><span class="secnum">2</span>Views<span class="utils"><span class="anchor"><a href="#views">#</a></span></span></h1>
 
   <p> The heap memory passed to the asm.js module at link time must be
-    a <emu-const>SharedArrayBuffer</emu-const> if and only if the module references the <emu-const>Atomics</emu-const> object (see below).  If this constraint fails then a
+    a <emu-const>SharedArrayBuffer</emu-const> if and only if the module references the 
+    <emu-const>Atomics</emu-const> object (see below).  If this constraint fails then a
     soft link error ensues and execution falls back to non-asm.js, cf
     the asm.js spec section 7.  </p>
 
@@ -56,11 +61,17 @@
     <p>The following Atomics names are not available as intrinsics in asm.js:</p>
     <ul>
       <li> Atomics.futexWait()
+      
       </li><li> Atomics.futexWake()
+      
       </li><li> Atomics.futexWakeOrRequeue()
+      
       </li><li> Atomics.OK
+      
       </li><li> Atomics.NOTEQUAL
+      
       </li><li> Atomics.TIMEDOUT
+    
     </li></ul>
 
     <p> The futex methods can be accessed through the FFI (with the
@@ -80,7 +91,8 @@
 
       <p> The <var>index</var> must be an expression of static type Intish.  If
       the element byte size of <var>view</var> is not 1 then <var>index</var> must have
-      the form <var>C</var>, where <var>C</var> is a constant, or the form <var>E&gt;&gt;K</var>, where<var>E</var> is some expression and <var>K</var> is a constant that is the
+      the form <var>C</var>, where <var>C</var> is a constant, or the form <var>E&gt;&gt;K</var>, where
+      <var>E</var> is some expression and <var>K</var> is a constant that is the
       log-base-2 of the element byte size of <var>view</var>.  </p>
 
       <p> The result type of Atomics.load is Int.  </p>
@@ -216,7 +228,9 @@
 <emu-clause id="firefox">
   <h1><span class="secnum">4</span>Firefox<span class="utils"><span class="anchor"><a href="#firefox">#</a></span></span></h1>
 
-  <p> Firefox has new constructors <emu-const>SharedInt8Array</emu-const>,<emu-const>SharedUint8Array</emu-const>, ..., <emu-const>SharedFloat32Array</emu-const>, and<emu-const>SharedFloat64Array</emu-const>.  These must be used to create views on the
+  <p> Firefox has new constructors <emu-const>SharedInt8Array</emu-const>,
+    <emu-const>SharedUint8Array</emu-const>, ..., <emu-const>SharedFloat32Array</emu-const>, and
+    <emu-const>SharedFloat64Array</emu-const>.  These must be used to create views on the
     heap memory if the heap memory is a SharedArrayBuffer.  </p>
 
   <p> It is a static error to reference, even for the purposes of
