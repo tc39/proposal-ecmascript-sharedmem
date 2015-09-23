@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2015-09-18 </p>
+<p> Revised: 2015-09-23 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -67,6 +67,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2015-09-23 -- spec draft notes are all linked to Issues in the bug tracker.
   <li> 2015-09-18 -- corrected the definition of atomic access viability.
   <li> 2015-09-17 -- restated the memory model (again) after discussions.
   <li> 2015-09-15 -- (Issue 24) Spell out constraints on optimization.
@@ -92,7 +93,7 @@ comments.</p>
       <h1>Agent</h1>
       <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
       <emu-note>
-        <p> (Spec draft note) Plausibly this should be worded in terms of running 'jobs'. </p>
+        <p> (Issue 27) This should be worded in terms of running 'jobs', and it needs to be broken out of Terms and Definitions and given a proper section, probably within ES6 section 8. </p>
       </emu-note>
     </emu-clause>
     <emu-clause id="Overview.Terms.AgentComm">
@@ -173,7 +174,7 @@ comments.</p>
       <h1>Forward Progress Guarantees</h1>
       <p>Implementations should ensure that all unblocked jobs eventually make progress. </p>
       <emu-note>
-        <p>(Spec draft note) This section may be formalized at least partly in the terms of the C++ working paper on forward progress (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf) or it may be left as-is.  An ES6 job is most plausibly a 'Concurrent agent' in the terms of that paper. </p>
+        <p>(Issue 28) This section may be formalized at least partly in the terms of the C++ working paper on forward progress, see the referenced issue, or it may be left as-is.  An ES6 job is most plausibly a 'Concurrent agent' in the terms of that paper. </p>
       </emu-note>
     </emu-clause>
   </emu-clause>
@@ -213,8 +214,9 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="IndexedCollections.TypedArray">
     <h1>TypedArray Objects (ES6 22.2)</h1>
     <emu-note>
-      <p>(Spec draft notes)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
-      <p>Additionally here is a question whether TypedArray constructors should be extended to allow them to allocate shared memory, and whether TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be extended to allow them to allocate shared memory.</p>
+      <p>(Issue 29)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
+      <p>(Issue 30) Should TypedArray constructors should be extended to allow them to allocate shared memory?</p>
+      <p>(Issue 31) Should TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be extended to allow them to allocate shared memory?</p>
       <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer (or the constructors of any user-defined subclasses of SharedArrayBuffer).</p>
     </emu-note>
 
@@ -415,7 +417,7 @@ These call AllocateTypedArray with a specified length:
           1. Return ~false~.
         </emu-alg>
         <emu-note>
-          <p> (Spec draft notes)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return ~true~ only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return ~false~ if its argument is viewing a SharedArrayBuffer.</p>
+          <p> (Issue 32)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return ~true~ only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return ~false~ if its argument is viewing a SharedArrayBuffer.</p>
         </emu-note>
       </emu-clause>
 
@@ -629,7 +631,7 @@ These call AllocateTypedArray with a specified length:
         can read back as anything whatsoever. </p>
 
       <emu-note>
-        <p> (Spec draft note) There are problems with the preceding
+        <p> (Issue 22, broadly) There are problems with the preceding
           clause.  One problem is that the affected memory region is
           not defined.  Another problem is semantic: The intent of the
           clause is that a race poisons a delimited part of memory,
@@ -1068,10 +1070,10 @@ These call AllocateTypedArray with a specified length:
       <h1>Termination detection</h1>
       <p> (Compatible(?) change) The worker object should have a read-only property called "state" whose value represents the state of the worker (eg a string naming the state).  One state could be "terminated", indicating the worker is dead. </p>
       <emu-note>
-        <p> (Spec draft note) There appears to be no way at present to directly determine whether a Worker has terminated. </p>
+        <p> There appears to be no way at present to directly determine whether a Worker has terminated. </p>
       </emu-note>
       <emu-note>
-        <p> (Spec draft note) Possible complementary mechanisms include throwing an exception when a message is sent to a terminated worker, and to send an error event to the creating agent when a worker is killed. </p>
+        <p> Possible complementary mechanisms include throwing an exception when a message is sent to a terminated worker, and to send an error event to the creating agent when a worker is killed. </p>
       </emu-note>
     </emu-clause>
 
