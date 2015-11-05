@@ -15,7 +15,7 @@
 
 # Maybe io.js is not the default node, work around that if we can.
 
-if [ $(which iojs) != "" ]; then
+if [ -n "$(which iojs)" ]; then
     PATH=$(dirname $(which iojs)):$PATH ecmarkup tc39/spec.html tc39/shmem.html
     PATH=$(dirname $(which iojs)):$PATH ecmarkup asmjs/asmjs_spec.html asmjs/asmjs_shmem.html
 else
