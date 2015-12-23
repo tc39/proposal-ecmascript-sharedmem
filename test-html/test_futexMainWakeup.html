@@ -20,13 +20,18 @@ something is wrong.
 <script src="harness.js"></script>
 
 <script>
-var mem = new SharedInt32Array(1);
+var mem = new Int32Array(new SharedArrayBuffer(4));
 var worker = new Worker("futexMainWakeup-worker.js");
 worker.postMessage(["start", mem.buffer], [mem.buffer]);
 worker.onmessage = function (ev) {
     msg(String(ev.data));
 }
 function runTest() {
+    if (!canBlockOnThisThread) {
+        msg("NO TEST: Atomics.futexWait is disabled (by the browser) on the main thread");
+        return;
+    }
+
     var time = 1000;
     worker.postMessage(["run", time]);
     var before = Date.now();

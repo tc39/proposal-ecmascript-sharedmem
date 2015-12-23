@@ -3,20 +3,14 @@
 var sab = new SharedArrayBuffer(1024);
 var ab = new ArrayBuffer(16);
 
-// TODO: These are not the official view names, harness.js corrects
-// for that but we should rename here once Firefox has been fixed.
+var int_views = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array];
 
-var int_views = [SharedInt8Array, SharedUint8Array, SharedInt16Array, SharedUint16Array, SharedInt32Array, SharedUint32Array];
-var unshared_int_views = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array];
-
-// TODO: SharedUint8ClampedArray in Firefox allows atomics
-var other_views = [/*SharedUint8ClampedArray,*/ SharedFloat32Array, SharedFloat64Array];
+var other_views = [Uint8ClampedArray, Float32Array, Float64Array];
 
 // Test allowed atomic operations on integer views
 
 for ( var idx=0 ; idx < int_views.length ; idx++ ) {
     var View = int_views[idx];
-    var Control = unshared_int_views[idx];
 
     // Make it interesting - use non-zero byteOffsets and non-zero indexes
 
@@ -40,7 +34,7 @@ for ( var idx=0 ; idx < int_views.length ; idx++ ) {
 
     // Rudimentary tests for sign extension and chopping.
 
-    var control = new Control(ab, 0, 2);
+    var control = new View(ab, 0, 2);
 
     Atomics.store(view, 3, -5); control[0] = -5;
     assertEq(Atomics.load(view, 3), control[0]);
@@ -118,7 +112,7 @@ for ( var View of other_views ) {
 
 // Test disallowed atomic operations on non-shared integer views - these should throw.
 
-for ( var View of unshared_int_views ) {
+for ( var View of int_views ) {
     var view = new View(ab);
 
     expectException((() => Atomics.load(view, 0)), TypeError);
@@ -135,7 +129,7 @@ for ( var View of unshared_int_views ) {
 // Test that futex operations are disallowed on non-int32 shared arrays.
 
 for ( var View of int_views ) {
-    if (View == SharedInt32Array)
+    if (View == Int32Array)
 	continue;
     testFutexDisallowed(View, sab);
 }
@@ -143,7 +137,7 @@ for ( var View of int_views ) {
 for ( var View of other_views )
     testFutexDisallowed(View, sab);
 
-for ( var View of unshared_int_views )
+for ( var View of int_views )
     testFutexDisallowed(View, ab);
 
 function testFutexDisallowed(View, ab) {

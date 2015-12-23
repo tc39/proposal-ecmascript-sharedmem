@@ -19,12 +19,12 @@ onmessage = function (ev) {
 	state++;
 	break;
     case 1:
-	if (!(ev.data instanceof SharedInt32Array))
-	    postMessage("ERROR: 1: Not SharedInt32Array");
+	if (!(ev.data instanceof Int32Array))
+	    postMessage("ERROR: 1: Not shared Int32Array");
 	if (ev.data.length != 1)
 	    postMessage("ERROR: 1: Length wrong: " + ev.data.length);
 	ev.data[0] = 1337;
-	if ((new SharedInt32Array(sab))[0] != 1337)
+	if ((new Int32Array(sab))[0] != 1337)
 	    postMessage("ERROR: 1: Not the same memory");
 	postMessage("1: OK");
 	state++;

@@ -1,19 +1,3 @@
-// For the sake of supporting Firefox (until it is fixed), all tests
-// currently use SharedTypedArray names for the shared views, not
-// TypedArray names.
-
-if (!this.SharedInt32Array) {
-    SharedInt8Array = Int8Array;
-    SharedUint8Array = Uint8Array;
-    SharedInt16Array = Int16Array;
-    SharedUint16Array = Uint16Array;
-    SharedInt32Array = Int32Array;
-    SharedUint32Array = Uint32Array;
-    SharedFloat32Array = Float32Array;
-    SharedFloat64Array = Float64Array;
-    SharedUint8ClampedArray = Uint8ClampedArray;
-}
-
 document.writeln("<div id='scrool'></div>");
 
 function msg(s) {
@@ -21,3 +5,18 @@ function msg(s) {
     d.appendChild(document.createTextNode(s));
     document.getElementById("scrool").appendChild(d);
 }
+
+// The spec allows individual threads to prevent blocking.  In a
+// browser, this will be an issue only on the main thread.
+
+var canBlockOnThisThread = (function () {
+    var mem = new Int32Array(new SharedArrayBuffer(4));
+    var didThrow = false;
+    try {
+	Atomics.futexWait(mem, 0, 0, 0);
+    }
+    catch (e) {
+	didThrow = true;
+    }
+    return !didThrow;
+})();

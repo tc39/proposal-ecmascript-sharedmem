@@ -21,7 +21,7 @@ importScripts("worker-harness.js",
 var nbytes = 4*(arrayElements + arrayExtra) + 4095 & ~4095;
 var sab = new SharedArrayBuffer(nbytes);
 
-var sia = new SharedInt32Array(sab);
+var sia = new Int32Array(sab);
 sia[mutexLoc] = 0;
 sia[statusLoc] = 0;
 for ( var x=arrayLo ; x < arrayLim ; x++ )

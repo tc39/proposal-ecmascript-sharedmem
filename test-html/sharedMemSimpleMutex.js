@@ -7,7 +7,7 @@
 //   1: locked with no waiters
 //   2: locked with possible waiters
 
-// "sab" must be a SharedInt32Array (mapped onto a SharedArrayBuffer).
+// "sab" must be a shared Int32Array (mapped onto a SharedArrayBuffer).
 // "index" must be a valid index in sab, reserved for the mutex.
 // sab[index] must be initialized (globally) to 0 before the first mutex is created.
 

@@ -16,7 +16,7 @@ importScripts("worker-harness.js",
 var iter = 0;			// Global iteration counter
 
 var id;				// Worker identity (0..workers-1)
-var sia;			// SharedInt32Array
+var sia;			// Shared Int32Array
 var m;				// Mutex
 
 function compute() {
@@ -42,7 +42,7 @@ onmessage = function (ev) {
 
     var msg = ev.data;
     id = msg.id;
-    sia = new SharedInt32Array(msg.sab);
+    sia = new Int32Array(msg.sab);
     m = new Mutex(sia, mutexLoc);
     postMessage("Starting: " + id);
     setTimeout(compute, 0);

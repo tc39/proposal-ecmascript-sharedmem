@@ -2,16 +2,12 @@
 
 var sab = new SharedArrayBuffer(1024);
 
-// TODO: These are not the official view names, harness.js corrects
-// for that but we should rename here once Firefox has been fixed.
+var int_views = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array];
 
-// int_views have well-behaved values & representations
-var int_views = [SharedInt8Array, SharedUint8Array, SharedInt16Array, SharedUint16Array, SharedInt32Array, SharedUint32Array];
+var other_views = [Uint8ClampedArray, Float32Array, Float64Array];
 
-// other_views do not
-var other_views = [SharedUint8ClampedArray, SharedFloat32Array, SharedFloat64Array];
-
-////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//
 // Test that the views can be constructed on shared memory and that
 // the memory extracted from the views is the original shared buffer,
 // and other basic things.
@@ -43,12 +39,13 @@ function testView(View) {
 }
 
 ////////////////////////////////////////////////////////////
+//
 // Basic element read/write.
 
 for ( var View of int_views ) {
     var view = new View(sab, 8, 10);
 
-    var tmp = new SharedUint8Array(sab, 8, 1);
+    var tmp = new Uint8Array(sab, 8, 1);
     assertEq(tmp[0], 0);
     view[0] = -1;
     assertEq(tmp[0], 255);
@@ -56,7 +53,7 @@ for ( var View of int_views ) {
     assertEq(tmp[0], 0);
 }
 
-var cuview = new SharedUint8ClampedArray(sab, 8, 10);
+var cuview = new Uint8ClampedArray(sab, 8, 10);
 cuview[3] = 1;
 assertEq(cuview[3], 1);
 cuview[3] = -1;
@@ -65,12 +62,12 @@ cuview[3] = 4711;
 assertEq(cuview[3], 255);
 cuview[3] = 0;
 
-var f64view = new SharedFloat64Array(sab, 8, 10);
+var f64view = new Float64Array(sab, 8, 10);
 f64view[3] = Math.PI;
 assertEq(f64view[3], Math.PI);
 f64view[3] = 0;
 
-var f32view = new SharedFloat32Array(sab, 8, 10);
+var f32view = new Float32Array(sab, 8, 10);
 f32view[0] = Math.PI;
 assertEq(f32view[0], Math.fround(Math.PI));
 f32view[0] = 0;

@@ -8,7 +8,7 @@ onmessage =
 	try {
 	    switch (ev.data[0]) {
             case "start":
-		mem = new SharedInt32Array(ev.data[1]);
+		mem = new Int32Array(ev.data[1]);
 		WAITLOC = ev.data[2];
 		break;
 	    case "timeout":

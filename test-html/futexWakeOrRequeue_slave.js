@@ -3,7 +3,7 @@ importScripts("worker-harness.js");
 var id;			        // Identity
 var L;				// Next location to sleep on, incremented
 var M;				// Location to count in, constant
-var i32a;			// SharedInt32Array
+var i32a;			// Shared Int32Array
 var numworkers;
 var iter;
 
@@ -18,7 +18,7 @@ onmessage =
 	var memory = msg.memory;
 	numworkers = msg.numworkers;
 	iter = msg.numiter;
-	i32a = new SharedInt32Array(memory);
+	i32a = new Int32Array(memory);
 	postMessage("Running " + id);
 	setTimeout(compute, 0);
     };

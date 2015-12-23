@@ -26,7 +26,7 @@ w.onmessage = function (ev) {
 }
 w.postMessage("start");
 
-var mem = new SharedInt32Array(1);
+var mem = new Int32Array(new SharedArrayBuffer(4));
 
 function runTest() {
     try {

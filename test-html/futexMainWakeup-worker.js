@@ -5,7 +5,7 @@ var mem;
 onmessage = function (ev) {
     switch (ev.data[0]) {
     case "start":
-	mem = new SharedInt32Array(ev.data[1]);
+	mem = new Int32Array(ev.data[1]);
 	break;
     case "run":
 	setTimeout(function () {

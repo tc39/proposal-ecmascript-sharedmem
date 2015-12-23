@@ -21,7 +21,7 @@ FAIL. </p>
 <script>
 var stage = 0;
 var tests = [];
-var mem = new SharedInt32Array(10);
+var mem = new Int32Array(new SharedArrayBuffer(40));
 var WAITLOC = 0;
 var time_before, time_after;
 var timeout;
