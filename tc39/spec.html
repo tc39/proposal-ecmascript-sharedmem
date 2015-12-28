@@ -67,16 +67,17 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2015-09-23 -- spec draft notes are all linked to Issues in the bug tracker.
-  <li> 2015-09-18 -- corrected the definition of atomic access viability.
-  <li> 2015-09-17 -- restated the memory model (again) after discussions.
+  <li> 2015-12-28 -- (Issue 36) Allow futexWait to throw an exception if blocking is not allowed on a thread, search for "AgentCanSuspend".
+  <li> 2015-09-23 -- Spec draft notes are all linked to Issues in the bug tracker.
+  <li> 2015-09-18 -- Corrected the definition of atomic access viability.
+  <li> 2015-09-17 -- Restated the memory model (again) after discussions.
   <li> 2015-09-15 -- (Issue 24) Spell out constraints on optimization.
   <li> 2015-09-01 -- (Issue 21) isLockFree returns false if its argument is not the byte size of some *integer* array.
-  <li> 2015-08-21 -- expanded the discussion of Service Workers and Shared Workers.
-  <li> 2015-08-18 -- reformat, update to ecmarkup 1.7.
-  <li> 2015-08-06 -- added sections on forward progress and clarifications and changes to worker semantics.
-  <li> 2015-07-09 -- ongoing cleanup and minor bug fixing.  Restated the memory model.
-  <li> 2015-07-08 -- initial translation from the original proposal.
+  <li> 2015-08-21 -- Expanded the discussion of Service Workers and Shared Workers.
+  <li> 2015-08-18 -- Reformat, update to ecmarkup 1.7.
+  <li> 2015-08-06 -- Added sections on forward progress and clarifications and changes to worker semantics.
+  <li> 2015-07-09 -- Ongoing cleanup and minor bug fixing.  Restated the memory model.
+  <li> 2015-07-08 -- Initial translation from the original proposal.
 </ul>
 
 </emu-intro>
@@ -709,6 +710,23 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
     
+    <emu-clause id="Atomics.AgentCanSuspend" aoid="AgentCanSuspend">
+      <h1>Runtime semantics: AgentCanSuspend( )</h1>
+      <p> When AgentCanSuspend is called without arguments then the following steps are taken.</p>
+      <emu-alg>
+        1. Let _B_ be ~true~ if the agent is allowed to suspend, and ~false~ otherwise.
+        2. Return _B_.
+      </emu-alg>
+
+      <p> AgentCanSuspend always returns the same value when called from a given agent. </p>
+
+      <emu-note>
+        <p> In some environments it may not be reasonable for a given agent to suspend.  For example,
+          in a web browser environment, it may be reasonable to disallow suspending a document's main event
+          handling thread, while still allowing workers' event handling threads to suspend. </p>
+      </emu-note>
+    </emu-clause>
+    
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
       <h1>Runtime semantics: AddWaiter( W, G, i )</h1>
       <p> When AddWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
@@ -747,6 +765,7 @@ These call AllocateTypedArray with a specified length:
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: The calling agent is on some global list of waiters
         1. Assert: _W_ is equal to AgentSignifier()
+        1. Assert: AgentCanSuspend() is equal to true
         1. Atomically relinquish the futex critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_W_), and not for any other reasons at all.
         1. Re-acquire the futex critical section.
         1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
@@ -844,6 +863,8 @@ These call AllocateTypedArray with a specified length:
           1. Let _q_ be the result of ToNumber(_timeout_)
           1. ReturnIfAbrupt(_q_)
           1. If _q_ is NaN then let _t_ be +Infinity, otherwise let _t_ be max(0, _q_).
+        1. Let _B_ be AgentCanSuspend()
+        1. If _B_ is ~false~ then throw a ~TypeError~ exception.
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
         1. Within the futex critical section do:
