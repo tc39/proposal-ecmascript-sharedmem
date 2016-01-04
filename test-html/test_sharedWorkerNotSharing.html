@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<!-- Test that shared memory cannot be sent to or from a SharedWorker instance -->
+
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests that a SharedWorker can't send or receive shared memory</title>
+</head>
+
+<body>
+  <p> Tests that shared memory cannot be sent to or from a
+    SharedWorker instance. </p>
+
+  <p> If everything goes OK there should be no
+  lines below saying "SHOULD NOT HAPPEN", and instead there should be
+  lines saying "SUCCESS - Failed to send".</p>
+
+  <p> Also check the console, there should be nothing unusual there. </p>
+  
+<pre>
+  <script src="harness.js"></script>
+</pre>
+
+  <script src="sharedWorkerNotSharing_master.js"></script>
+  
+</body>
+</html>
