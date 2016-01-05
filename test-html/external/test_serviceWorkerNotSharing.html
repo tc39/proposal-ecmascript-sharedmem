@@ -11,11 +11,14 @@
   memory objects.  Whether it should be able to do so depends on the
   embedding. </p>
 
-<p> Output will appear below.  Normally there should either be one
-  line reading EXCEPTION SEEN (transmission is not allowed), or no
-  lines reading EXCEPTION SEEN and no lines reading ERROR
-  (transmission is allowed and does share memory properly).  For
-  anything else, consult the code. </p>
+<p> Output will appear below.  In addition to informational and "OK" lines there are lines about exceptions and errors.  Two forms of output are expected:
+
+<ul>
+<li> No lines reading EXCEPTION SEEN and no lines reading ERROR means transmission is allowed and memory is shared properly.
+<li> Two lines reading EXCEPTION SEEN and nothing else means transmission is blocked in both directions.
+</ul>
+
+<p> For any other type of output, consult the code. </p>
 
 <div id='scrool'></div>
 
