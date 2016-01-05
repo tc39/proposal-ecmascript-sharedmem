@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests structured clone of SharedInt32Array and SharedArrayBuffer</title>
+</head>
+
+<body>
+
+<p> This tests that SharedArrayBuffer and SharedInt32Array values can be
+transmitted to a worker. </p>
+  
+<p> The test runs when you load the page.  Look for "DONE" below this
+paragraph.  There will be other lines but there should be no error
+messages in the output or in the browser console. </p>
+
+<script src="harness.js"></script>
+
+<script>
+var w = new Worker("sharedTypedArrayClone-worker.js");
+w.onmessage = function (ev) {
+  if (ev.data === "ready")
+      runTest();
+  else
+      msg(ev.data);
+}
+w.postMessage("start");
+
+var mem = new Int32Array(new SharedArrayBuffer(4));
+
+function runTest() {
+    try {
+        w.postMessage(mem.buffer, [mem.buffer]);
+        w.postMessage(mem, [mem.buffer]);
+        msg("DONE");
+    }
+    catch (e) {
+        msg("ERROR: " + e);
+    }
+}
+</script>
+
+</body>
+</html>

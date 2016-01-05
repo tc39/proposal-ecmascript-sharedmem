@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests whether a ServiceWorker can receive and send shared memory</title>
+</head>
+
+<body>
+
+<p> This tests whether a ServiceWorker can receive and send shared
+  memory objects.  Whether it should be able to do so depends on the
+  embedding. </p>
+
+<p> Output will appear below.  In addition to informational and "OK" lines there are lines about exceptions and errors.  Two forms of output are expected:
+
+<ul>
+<li> No lines reading EXCEPTION SEEN and no lines reading ERROR means transmission is allowed and memory is shared properly.
+<li> Two lines reading EXCEPTION SEEN and nothing else means transmission is blocked in both directions.
+</ul>
+
+<p> For any other type of output, consult the code. </p>
+
+<div id='scrool'></div>
+
+<script>
+function msg(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s));
+    document.getElementById("scrool").appendChild(d);
+}
+</script>
+
+<script src="serviceWorkerNotSharing_master.js"></script>
+
+</body>
+</html>

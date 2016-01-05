@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests the timeout of futexWait on the main thread</title>
+</head>
+
+<body>
+
+<p> Tests futexWait timeouts on the main thread. </p>
+  
+<p> Just load the page, click <button onclick="runTest()">This
+Button</button>, and leave the browser alone.  The main thread will go
+to sleep for a few seconds and then time out, you should see some
+output below.  If you receive the slow-script dialog something is
+wrong.
+
+<P> Also check the console for errors.
+
+<script src="harness.js"></script>
+
+<script>
+var mem = new Int32Array(new SharedArrayBuffer(4));
+
+function runTest() {
+    if (!canBlockOnThisThread) {
+        msg("NO TEST: Atomics.futexWait is disabled (by the browser) on the main thread");
+        return;
+    }
+
+    var before = Date.now();
+    Atomics.futexWait(mem, 0, 0, 1000); // Wait one second
+    var after = Date.now();
+    msg("Returned from wait after " + (after - before) + "ms, should be about 1000");
+
+    var before = Date.now();
+    Atomics.futexWait(mem, 0, 0, 1); // Wait one millisecond
+    var after = Date.now();
+    msg("Returned from wait after " + (after - before) + "ms, should be about 1");
+
+    // In Firefox DEBUG builds the timeout is sliced into 2-second intervals, so a 5-second
+    // wait here should test that logic without annoying the slow-script dialog.
+
+    var before = Date.now();
+    Atomics.futexWait(mem, 0, 0, 5000); // Wait five seconds
+    var after = Date.now();
+    msg("Returned from wait after " + (after - before) + "ms, should be about 5000");
+
+    msg("DONE");
+}
+</script>
+
+</body>
+</html>

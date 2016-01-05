@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Tests wakeup on futexWait stuck in an interrupt callback</title>
+</head>
+
+<body>
+
+<P> Firefox note: This test does not work with e10s (process separation) enabled.
+    
+<p> Just load the page, click <button onclick="runTest()">This
+Button</button>, and leave the browser alone.  The main thread will go
+to sleep for 10-15 seconds and then time out, and you'll see the slow-script dialog.
+
+<P> No earlier than 25 seconds after clicking the button originally,
+hit the Continue button on the slow-script dialog.  The timing is important; don't
+click it too early.
+
+<P> Immediately after the dialog closes you should see output in the page below.
+If you get a second slow-script dialog then something has probably gone wrong.
+
+<P> Also check the console for errors.
+
+<script src="harness.js"></script>
+
+<script>
+var mem = new Int32Array(new SharedArrayBuffer(4));
+var w;
+
+function runTest() {
+    if (!canBlockOnThisThread) {
+        msg("NO TEST: Atomics.futexWait is disabled (by the browser) on the main thread");
+        return;
+    }
+
+    if (!w) {
+        w = new Worker("futexWakeInInterrupt-worker.js");
+        w.postMessage([mem.buffer], [mem.buffer]);
+        setTimeout(runTest, 500);
+        return;
+    }
+
+    var before = Date.now();
+    Atomics.futexWait(mem, 0, 0, 100000); // Wait 100 seconds
+    var after = Date.now();
+    msg("Returned from wait after " + (after - before) + "ms");
+
+    msg("DONE");
+    w.terminate();
+}
+</script>
+
+</body>
+</html>
