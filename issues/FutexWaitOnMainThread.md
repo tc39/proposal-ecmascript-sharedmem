@@ -130,10 +130,10 @@ thread must take the form of an event or callback.
 
 ### Asymmetric Synchronics
 
-[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/asymmetric-synchronic.js)
-[Test/sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-synchronic.html)
-[Test/sample master code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-synchronic-master.js)
-[Test/sample worker code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-worker.js)
+[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/asymmetric-synchronic.js);
+[Test/sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-synchronic.html);
+[Test/sample master code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-synchronic-master.js);
+[Test/sample worker code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-worker.js).
 
 The synchronic models a simple atomic shared cell with the usual suite
 of accessors: load, store, compareExchange, add, and so on.  (The
@@ -182,10 +182,10 @@ are efficient if used for just worker-to-worker communication.
 
 ### Asymmetric Barriers
 
-[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/asymmetric-barrier.js)
-[Test/sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-barrier.html)
-[Test/sample master code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-barrier-master.js)
-[Test/sample worker code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-barrier-worker.js)
+[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/asymmetric-barrier.js);
+[Test/sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-barrier.html);
+[Test/sample master code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-barrier-master.js);
+[Test/sample worker code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-barrier-worker.js).
 
 These barriers allow the master to know when all the workers are
 stopped: when all workers are in the barrier the master is signaled,
@@ -203,10 +203,10 @@ implementation would have been simpler.
 
 ### Unidirectional integer-bundle queues
 
-[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/asymmetric-intqueue.js)
-[Test/sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-intqueue-m2w.html)
-[Test/sample master code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-intqueue-m2w-master.js)
-[Test/sample worker code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-intqueue-m2w-worker.js)
+[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/asymmetric-intqueue.js);
+[Test/sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-intqueue-m2w.html);
+[Test/sample master code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-intqueue-m2w-master.js);
+[Test/sample worker code](https://github.com/lars-t-hansen/parlib-simple/blob/master/test/test-asymmetric-intqueue-m2w-worker.js).
 
 These integer queues transmit bundles of int32 data and are useful for
 marshaled data, for example.  They are built on synchronics (both for
@@ -222,10 +222,10 @@ Being built on synchronics, the queues also handle any number of
 
 ### Parallel computation frameworks
 
-[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/par.js)
-[Sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/demo/mandelbrot-animation2/mandelbrot.html)
-[Sample master js](https://github.com/lars-t-hansen/parlib-simple/blob/master/demo/mandelbrot-animation2/mandelbrot-master.js)
-[Sample worker js](https://github.com/lars-t-hansen/parlib-simple/blob/master/demo/mandelbrot-animation2/mandelbrot-worker.js)
+[Implementation](https://github.com/lars-t-hansen/parlib-simple/blob/master/src/par.js);
+[Sample html](https://github.com/lars-t-hansen/parlib-simple/blob/master/demo/mandelbrot-animation2/mandelbrot.html);
+[Sample master js](https://github.com/lars-t-hansen/parlib-simple/blob/master/demo/mandelbrot-animation2/mandelbrot-master.js);
+[Sample worker js](https://github.com/lars-t-hansen/parlib-simple/blob/master/demo/mandelbrot-animation2/mandelbrot-worker.js).
 
 This is a simple data-parallel framework with work distribution and
 result collection.  At the moment it is built on the asymmetric
