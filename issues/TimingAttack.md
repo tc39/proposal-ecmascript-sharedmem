@@ -16,12 +16,12 @@ which has 5us resolution.
 A number of side channel attacks need a high-resolution timing source
 to work.  (This is why performance.now() resolution has been reduced.)
 There are several examples of such attacks in JS, including last-level
-cache sniffing to extract user behavior or user data [The spy in the
-sandbox], row hammering to cause bit flips in memory on some types of
-hardware [rowhammer.js], and SVG/CSS attacks that can read pixels
-using transforms [*cite*].  In virtualized server environments, though
-not yet in JS, it has been possible to extract cryptographic keys for
-RSA and AES from the cache.
+cache sniffing to extract user behavior or user data [1], row
+hammering to cause bit flips in memory on some types of hardware [2],
+and SVG/CSS attacks that can read pixels using transforms [3] [4].  In
+virtualized server environments, though not yet in JS, it has been
+possible to extract cryptographic keys for AES and RSA from the cache
+[5] [6].
 
 In these cases, a precise timer is needed to distinguish a fast
 operation from a slow operation.  For the cache attacks and row
@@ -52,7 +52,7 @@ for the feature in JS, and probably making programs that use shared
 memory less effective than programs that copy memory.  In practice,
 requiring affinity may be a reasonable default if it can be changed
 easily when needed, or it may be a reasonable option for high-security
-environments such as Tor, but it is not a reasonable mitigation when
+environments such as Tor [7], but it is not a reasonable mitigation when
 shared-memory parallelism is actually needed.
 
 The affinity solution has another couple of problems.
@@ -117,7 +117,7 @@ they already have a precise clock for the attack, but absent a precise
 clock all do have shared memory and can build such a clock.
 
 (Java and ActiveX were brought up already in 2005 by Osvik in his
-paper on attacking AES.)
+paper on attacking AES [5].)
 
 
 ### Future impact
@@ -172,24 +172,18 @@ properly insulated from the rest of the system.  Admittedly, that
 often requires hardware and OS changes and not merely careful coding,
 but it is still where the actual problem is.
 
-## TODO
-
-- go through Issue #1 to extract all info
-- go through mail thread to extract all info
-
 ## References
 
-TODO: Fix these
+[1] [Yossef Oren et al, "The Spy in the Sandbox -- Practical Cache Attacks in Javascript"](http://arxiv.org/abs/1502.07373)
 
-Spy in the sandbox.
+[2] [Daniel Gruss et al, "Rowhammer.js: A Remote Software-Induced Fault Attack in JavaScript"](http://arxiv.org/abs/1507.06955v1)
 
-Rowhammer.js
+[3] [Paul Stone, "Pixel perfect timing attacks with HTML5"](http://contextis.co.uk/research/white-papers/pixel-perfect-timing-attacks-html5)
 
-SVG/CSS attack.
+[4] [Marc Andrysco et al, "On Submornal Floating point and abnormal timing](https://cseweb.ucsd.edu/~dkohlbre/papers/subnormal.pdf)
 
-Denormal attack.
+[5] [Dag Arne Osvik et al, "Cache Attacks and Countermeasures: the Case of AES"](https://eprint.iacr.org/2005/271.pdf)
 
-Osvik.
+[6] [Mehmet Sinan Inci et al, "Seriously, get off my cloud!  Cross-VM RSA Key Recovery in a Public Cloud"](https://eprint.iacr.org/2015/898.pdf)
 
-
-
+[7] [Tor project: "High-precision timestamps in JS"](https://trac.torproject.org/projects/tor/ticket/17412)
