@@ -748,12 +748,17 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1>Runtime semantics: RemoveWaiters( G, i)</h1>
-      <p> When RemoveWaiters is called with Shared Data Block ID _G_ and a nonnegative integer _i_, then the following steps are taken. </p>
+      <h1>Runtime semantics: RemoveWaiters( G, i, c )</h1>
+      <p> When RemoveWaiters is called with Shared Data Block ID _G_ and nonnegative integers _i_ and _c_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
-        1. Let _L_ be a copy of the global list of all waiters that wait on (_G_, _i_)
-        1. Set the global list of all waiters that wait on (_G_, _i_) to the empty list
+        1. Let _L_ be the empty list
+        1. Let _S_ be a reference to the global list of all waiters that wait on (_G_, _i_)
+        1. While _c_ &gt; 0 and _S_ is not the empty list:
+          1. Let _W_ be the first worker in _S_
+          1. Add _W_ to the end of _L_
+          1. Remove _W_ from _S_
+          1. Subtract 1 from _c_
         1. Return _L_
       </emu-alg>
     </emu-clause>
@@ -900,7 +905,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _G_ be SharedDataBlockID( _bufferVal_ )
         1. Let _n_ = 0
         1. Within the futex critical section do:
-          1. Let _S_ be RemoveWaiters( _G_, _i_ )
+          1. Let _S_ be RemoveWaiters( _G_, _i_, _c_ )
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
@@ -932,7 +937,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _w_ be Atomics.load(_typedArray_, _i_)
           1. If _v_ does not equal _w_ then:
             1. Return the original value of ~Atomics.NOTEQUAL~
-          1. Let _S_ be RemoveWaiters(_G_, _i_)
+          1. Let _S_ be RemoveWaiters(_G_, _i_, _c_)
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
