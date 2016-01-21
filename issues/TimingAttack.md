@@ -10,18 +10,18 @@ shared cell with an atomic operation, and whatever agent needs a clock
 just reads the cell.  Yossi Oren has measured such a cell to have a
 4ns resolution on current (2015) hardware.  The clock will be a little
 noisy as a result of system behavior but probably has much higher
-resolution in practice than the attenuated performance.now() timer,
-which has 5us resolution.
+resolution in practice than the attenuated `performance.now()` timer,
+which has 5μs resolution.
 
 A number of side channel attacks need a high-resolution timing source
-to work.  (This is why performance.now() resolution has been reduced.)
-There are several examples of such attacks in JS, including last-level
-cache sniffing to extract user behavior or user data [1], row
-hammering to cause bit flips in memory on some types of hardware [2],
-and SVG/CSS attacks that can read pixels using transforms [3] [4].  In
-virtualized server environments, though not yet in JS, it has been
-possible to extract cryptographic keys for AES and RSA from the cache
-[5] [6].
+to work. This is why `performance.now()` resolution has been reduced.
+There are several examples of such attacks in JS, including [last-level
+cache sniffing] to extract user behavior or user data, [row hammering][]
+to cause bit flips in memory on some types of hardware, and
+[SVG/CSS attacks][] ([other attack][]) that can read pixels using
+transforms.  In virtualized server environments, though not yet in JS,
+it has been possible to [extract cryptographic keys for AES and RSA][]
+from the cache (and [in the cloud][]).
 
 In these cases, a precise timer is needed to distinguish a fast
 operation from a slow operation.  For the cache attacks and row
@@ -52,10 +52,10 @@ for the feature in JS, and probably making programs that use shared
 memory less effective than programs that copy memory.  In practice,
 requiring affinity may be a reasonable default if it can be changed
 easily when needed, or it may be a reasonable option for high-security
-environments such as Tor [7], but it is not a reasonable mitigation when
+environments such as [Tor][], but it is not a reasonable mitigation when
 shared-memory parallelism is actually needed.
 
-The affinity solution has another couple of problems.
+The affinity solution has another couple of problems:
 
 - Thread affinity has real teeth on Windows and Linux but is not well
   supported on Mac OS X (and may not be well supported on other
@@ -103,9 +103,10 @@ The thing is, it's not obvious that the attack provides a genuinely
 new capability to attackers.  Consider the existing technologies on
 the Web that can be used to mount the same attack:
 
-- Flash Player (AS3 has shared memory)
+- Flash Player [ByteArray][]
 - Java
 - PNaCl / NaCl
+- WebAssembly
 - browser extensions with native code
   - native messaging in Chrome
   - js-ctypes in Firefox
@@ -117,7 +118,7 @@ they already have a precise clock for the attack, but absent a precise
 clock all do have shared memory and can build such a clock.
 
 (Java and ActiveX were brought up already in 2005 by Osvik in his
-paper on attacking AES [5].)
+paper on attacking AES.)
 
 
 ### Future impact
@@ -146,14 +147,15 @@ hardware bugs:
   virtualized environments.
 
 Rowhammer is being addressed by adjusting the BIOS refresh rates and
-by more resilient memory types.  Cache sniffing is being addressed by
-cache partitioning (though it's unclear how good current attempts
-are).
+by more resilient memory types and redundancy such as ECC.
+Cache sniffing is being addressed by cache partitioning (though it's
+unclear how good current attempts are).
 
-In the past, the cost of denormal floating-point operations has been
-used for information stealing with SVG filters, an attack that has
+In the past, the cost of [subnormal floating-point operations][] has
+been used for information stealing with SVG filters, an attack that has
 been mitigated by changing timer resolution in the browsers but also
-by the CPU manufacturers addressing denormal timing (to some extent).
+by the CPU manufacturers addressing denormal timing (to some extent),
+or by having the hardware flush subnormals to zero.
 
 As time goes by, the hardware problems are mitigated, and new ones are
 introduced, eg, GPUs now support denormals, but they implement
@@ -165,25 +167,20 @@ attacks seriously, but worrying about one particular type of clock,
 some particular hardware issues, and how they combine to enable these
 particular side channel leaks feels like a fairly narrow point of
 view.  Other clocks and other hardware bugs will be found.  (An
-experiment shows that a counting clock made from the 5us timer can get
-pretty reliable 1us resolution.)  The problem is less the specific
+experiment shows that a counting clock made from the 5μs timer can get
+pretty reliable 1μs resolution.)  The problem is less the specific
 nature of these side channels than that sensitive computations are not
 properly insulated from the rest of the system.  Admittedly, that
 often requires hardware and OS changes and not merely careful coding,
 but it is still where the actual problem is.
 
-## References
-
-[1] [Yossef Oren et al, "The Spy in the Sandbox -- Practical Cache Attacks in Javascript"](http://arxiv.org/abs/1502.07373)
-
-[2] [Daniel Gruss et al, "Rowhammer.js: A Remote Software-Induced Fault Attack in JavaScript"](http://arxiv.org/abs/1507.06955v1)
-
-[3] [Paul Stone, "Pixel perfect timing attacks with HTML5"](http://contextis.co.uk/research/white-papers/pixel-perfect-timing-attacks-html5)
-
-[4] [Marc Andrysco et al, "On Submornal Floating point and abnormal timing](https://cseweb.ucsd.edu/~dkohlbre/papers/subnormal.pdf)
-
-[5] [Dag Arne Osvik et al, "Cache Attacks and Countermeasures: the Case of AES"](https://eprint.iacr.org/2005/271.pdf)
-
-[6] [Mehmet Sinan Inci et al, "Seriously, get off my cloud!  Cross-VM RSA Key Recovery in a Public Cloud"](https://eprint.iacr.org/2015/898.pdf)
-
-[7] [Tor project: "High-precision timestamps in JS"](https://trac.torproject.org/projects/tor/ticket/17412)
+  [last-level cache sniffing]: http://arxiv.org/abs/1502.07373
+  [row hammering]: http://arxiv.org/abs/1507.06955v1
+  [SVG/CSS attacks]: http://contextis.co.uk/research/white-papers/pixel-perfect-timing-attacks-html5
+  [other attack]: https://cseweb.ucsd.edu/~dkohlbre/papers/subnormal.pdf
+  [extract cryptographic keys for AES and RSA]: https://eprint.iacr.org/2005/271.pdf
+  [in the cloud]: https://eprint.iacr.org/2015/898.pdf
+  [Tor]: https://trac.torproject.org/projects/tor/ticket/17412
+  [ByteArray]: http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/utils/ByteArray.html#shareable
+  [subnormal floating-point operations]: https://cseweb.ucsd.edu/~dkohlbre/papers/subnormal.pdf
+  
