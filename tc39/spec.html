@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-01-21 </p>
+<p> Revised: 2016-01-22 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -43,9 +43,9 @@ abstractions that are useful in specific domains. </p>
 </ul>
 
 <p> The proposal makes only very basic assumptions about the required
-hardware and should be broadly implementable with good performance.  A
-closely related API has been available in Firefox Nightly for some
-time. </p>
+hardware and should be broadly implementable with good performance.
+Prototype implementations of the API are available in Firefox Nightly
+and in Google Chrome (where it is not enabled by default). </p>
 
 <p>This specification constitutes a restatement and formalization of
 an earlier
@@ -57,16 +57,14 @@ comments.</p>
 <p> This specification is substantially complete, apart from these aspects: </p>
 <ul>
   <li> The memory model is going to be refined further (for a while).
-
-  <li> It is highly desirable to add facilities that allow conflicting
-  shared memory operations to have defined meaning.  For example,
-  adding Atomics.loadUnordered, Atomics.storeUnordered, and perhaps an
-  explicit Atomics.fence operation, might be enough to allow a
-  translation from JVM bytecodes to ECMAScript.
 </ul>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-01-22 -- Noted that the API is available in Firefox and Chrome.
+    Removed mention of any work on relaxed ("unordered") atomics as that is premature.
+    Corrected a bug in the use of RemoveWaiters from futexWakeOrRequeue (incomplete fix for Issue 41).
+    Editorial changes.
   <li> 2016-01-21 -- (Issue 41) Correct the RemoveWaiters algorithm to take less than the full list
   <li> 2015-12-28 -- (Issue 36) Allow futexWait to throw an exception if blocking is not allowed on a thread, search for "AgentCanSuspend".
   <li> 2015-09-23 -- Spec draft notes are all linked to Issues in the bug tracker.
@@ -157,7 +155,7 @@ comments.</p>
         <h1>SharedDataBlockID( block )</h1>
         <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument _block_, the following steps are taken:</p>
         <emu-alg>
-          1. Let _G_ be an address-free identifier for _block_.  All agents in the same cluster have the same value for _G_ for any given _block_.
+          1. Let _G_ be an address-free identifier for _block_.  All agents in the same cluster must use the same value for _G_ for any given _block_.
           1. Return _G_.
         </emu-alg>
         <emu-note>
@@ -907,11 +905,10 @@ These call AllocateTypedArray with a specified length:
         1. Let _n_ = 0
         1. Within the futex critical section do:
           1. Let _S_ be RemoveWaiters( _G_, _i_, _c_ )
-          1. While _c_ &gt; 0 and _S_ is not the empty list:
+          1. While _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
             1. Call WakeWaiter( _W_ )
-            1. Subtract 1 from _c_
             1. Add 1 to _n_
         1. Return _n_.
       </emu-alg>
@@ -938,7 +935,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _w_ be Atomics.load(_typedArray_, _i_)
           1. If _v_ does not equal _w_ then:
             1. Return the original value of ~Atomics.NOTEQUAL~
-          1. Let _S_ be RemoveWaiters(_G_, _i_, _c_)
+          1. Let _S_ be RemoveWaiters(_G_, _i_, +Infinity )
           1. While _c_ &gt; 0 and _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
             1. Remove _W_ from the front of _S_
