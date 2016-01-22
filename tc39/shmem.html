@@ -30,8 +30,7 @@ abstractions that are useful in specific domains.  </p>
 </p><ul>
   <li> Support for threaded code in programs written in other
   languages that are translated to asm.js or plain JS or a combination
-  of the two, notably C++ but also JVM and CIL bytecode, Halide,
-  Clojure, Rust, and similar safe languages. 
+  of the two, notably C and C++ but also other safe languages. 
 
   </li><li> Support for hand-written JS or JS+asm.js that makes use of
   multiprocessing facilities for select tasks, such as image
@@ -59,12 +58,16 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-01-22 -- Noted that the API is available in Firefox and Chrome.
-    Removed mention of any work on relaxed ("unordered") atomics as that is premature.
-    Corrected a bug in the use of <emu-xref aoid="RemoveWaiters"><a href="#Atomics.RemoveWaiters">RemoveWaiters</a></emu-xref> from futexWakeOrRequeue (incomplete fix for Issue 41).
-    Editorial changes.
+  <li> 2016-01-22 -- (Issue 43) Clarified language.  Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
   
-  </li><li> 2016-01-21 -- (Issue 41) Correct the <emu-xref aoid="RemoveWaiters"><a href="#Atomics.RemoveWaiters">RemoveWaiters</a></emu-xref> algorithm to take less than the full list
+  </li><li> 2016-01-22 -- (Issue 41) Corrected a bug in yesterday's fix.
+  
+  </li><li> 2016-01-22 -- Noted that the API is available in Firefox and Chrome.
+    Removed mention of any work on relaxed ("unordered") atomics as that is premature.
+    Removed mention of specific safe languages that might target this facility.
+    Editorial and clarity changes.
+  
+  </li><li> 2016-01-21 -- (Issue 41) Correct the <emu-xref aoid="RemoveWaiters"><a href="#Atomics.RemoveWaiters">RemoveWaiters</a></emu-xref> algorithm to take less than the full list.
   
   </li><li> 2015-12-28 -- (Issue 36) Allow futexWait to throw an exception if blocking is not allowed on a thread, search for "<emu-xref aoid="AgentCanSuspend"><a href="#Atomics.AgentCanSuspend">AgentCanSuspend</a></emu-xref>".
   
@@ -313,7 +316,7 @@ These call AllocateTypedArray with a specified length:
         </li></ul>
 
         <emu-note><span class="note">Note</span>
-          <p> If <emu-xref aoid="IsSharedMemory"><a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">IsSharedMemory</a></emu-xref>( <var>arrayBuffer</var> ) is <emu-const>true</emu-const> then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer.  This restricts compiler optimizations as follows.  If a program loads a value, and then uses the loaded value several places, an ECMAScript implementation must not re-load the value for any of the uses even if it can prove the agent does not overwrite the value in memory.  It must also prove that no concurrent agent overwrites the value.  </p>
+          <p> If <emu-xref aoid="IsSharedMemory"><a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedMemory">IsSharedMemory</a></emu-xref>( <var>arrayBuffer</var> ) is <emu-const>true</emu-const> then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may or may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer.  </p>
         </emu-note>
 
       </emu-clause>
@@ -548,7 +551,7 @@ These call AllocateTypedArray with a specified length:
         atomic accesses, and "data access" refers also to non-viable
         atomic accesses.  </p>
       
-      <p> An  <em>event</em> in an agent is a atomic access, a
+      <p> An  <em>event</em> in an agent is an atomic access, a
         data access, the sending of a SharedArrayBuffer, the receipt
         of a SharedArrayBuffer, the action of waking up a sleeping
         agent, or a sleeping agent being woken up.  Events can also be
@@ -602,14 +605,15 @@ These call AllocateTypedArray with a specified length:
 
       <emu-note><span class="note">Note 3</span>
         <p> (Issue 22, broadly) There are problems with the preceding
-          clause.  One problem is that the affected memory region is
-          not defined.  Another problem is semantic: The intent of the
-          clause is that a race poisons a delimited part of memory,
-          and subsequent reads from that area of memory will see
-          garbage.  However, "subsequent" is slippery and not well
-          defined.  C++ has made races undefined behavior because of
-          this, and Java has a complicated memory model to deal with
-          it.  What is most appropriate for ES is not yet known.  </p>
+          clause.  One problem is that the affected memory region in a
+          race is not properly defined.  Another problem is semantic:
+          The intent of the clause is that a race poisons a delimited
+          part of memory, and subsequent reads from that area of
+          memory will see garbage.  However, "subsequent" is slippery
+          and not well defined.  C++ has made races undefined behavior
+          because of this, and Java has a complicated memory model to
+          deal with it.  What is most appropriate for ES is not yet
+          known.  </p>
 
         <p> Also see the NOTE on <emu-xref aoid="GetValueFromBuffer"><a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a></emu-xref>() that clarifies
           that a compiler may not generate re-loads from shared
