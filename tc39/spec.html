@@ -34,8 +34,7 @@ abstractions that are useful in specific domains. </p>
 <ul>
   <li> Support for threaded code in programs written in other
   languages that are translated to asm.js or plain JS or a combination
-  of the two, notably C++ but also JVM and CIL bytecode, Halide,
-  Clojure, Rust, and similar safe languages.
+  of the two, notably C and C++ but also other safe languages.
 
   <li> Support for hand-written JS or JS+asm.js that makes use of
   multiprocessing facilities for select tasks, such as image
@@ -64,6 +63,7 @@ comments.</p>
   <li> 2016-01-22 -- Noted that the API is available in Firefox and Chrome.
     Removed mention of any work on relaxed ("unordered") atomics as that is premature.
     Corrected a bug in the use of RemoveWaiters from futexWakeOrRequeue (incomplete fix for Issue 41).
+    Removed mention of specific safe languages that might target this facility.
     Editorial changes.
   <li> 2016-01-21 -- (Issue 41) Correct the RemoveWaiters algorithm to take less than the full list
   <li> 2015-12-28 -- (Issue 36) Allow futexWait to throw an exception if blocking is not allowed on a thread, search for "AgentCanSuspend".
@@ -584,7 +584,7 @@ These call AllocateTypedArray with a specified length:
         atomic accesses, and "data access" refers also to non-viable
         atomic accesses. </p>
       
-      <p> An <em>event</em> in an agent is a atomic access, a
+      <p> An <em>event</em> in an agent is an atomic access, a
         data access, the sending of a SharedArrayBuffer, the receipt
         of a SharedArrayBuffer, the action of waking up a sleeping
         agent, or a sleeping agent being woken up.  Events can also be
@@ -632,14 +632,15 @@ These call AllocateTypedArray with a specified length:
 
       <emu-note>
         <p> (Issue 22, broadly) There are problems with the preceding
-          clause.  One problem is that the affected memory region is
-          not defined.  Another problem is semantic: The intent of the
-          clause is that a race poisons a delimited part of memory,
-          and subsequent reads from that area of memory will see
-          garbage.  However, "subsequent" is slippery and not well
-          defined.  C++ has made races undefined behavior because of
-          this, and Java has a complicated memory model to deal with
-          it.  What is most appropriate for ES is not yet known. </p>
+          clause.  One problem is that the affected memory region in a
+          race is not properly defined.  Another problem is semantic:
+          The intent of the clause is that a race poisons a delimited
+          part of memory, and subsequent reads from that area of
+          memory will see garbage.  However, "subsequent" is slippery
+          and not well defined.  C++ has made races undefined behavior
+          because of this, and Java has a complicated memory model to
+          deal with it.  What is most appropriate for ES is not yet
+          known. </p>
 
         <p> Also see the NOTE on GetValueFromBuffer() that clarifies
           that a compiler may not generate re-loads from shared
