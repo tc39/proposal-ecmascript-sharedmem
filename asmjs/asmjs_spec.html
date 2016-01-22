@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics - asm.js addenda</h1>
-<p> Revised: 2015-11-05 </p>
+<p> Revised: 2016-01-22 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -26,6 +26,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-01-22 -- Removed the section on SharedTypedArray in Firefox, that code is gone.
   <li> 2015-11-05 -- Noted that the old SharedTypedArray views are now deprecated for asm.js code in Firefox.
   <li> 2015-08-31 -- Correct return types on atomic operations.  (For load, exchange, compareExchange, add, sub, and, or, and xor the return type is Int, not Signed.  For store it is the type of the _value_ argument, not Signed).  Remove non-throwing behavior on out-of-range accesses; the operations throw, as they do for non-asm.js code.  Move mention of the old SharedTypedArray views to the Firefox section.  Clarify wording throughout.
   <li> 2015-08-28 -- initial translation from the original proposal.
@@ -220,29 +221,3 @@
   
 </emu-clause>
 
-<emu-clause id="firefox">
-  <h1>Firefox</h1>
-
-  <p> Firefox has additional constructors ~SharedInt8Array~,
-    ~SharedUint8Array~, ..., ~SharedFloat32Array~, and
-    ~SharedFloat64Array~.  These may be used to create views on the
-    heap memory if the heap memory is a SharedArrayBuffer.  </p>
-
-  <p> It is a static error to reference, even for the purposes of
-    storing it in a local binding, a shared-view constructor (eg,
-    SharedInt32Array) and an unshared-view constructor (eg,
-    Float64Array) in the same compilation unit. </p>
-
-  <p> It is a hard link error (no fallback to full JS) to map a shared
-    view onto an unshared buffer, or an unshared view onto a shared
-    buffer. </p>
-
-  <emu-note>
-    <p> The additional constructors are part of an older design; they
-      are now deprecated for asm.js code.  All code for asm.js should
-      use the standard view names.  Code for plain JS must still
-      (November 2015) use the non-standard constructors in Firefox
-      however. </p>
-  </emu-note>
-
-</emu-clause>
