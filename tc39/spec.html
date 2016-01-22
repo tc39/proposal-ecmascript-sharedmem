@@ -64,7 +64,8 @@ comments.</p>
     Removed mention of any work on relaxed ("unordered") atomics as that is premature.
     Corrected a bug in the use of RemoveWaiters from futexWakeOrRequeue (incomplete fix for Issue 41).
     Removed mention of specific safe languages that might target this facility.
-    Editorial changes.
+    Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
+    Editorial and clarity changes.
   <li> 2016-01-21 -- (Issue 41) Correct the RemoveWaiters algorithm to take less than the full list
   <li> 2015-12-28 -- (Issue 36) Allow futexWait to throw an exception if blocking is not allowed on a thread, search for "AgentCanSuspend".
   <li> 2015-09-23 -- Spec draft notes are all linked to Issues in the bug tracker.
@@ -306,7 +307,7 @@ These call AllocateTypedArray with a specified length:
         </ul>
 
         <emu-note>
-          <p> If IsSharedMemory( _arrayBuffer_ ) is ~true~ then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer.  This restricts compiler optimizations as follows.  If a program loads a value, and then uses the loaded value several places, an ECMAScript implementation must not re-load the value for any of the uses even if it can prove the agent does not overwrite the value in memory.  It must also prove that no concurrent agent overwrites the value. </p>
+          <p> If IsSharedMemory( _arrayBuffer_ ) is ~true~ then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may or may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer. </p>
         </emu-note>
 
       </emu-clause>
