@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-01-22 </p>
+<p> Revised: 2016-01-23 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-01-23 -- Removed a reference to the note that was removed yesterday.
   <li> 2016-01-22 -- (Issue 43) Clarified language.  Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
   <li> 2016-01-22 -- (Issue 41) Corrected a bug in yesterday's fix.
   <li> 2016-01-22 -- Noted that the API is available in Firefox and Chrome.
@@ -642,10 +643,6 @@ These call AllocateTypedArray with a specified length:
           because of this, and Java has a complicated memory model to
           deal with it.  What is most appropriate for ES is not yet
           known. </p>
-
-        <p> Also see the NOTE on GetValueFromBuffer() that clarifies
-          that a compiler may not generate re-loads from shared
-          memory. </p>
       </emu-note>
 
       <emu-note>
