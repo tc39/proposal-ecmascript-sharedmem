@@ -1,6 +1,6 @@
 # Shared memory: Side-channel information leaks
 
-lhansen@mozilla.com / updated 2016-01-21
+lhansen@mozilla.com / updated 2016-01-24
 
 ## Introduction
 
@@ -10,11 +10,11 @@ shared cell with an atomic operation, and whatever agent needs a clock
 just reads the cell.  Yossi Oren has measured such a cell to have a
 4ns resolution on current (2015) hardware.  The clock will be a little
 noisy as a result of system behavior but probably has much higher
-resolution in practice than the attenuated performance.now() timer,
-which has 5us resolution.
+resolution in practice than the attenuated `performance.now()` timer,
+which has 5μs resolution.
 
 A number of side channel attacks need a high-resolution timing source
-to work.  (This is why performance.now() resolution has been reduced.)
+to work.  (This is why `performance.now()` resolution has been reduced.)
 There are several examples of such attacks in JS, including last-level
 cache sniffing to extract user behavior or user data [1], row
 hammering to cause bit flips in memory on some types of hardware [2],
@@ -55,7 +55,7 @@ easily when needed, or it may be a reasonable option for high-security
 environments such as Tor [7], but it is not a reasonable mitigation when
 shared-memory parallelism is actually needed.
 
-The affinity solution has another couple of problems.
+The affinity solution has another couple of problems:
 
 - Thread affinity has real teeth on Windows and Linux but is not well
   supported on Mac OS X (and may not be well supported on other
@@ -101,7 +101,7 @@ able to steal information from the user is a big deal.
 
 The thing is, it's not obvious that the attack provides a genuinely
 new capability to attackers.  Consider the existing technologies on
-the Web that can be used to mount the same attack:
+the Web that can be used to mount the cache attacks:
 
 - Flash Player (AS3 has shared memory)
 - Java
@@ -116,8 +116,24 @@ In all cases those technologies do not need shared memory at all if
 they already have a precise clock for the attack, but absent a precise
 clock all do have shared memory and can build such a clock.
 
-(Java and ActiveX were brought up already in 2005 by Osvik in his
-paper on attacking AES [5].)
+Java and ActiveX were brought up already in 2005 by Osvik in his
+paper on attacking AES [5].
+
+In addition, several of the published attacks do not appear to need
+the new clock: the rowhammer.js authors have said that the 5μs
+throttled clock is not a hindrance to them; Oren states that a 1μs
+clock is sufficient for cache sniffing, and such a clock can be built
+(by counting) from the 5μs clock.
+
+The shared-memory clock might affect the SVG/CSS attack, especially as
+implemented for exploiting subnormal timings, although that attack is
+not an issue at present.  (In Firefox the computation was first made
+timing-independent and later pushed to the GPU.)
+
+None of the attacks appear to be aided by being able to allocate
+memory that is merely shared among the threads of the same browser
+process.  (The attacks bring up "shared memory" as an attack vector,
+but this is in order to play memory mapping tricks.)
 
 
 ### Future impact
@@ -153,7 +169,8 @@ are).
 In the past, the cost of denormal floating-point operations has been
 used for information stealing with SVG filters, an attack that has
 been mitigated by changing timer resolution in the browsers but also
-by the CPU manufacturers addressing denormal timing (to some extent).
+by the CPU manufacturers addressing denormal timing (to some extent),
+or by having the hardware flush subnormals to zero.
 
 As time goes by, the hardware problems are mitigated, and new ones are
 introduced, eg, GPUs now support denormals, but they implement
@@ -165,8 +182,8 @@ attacks seriously, but worrying about one particular type of clock,
 some particular hardware issues, and how they combine to enable these
 particular side channel leaks feels like a fairly narrow point of
 view.  Other clocks and other hardware bugs will be found.  (An
-experiment shows that a counting clock made from the 5us timer can get
-pretty reliable 1us resolution.)  The problem is less the specific
+experiment shows that a counting clock made from the 5μs timer can get
+pretty reliable 1μs resolution.)  The problem is less the specific
 nature of these side channels than that sensitive computations are not
 properly insulated from the rest of the system.  Admittedly, that
 often requires hardware and OS changes and not merely careful coding,
@@ -174,7 +191,7 @@ but it is still where the actual problem is.
 
 ## References
 
-[1] [Yossef Oren et al, "The Spy in the Sandbox -- Practical Cache Attacks in Javascript"](http://arxiv.org/abs/1502.07373)
+[1] [Yossef Oren et al, "The Spy in the Sandbox -- Practical Cache Attacks in Javascript"](http://arxiv.org/abs/1502.07373v2)
 
 [2] [Daniel Gruss et al, "Rowhammer.js: A Remote Software-Induced Fault Attack in JavaScript"](http://arxiv.org/abs/1507.06955v1)
 
