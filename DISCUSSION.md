@@ -44,7 +44,7 @@ The only known security issue with this feature is that it allows the constructi
 
 ## Select rationale
 
-The [original proposal](https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing) contains detailed rationale points, a run-down of machine characteristics, and implementation advice.  The following are the most important points.
+The original proposal (in the historical/ subdirectory) contains detailed rationale points, a run-down of machine characteristics, and implementation advice.  The following are the most important points.
 
 ### Futexes, storage management
 
@@ -56,7 +56,7 @@ In practice, reusable mutexes and synchronic objects for plain JS can be constru
 
 Clearly SharedArrayBuffers must be reference counted across agents (requiring the use of finalization mechanisms already available in all JS engines), and there will be some storage management associated with using the futex implementation, but the garbage collectors need not trace through shared objects.
 
-Finally, even if we were to adopt synchronic objects there would be a need for the lower-level atomics.  See [Issue #12](https://github.com/tc39/ecmascript_sharedmem/issues/12) as well as [the draft proposal for synchronic](https://docs.google.com/document/d/1YE_DECtwc4v3tSmWMN8grMWMEwA3hifuQOOYtGti8kM/edit?usp=sharing) for discussion.
+Finally, even if we were to adopt synchronic objects there would be a need for the lower-level atomics.  See [Issue #12](https://github.com/tc39/ecmascript_sharedmem/issues/12) as well as the draft proposal for synchronic (in the historical/ subdirectory) for discussion.
 
 ### Only sequentially consistent atomics
 
