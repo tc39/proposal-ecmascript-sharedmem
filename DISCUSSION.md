@@ -40,7 +40,7 @@ We believe however that the low-level facility is good for building reasonably s
 
 ## Security issues
 
-The only known security issue with this feature is that it allows the construction of high-resolution timers.  Such timers can be used to construct some types of side-channel attacks.  See [the issues](https://github.com/lars-t-hansen/ecmascript_sharedmem/issues) for a deeper discussion; more information will be coming by and by.
+The only known security issue with this feature is that it allows the construction of high-resolution timers.  Such timers can be used to construct some types of side-channel attacks.  See [the issues](https://github.com/tc39/ecmascript_sharedmem/issues) for a deeper discussion; more information will be coming by and by.
 
 ## Select rationale
 
@@ -56,7 +56,7 @@ In practice, reusable mutexes and synchronic objects for plain JS can be constru
 
 Clearly SharedArrayBuffers must be reference counted across agents (requiring the use of finalization mechanisms already available in all JS engines), and there will be some storage management associated with using the futex implementation, but the garbage collectors need not trace through shared objects.
 
-Finally, even if we were to adopt synchronic objects there would be a need for the lower-level atomics.  See [Issue #12](https://github.com/lars-t-hansen/ecmascript_sharedmem/issues/12) as well as [the draft proposal for synchronic](https://docs.google.com/document/d/1YE_DECtwc4v3tSmWMN8grMWMEwA3hifuQOOYtGti8kM/edit?usp=sharing) for discussion.
+Finally, even if we were to adopt synchronic objects there would be a need for the lower-level atomics.  See [Issue #12](https://github.com/tc39/ecmascript_sharedmem/issues/12) as well as [the draft proposal for synchronic](https://docs.google.com/document/d/1YE_DECtwc4v3tSmWMN8grMWMEwA3hifuQOOYtGti8kM/edit?usp=sharing) for discussion.
 
 ### Only sequentially consistent atomics
 

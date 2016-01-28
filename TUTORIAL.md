@@ -203,6 +203,8 @@ There is nothing inherently problematic about futexWaiting in the browser's main
 
 A variation on that pattern is a control structure that doesn't need a master worker but where the workers coordinate among themselves about sending a message to the master when some condition is met.  The "asymmetric barrier" in the demo section is such a control structure.
 
+The specification allows the browser to deny `futexWait` on the main thread, and it is expected that most browsers will eventually do so.  A denied `futexWait` throws an exception.
+
 ### Don't mix atomic and non-atomic accesses
 
 It is certainly possible to access the same array element safely using both atomic and non-atomic accesses, but usually only in limited situations.  In practice, it is best if any given shared array element is accessed either atomically or non-atomically; atomic elements should be used as synchronization variables and simple communication channels, while non-atomic elements can be used for larger amounts of data.
@@ -211,9 +213,12 @@ It is certainly possible to access the same array element safely using both atom
 
 How expensive is a SharedArrayBuffer?  In the current Firefox implementation it is fairly expensive (the objects are multiples of 4KiB in size and at least 8KiB, and we sometimes reserve more address space), because we have been assuming that the easiest way to use shared memory is to allocate a few fairly large shared objects that are then partitioned by the application using multiple views.  (In a sense this is a self-fulfilling prophecy because it is awkward to transfer shared objects among agents.)  Other implementations could choose different strategies, encouraging the use of small objects (one per shared application object, say).
 
-## Notes on the current Firefox Nightly implementation (August 2015)
+## Notes on current implementations (January 2016)
 
-Firefox Nightly implements a slightly different API at the moment, based on an older design: there is a separate set of "SharedTypedArray" types that must be used instead of the normal TypedArray types.  That is, to create a view on a SharedArrayBuffer, use the "SharedInt32Array" type instead of the Int32Array type.
+Firefox and Chrome both implement the proposed API.
 
-Firefox also has a couple of idiosyncracies around workers.  The agent that creates a worker must return to its event loop before the worker will be properly created, the worker will remain un-started until then.  Also, there's a per-domain limit on the number of workers, it defaults to 20; once the limit is exceeded new workers will remain un-started.  A program that futexWaits on an un-started worker will usually deadlock.  (Both of those idiosyncracies are arguably violations of the WebWorkers spec, see [this WHATWG bug that aims to clarify that](https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039).)
+* In Firefox the API is enabled by default in Nightly, and starting with Firefox 46 it can be enabled in Aurora, Developer Edition, Beta, and Release by setting `javascript.options.shared_memory` to true in `about:config`.  Firefox denies `futexWait` on the main thread.
+* In Chrome the API is off by default and can be enabled by command line options (to be documented).
+
+In Firefox there is a per-domain limit on the number of workers that defaults to 20.  Once the limit is exceeded new workers in the domain will be create but will remain un-started.  A program that futexWaits on an un-started worker will usually deadlock.  (Arguably the limitation is a violation of the WebWorkers spec, see [this WHATWG bug that aims to clarify that](https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039).)
 
