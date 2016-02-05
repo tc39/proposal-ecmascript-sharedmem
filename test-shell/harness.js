@@ -47,9 +47,17 @@ function expectException(thunk, error) {
 	fail("Failed: expected " + error.name + ", got " + failure);
 }
 
+// v8 test suite uses these names
+
+var assertThrows = expectException;
+var assertEquals = assertEq;
+
 // Hooks
 
 function beginTest() {}
 function finishTest() {}
 function msg() {}
 function classifyTest() {}
+function fail(s) {
+    throw new Error(s);
+}
