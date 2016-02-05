@@ -11,3 +11,8 @@ For example, for the SpiderMonkey shell, you would do this:
 
 The SpiderMonkey shell also has a non-zero exit code if it exits by an
 exception.
+
+-----
+
+These tests can also be run in a browser.  Just load embedding.html,
+output appears in the document.

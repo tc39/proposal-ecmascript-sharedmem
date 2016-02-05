@@ -1,3 +1,5 @@
+beginTest("atomics");
+
 // Remember to include harness.js before this file.
 
 var sab = new SharedArrayBuffer(1024);
@@ -11,6 +13,8 @@ var other_views = [Uint8ClampedArray, Float32Array, Float64Array];
 
 for ( var idx=0 ; idx < int_views.length ; idx++ ) {
     var View = int_views[idx];
+
+    classifyTest("" + View);
 
     // Make it interesting - use non-zero byteOffsets and non-zero indexes
 
@@ -188,3 +192,4 @@ function testIsLockFree() {
 
 testIsLockFree();
 
+finishTest("atomics");

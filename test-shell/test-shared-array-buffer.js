@@ -1,3 +1,5 @@
+beginTest("SharedArrayBuffer");
+
 // Remember to include harness.js before this file.
 
 assertEq(typeof SharedArrayBuffer.isView, "function");
@@ -12,3 +14,4 @@ assertEq(String(sab), "[object SharedArrayBuffer]");
 
 // TODO: test SharedArrayBuffer.prototype.slice
 
+finishTest("SharedArrayBuffer");

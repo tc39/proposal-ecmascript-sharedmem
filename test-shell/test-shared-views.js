@@ -1,3 +1,5 @@
+beginTest("SharedViews");
+
 // Remember to include harness.js before this file.
 
 var sab = new SharedArrayBuffer(1024);
@@ -87,3 +89,5 @@ f32view[0] = 0;
 // back to the first one; we end up with two SAB objects that
 // reference the same memory).  That change can't be tested in a
 // shell, it needs to be tested in a browser.
+
+finishTest("SharedViews");

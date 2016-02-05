@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title> SharedArrayBuffer and Atomics </title>
+  </head>
+  <body>
+    <script src="harness.js"></script>
+    <script>
+      document.writeln("<pre><div id='scrool'></div></pre>");
+
+      var timeout = null;
+      var classification = "";
+
+      function msg(s) {
+	  var d = document.createElement('div');
+	  d.appendChild(document.createTextNode(s));
+	  document.getElementById("scrool").appendChild(d);
+      }
+
+      function beginTest(test) {
+	  msg("");
+	  msg("Starting " + test);
+	  timeout = setTimeout(function () { msg("TIMEOUT ERROR: " + classification + test) }, 1000);
+      }
+
+      function classifyTest(s) {
+	  classification = s + " ";
+      }
+
+      function finishTest(test) {
+	  clearTimeout(timeout);
+	  msg("Test completed: " + test);
+      }
+
+      function fail(s) {
+	  clearTimeout(timeout);
+	  msg("ERROR: " + classification + s);
+	  throw new Error(s);
+      }
+    </script>
+    <script src="test-shared-array-buffer.js"></script>
+    <script src="test-shared-views.js"></script>
+    <script src="test-atomics.js"></script>
+  </body>
+</html>

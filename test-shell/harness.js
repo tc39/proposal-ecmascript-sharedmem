@@ -28,7 +28,7 @@ function assertEq(a, b) {
     }
 
     if (!same(a,b))
-	throw new Error("Failed: got " + a + ", expected " + b);
+	fail("Failed: got " + a + ", expected " + b);
 }
 
 function expectException(thunk, error) {
@@ -42,7 +42,14 @@ function expectException(thunk, error) {
 	failure = e;
     }
     if (!failed)
-	throw new Error("Failed: expected " + error.name + " exception, did not fail: " + thunk);
+	 fail("Failed: expected " + error.name + " exception, did not fail: " + thunk);
     if (!(failure instanceof error))
-	throw new Error("Failed: expected " + error.name + ", got " + failure);
+	fail("Failed: expected " + error.name + ", got " + failure);
 }
+
+// Hooks
+
+function beginTest() {}
+function finishTest() {}
+function msg() {}
+function classifyTest() {}
