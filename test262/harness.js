@@ -78,7 +78,7 @@ function classifyTest() {}
 
 function fail(s) {
     msg(s);
-    if (++_errors >= 10)
+    if (++_errors >= 100)
 	throw new Error(s);
 }
 
