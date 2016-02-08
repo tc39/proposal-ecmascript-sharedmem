@@ -5,7 +5,7 @@ var _errors = 0;
 
 var assert = {
 
-    sameValue: function (a, b) {
+    sameValue: function (got, expected) {
 
 	function same(a, b) {
 	    var pass = true;
@@ -35,8 +35,8 @@ var assert = {
 	}
 
 	++_count;
-	if (!same(a,b))
-	    fail("Failed: got " + a + ", expected " + b);
+	if (!same(got, expected))
+	    fail("Failed: got " + got + ", expected " + expected);
     },
 
     throws: function (error, thunk) {
@@ -78,8 +78,10 @@ function classifyTest() {}
 
 function fail(s) {
     msg(s);
-    if (++_errors >= 100)
+    if (++_errors >= 100) {
+	msg("BAILING OUT");
 	throw new Error(s);
+    }
 }
 
 function msg(s) {
