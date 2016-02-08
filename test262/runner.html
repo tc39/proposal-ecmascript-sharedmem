@@ -9,10 +9,10 @@
     <!-- "assert" object and some hooks -->
     <script src="harness.js"></script>
 
+    <pre><div id='scrool'></div></pre>
+
     <!-- Output to the document -->
     <script>
-      document.writeln("<pre><div id='scrool'></div></pre>");
-
       function msg(s) {
 	  var d = document.createElement('div');
           if (s.match(/^ERROR/))
@@ -30,6 +30,7 @@
 
       function beginTest(test) {
           clearCount();
+          classification = "";
 	  msg("");
 	  msg("Starting " + test);
           timeout = setTimeout(function () { errors++; msg("ERROR: TIMEOUT: " + classification + test) }, 1000);
@@ -58,6 +59,13 @@
 
     <!-- And run.  Add a script for each test file.  -->
 
+    <script src="shared-array-buffer-props.js"></script>
+    <script src="shared-array-buffer-instance-props.js"></script>
+    <script src="shared-array-buffer-conversion.js"></script>
+
+    <script src="typedarray-props.js"></script>
+    <script src="typedarray-props-range.js"></script>
+
     <script src="atomics-on-good-arrays.js"></script>
     <script src="atomics-on-nonshared-int-arrays.js"></script>
     <script src="atomics-on-shared-nonint-arrays.js"></script>
@@ -70,10 +78,6 @@
 
     <script src="is-lock-free-good.js"></script>
     <script src="is-lock-free-corner-cases.js"></script>
-
-    <script src="shared-array-buffer-props.js"></script>
-    <script src="shared-array-buffer-instance-props.js"></script>
-    <script src="shared-array-buffer-conversion.js"></script>
 
     <script>
       if (errors) {
