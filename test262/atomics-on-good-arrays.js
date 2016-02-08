@@ -45,8 +45,10 @@ for ( var idx=0 ; idx < int_views.length ; idx++ ) {
     // Rudimentary tests for sign extension and chopping.
 
     var control = new View(ab, 0, 2);
+    var r;
 
-    Atomics.store(view, 3, -5); control[0] = -5;
+    r = Atomics.store(view, 3, -5); control[0] = -5;
+    assert.sameValue(r, -5);
     assert.sameValue(Atomics.load(view, 3), control[0]);
     assert.sameValue(Atomics.exchange(view, 3, 0), control[0]);
     view[3] = -5;
@@ -60,7 +62,8 @@ for ( var idx=0 ; idx < int_views.length ; idx++ ) {
     assert.sameValue(Atomics.compareExchange(view, 3, control[0], -9), control[1]);
     assert.sameValue(view[3], control[1]);
 
-    Atomics.store(view, 3, 12345); control[0] = 12345;
+    r = Atomics.store(view, 3, 12345); control[0] = 12345;
+    assert.sameValue(r, 12345);
     assert.sameValue(Atomics.load(view, 3), control[0]);
     assert.sameValue(Atomics.exchange(view, 3, 0), control[0]);
     view[3] = 12345;
@@ -74,7 +77,8 @@ for ( var idx=0 ; idx < int_views.length ; idx++ ) {
     assert.sameValue(Atomics.compareExchange(view, 3, control[0], 34567), control[1]);
     assert.sameValue(view[3], control[1]);
 
-    Atomics.store(view, 3, 123456789); control[0] = 123456789;
+    r = Atomics.store(view, 3, 123456789); control[0] = 123456789;
+    assert.sameValue(r, 123456789);
     assert.sameValue(Atomics.load(view, 3), control[0]);
     assert.sameValue(Atomics.exchange(view, 3, 0), control[0]);
     view[3] = 123456789;
@@ -88,7 +92,8 @@ for ( var idx=0 ; idx < int_views.length ; idx++ ) {
     assert.sameValue(Atomics.compareExchange(view, 3, control[0], 345678901), control[1]);
     assert.sameValue(view[3], control[1]);
 
-    Atomics.store(view, 3, Math.PI); control[0] = Math.PI;
+    r = Atomics.store(view, 3, Math.PI); control[0] = Math.PI;
+    assert.sameValue(r, Math.PI);
     assert.sameValue(Atomics.load(view, 3), control[0]);
     assert.sameValue(Atomics.exchange(view, 3, 0), control[0]);
 
