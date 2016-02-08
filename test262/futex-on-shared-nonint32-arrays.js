@@ -1,10 +1,7 @@
 // Copyright (C) 2015 Mozilla Corporation.  All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
-// BEGIN PROLOGUE - also see epilogue
-//
-// Until this is incorporated into tc39/tc262:
-//   - Remember to include harness.js before this file.
+// BEGIN PROLOGUE
 beginTest("futex-on-shared-nonint32-arrays");
 // END PROLOGUE
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2015 Mozilla Corporation.  All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
-// BEGIN PROLOGUE - also see epilogue
+// BEGIN PROLOGUE
 beginTest("typedarray-props-range");
 // END PROLOGUE
 
