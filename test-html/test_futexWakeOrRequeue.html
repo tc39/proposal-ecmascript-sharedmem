@@ -45,7 +45,7 @@ function compute() {
 	return;
     }
     var K = (L+1) % numworkers;
-    var v = Atomics.futexWakeOrRequeue(i32a, L, 1, 0, K);
+    var v = Atomics.futexWakeOrRequeue(i32a, /*index1=*/L, /*count=*/1, /*index2=*/K, /*value=*/0);
     if (v != 1)
 	msg("WRONG: number woken: " + v + " @ " + iter + " " + L);
     if (K == 0) {
