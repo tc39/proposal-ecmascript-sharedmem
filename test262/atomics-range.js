@@ -18,6 +18,11 @@ var indices = [ (view) => -1,
 		(view) => view.length,
 		(view) => view.length*2,
 		(view) => undefined,
+		(view) => Number.NaN,
+		(view) => Number.POSITIVE_INFINITY,
+		(view) => Number.NEGATIVE_INFINITY,
+		(view) => '-0',
+		(view) => 0/-1,
 		(view) => '3.5',
 		(view) => { password: "qumquat" } ];
 
@@ -31,11 +36,11 @@ for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
 	assert.throws(RangeError, () => Atomics.load(view, Idx));
 	assert.throws(RangeError, () => Atomics.exchange(view, Idx, 5));
 	assert.throws(RangeError, () => Atomics.compareExchange(view, Idx, 5, 8));
-	assert.throws(RangeError, () => Atomics.add(view, 8, 10));
-	assert.throws(RangeError, () => Atomics.sub(view, 8, 5));
-	assert.throws(RangeError, () => Atomics.and(view, 8, 3));
-	assert.throws(RangeError, () => Atomics.or(view, 8, 6));
-	assert.throws(RangeError, () => Atomics.xor(view, 8, 2));
+	assert.throws(RangeError, () => Atomics.add(view, Idx, 10));
+	assert.throws(RangeError, () => Atomics.sub(view, Idx, 5));
+	assert.throws(RangeError, () => Atomics.and(view, Idx, 3));
+	assert.throws(RangeError, () => Atomics.or(view, Idx, 6));
+	assert.throws(RangeError, () => Atomics.xor(view, Idx, 2));
     }
 }
 
