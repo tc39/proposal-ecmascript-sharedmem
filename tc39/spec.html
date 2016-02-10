@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-01-23 </p>
+<p> Revised: 2016-02-10 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-02-10 -- (Issue 60) ValidateSharedIntegerTypedArray needs to check for a TypedArrayName slot.
   <li> 2016-01-23 -- Removed a reference to the note that was removed yesterday.
   <li> 2016-01-22 -- (Issue 43) Clarified language.  Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
   <li> 2016-01-22 -- (Issue 41) Corrected a bug in yesterday's fix.
@@ -657,6 +658,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</h1>
       <emu-alg>
         1. If Type(_typedArray_) is not Object, throw a ~TypeError~ exception.
+        1. If _typedArray_ does not have a [[TypedArrayName]] internal slot, throw a ~TypeError~ exception.
         1. Let _typeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
         1. If _onlyInt32_ is ~true~ then
           1. If _typeName_ is not "Int32Array" then throw a ~TypeError~ exception
