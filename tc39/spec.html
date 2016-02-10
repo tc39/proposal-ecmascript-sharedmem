@@ -60,6 +60,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-02-10 -- (Issue 62) Rewrote ValidateAtomicAccess so as to process index values in the same way as ES6.
   <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
   <li> 2016-02-10 -- (Issue 60) ValidateSharedIntegerTypedArray needs to check for a TypedArrayName slot.  
   <li> 2016-01-23 -- Removed a reference to the note that was removed yesterday.
@@ -674,30 +675,27 @@ These call AllocateTypedArray with a specified length:
         1. Else
           1. If _typeName_ is not "Int8Array", "Uint8Array", "Int16Array", "Uint16Array", "Int32Array", or "Uint32Array" then throw a ~TypeError~ exception
         1. If _typedArray_ does not have a [[ViewedArrayBuffer]] internal slot, throw a ~TypeError~ exception.
-        1. Let _buffer_ be the value of _typedArray_’s [[ViewedArrayBuffer]] internal slot.
-        1. If Type(_buffer_) is not Object, throw a ~TypeError~ exception.
-        1. If _buffer_ does not have a [[SharedArrayBufferData]] internal slot, throw a ~TypeError~ exception.
+        1. Let _buffer_ be the value of _typedArray_’s [[ViewedArrayBuffer]] internal slot
+        1. If Type(_buffer_) is not Object, throw a ~TypeError~ exception
+        1. If _buffer_ does not have a [[SharedArrayBufferData]] internal slot, throw a ~TypeError~ exception
         1. Return _buffer_
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
-      <h1>Runtime semantics: ValidateAtomicAccess( typedArray, index )</h1>
+      <h1>Runtime semantics: ValidateAtomicAccess( typedArray, propertyName )</h1>
       <P> Perform the following steps: </p>
       <emu-alg>
-        1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot.
-        1. If Type(_index_) is String then
-          1. Let _numValue_ be CanonicalNumericIndexString( _index_ )
-          1. If _numValue_ is ~undefined~ then throw a ~RangeError~ exception
-        1. Else if Type(_index_) is Number
-          1. Let _numValue_ be _index_
-        1. Else:
-          1. Throw a ~RangeError~ exception
-        1. If IsInteger(_numValue_) is ~false~ throw a ~RangeError~ exception
-        1. If _numValue_ = -0 throw a ~RangeError~ exception
-        1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot.
-        1. If _numValue_ &lt; 0 or _numValue_ &ge; _length_ throw a ~RangeError~ exception
-        1. Return _numValue_
+        1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot
+        1. Let _propertyKey_ be ToPropertyKey(_propertyName_)
+        1. If Type(_propertyKey_) is not String, throw a ~RangeError~ exception
+        1. Let _numericIndex_ be CanonicalNumericIndexString(_propertyKey_)
+        1. Assert: _numericIndex_ is not an abrupt completion
+        1. If IsInteger(_numericIndex_) is ~false~, throw a ~RangeError~ exception
+        1. If _numericIndex_ = -0, throw a ~RangeError~ exception
+        1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot
+        1. If _numericIndex_ &lt; 0 or _numericIndex_ &ge; _length_ throw a ~RangeError~ exception
+        1. Return _numericIndex_
       </emu-alg>
     </emu-clause>
     
