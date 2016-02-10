@@ -58,8 +58,10 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-02-10 -- (Issue 60) <emu-xref aoid="ValidateSharedIntegerTypedArray"><a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a></emu-xref> needs to check for a TypedArrayName slot.
+  <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
   
+  </li><li> 2016-02-10 -- (Issue 60) <emu-xref aoid="ValidateSharedIntegerTypedArray"><a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a></emu-xref> needs to check for a TypedArrayName slot.  
+    
   </li><li> 2016-01-23 -- Removed a reference to the note that was removed yesterday.
   
   </li><li> 2016-01-22 -- (Issue 43) Clarified language.  Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
@@ -590,6 +592,14 @@ These call AllocateTypedArray with a specified length:
       <p> Executions must be such that  <em>happens before</em> is
         irreflexive (acyclic).  </p>
 
+      <emu-note><span class="note">Note 3</span>
+        <p> If a call to Atomics.futexWait or
+          Atomics.futexWakeOrRequeue returns Atomics.NOTEQUAL then
+          there is a happens-before relation between any atomic write
+          that wrote the slot that is read by those functions, because
+          those functions use an atomic read to read that slot.  </p>
+      </emu-note>
+
       <p> A data access read R only sees a write W that happens before
         R, where there is no write V such that V happens before R and
         W happens before V.  </p>
@@ -607,7 +617,7 @@ These call AllocateTypedArray with a specified length:
       <p> A write involved in a data race stores a poison value that
         can read back as anything whatsoever.  </p>
 
-      <emu-note><span class="note">Note 3</span>
+      <emu-note><span class="note">Note 4</span>
         <p> (Issue 22, broadly) There are problems with the preceding
           clause.  One problem is that the affected memory region in a
           race is not properly defined.  Another problem is semantic:
@@ -620,7 +630,7 @@ These call AllocateTypedArray with a specified length:
           known.  </p>
       </emu-note>
 
-      <emu-note><span class="note">Note 4</span>
+      <emu-note><span class="note">Note 5</span>
         <p> If the execution of an agent cluster has no data races, then
           the agent cluster behaves according to one of its sequentially
           consistent executions.  </p>

@@ -60,7 +60,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-02-10 -- (Issue 60) ValidateSharedIntegerTypedArray needs to check for a TypedArrayName slot.
+  <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
+  <li> 2016-02-10 -- (Issue 60) ValidateSharedIntegerTypedArray needs to check for a TypedArrayName slot.  
   <li> 2016-01-23 -- Removed a reference to the note that was removed yesterday.
   <li> 2016-01-22 -- (Issue 43) Clarified language.  Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
   <li> 2016-01-22 -- (Issue 41) Corrected a bug in yesterday's fix.
@@ -615,6 +616,14 @@ These call AllocateTypedArray with a specified length:
 
       <p> Executions must be such that <em>happens before</em> is
         irreflexive (acyclic). </p>
+
+      <emu-note>
+        <p> If a call to Atomics.futexWait or
+          Atomics.futexWakeOrRequeue returns Atomics.NOTEQUAL then
+          there is a happens-before relation between any atomic write
+          that wrote the slot that is read by those functions, because
+          those functions use an atomic read to read that slot. </p>
+      </emu-note>
 
       <p> A data access read R only sees a write W that happens before
         R, where there is no write V such that V happens before R and
