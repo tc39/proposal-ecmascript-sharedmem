@@ -14,24 +14,27 @@ description: >
 var sab = new SharedArrayBuffer(4);
 
 var views = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array];
-var indices = [ (view) => -1,
-		(view) => view.length,
-		(view) => view.length*2,
-		(view) => undefined,
-		(view) => Number.NaN,
-		(view) => Number.POSITIVE_INFINITY,
-		(view) => Number.NEGATIVE_INFINITY,
-		(view) => '-0',
-		(view) => 0/-1,
-		(view) => '3.5',
-		(view) => { password: "qumquat" } ];
+
+var bad_indices = [ (view) => -1,
+		    (view) => view.length,
+		    (view) => view.length*2,
+		    (view) => undefined,
+		    (view) => Number.NaN,
+		    (view) => Number.POSITIVE_INFINITY,
+		    (view) => Number.NEGATIVE_INFINITY,
+		    (view) => '-0',
+		    (view) => '3.5',
+		    (view) => 3.5,
+		    (view) => { password: "qumquat" },
+		    // TODO: a toString method that returns an out-of-range value
+		  ];
 
 for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
     var View = views[vidx];
     var view = new View(sab);
 
-    for ( var iidx=0 ; iidx < indices.length ; iidx++ ) {
-	var Idx = indices[iidx](view);
+    for ( var iidx=0 ; iidx < bad_indices.length ; iidx++ ) {
+	var Idx = bad_indices[iidx](view);
 	assert.throws(RangeError, () => Atomics.store(view, Idx, 10));
 	assert.throws(RangeError, () => Atomics.load(view, Idx));
 	assert.throws(RangeError, () => Atomics.exchange(view, Idx, 5));
@@ -41,6 +44,31 @@ for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
 	assert.throws(RangeError, () => Atomics.and(view, Idx, 3));
 	assert.throws(RangeError, () => Atomics.or(view, Idx, 6));
 	assert.throws(RangeError, () => Atomics.xor(view, Idx, 2));
+    }
+}
+
+var good_indices = [ (view) => 0/-1, // -0
+		     (view) => view.length - 1,
+		     // TODO: Does not work in Firefox 46
+		     //(view) => { toString: () => '0' }
+		   ];
+
+
+for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
+    var View = views[vidx];
+    var view = new View(sab);
+
+    for ( var iidx=0 ; iidx < good_indices.length ; iidx++ ) {
+	var Idx = good_indices[iidx](view);
+	Atomics.store(view, Idx, 37);
+	assert.sameValue(Atomics.load(view, Idx), 37);
+	assert.sameValue(Atomics.exchange(view, Idx, 37), 37);
+	assert.sameValue(Atomics.compareExchange(view, Idx, 37, 37), 37);
+	assert.sameValue(Atomics.add(view, Idx, 0), 37);
+	assert.sameValue(Atomics.sub(view, Idx, 0), 37);
+	assert.sameValue(Atomics.and(view, Idx, -1), 37);
+	assert.sameValue(Atomics.or(view, Idx, 0), 37);
+	assert.sameValue(Atomics.xor(view, Idx, 0), 37);
     }
 }
 

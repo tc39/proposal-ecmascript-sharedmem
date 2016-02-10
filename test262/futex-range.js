@@ -14,11 +14,15 @@ description: >
 var sab = new SharedArrayBuffer(4);
 var view = new Int32Array(sab);
 
+// TODO: also test good boundary case indices, see atomics-range.js for an example.
+
 var indices = [ (view) => -1,
 		(view) => view.length,
 		(view) => view.length*2,
 		(view) => undefined,
+		(view) => '-0',
 		(view) => '3.5',
+		(view) => 3.5,
 		(view) => { password: "qumquat" } ];
 
 for ( var iidx=0 ; iidx < indices.length ; iidx++ ) {
