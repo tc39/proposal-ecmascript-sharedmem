@@ -1,0 +1,463 @@
+<!-- -*- indent-tabs-mode: nil -*-
+
+     Process this file with ../format.sh to produce shmem.html.  See comments in that file.
+-->
+<!doctype html>
+<meta charset="utf8">
+<title>DOM/ECMAScript "Agents"</title>
+<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<h1>DOM/ECMAScript "Agents"</h1>
+
+<p> Early draft.  Revised: 2016-02-19 </p>
+
+<emu-intro id="intro">
+<h1>Introduction</h1>
+
+<p> This is a companion spec to the Shared memory and Atomics specification
+  ("SAB spec", for short).  The purpose of the present specification is to nail
+  down exactly what that the SAB spec means when it refers to "agent", and to
+  place the runtime semantic operations that the SAB spec depends on on solid
+  ground. </p>
+
+<p> About terminology: I'm going to use "agent" for the time being since that is
+  what the SAB spec uses; C++ uses it too, for its similar concept.  Other terms
+  that have been championed are "vat" and "continent", and we can bikeshed a
+  name later (I'm not opposed to either).  It is also possible that an "agent"
+  as required by the SAB spec is not quite what has been discussed as a "vat" or
+  "continent" in the past, but I'm trying not to deviate from what I've read
+  about those. </p>
+
+<p> Relevant links: </p>
+<ul>
+  <li> <a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">SAB spec Issue #27, overall issue bringing up realms, job queues, the appropriateness of any name, and other things</a>
+  <li> <a href="https://github.com/tc39/ecma262/pull/226">Ecma 262 Issue #226, Domenic's "continents" proposal and discussion around it</a>
+  <li> <a href="https://github.com/tc39/ecmascript_sharedmem/issues/28">SAB spec Issue #28, about forward progress</a>
+  <li> <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf">C++ paper on forward progress, not sure yet if this is the latest</a>
+  <li> <a href="https://mail.mozilla.org/pipermail/es-discuss/2014-October/039985.html">Allen's explanation of how things hang together, and useful followups</a>
+  <li> <a href="https://esdiscuss.org/topic/holy-mixed-metaphors-batman-was-event-loops-in-navigated-away-from-windows#content-2">More discussion of the name, notably the origin of "continent"</a>
+</ul>
+
+<p> TODO items: </p>
+<ul>
+  <li> Do we need to expose semantic operations on agents, or is what we
+    have good enough?  Operations could be: adding a job to an agent's
+    queue; message send and receive (abstractly); introspection on the
+    agent's state.  It's possible that the SAB spec will need some of these
+    to implement its happens-before relation, not sure yet.
+</ul>
+
+</emu-intro>
+
+<!--
+<emu-clause id="Overview">
+  <h1>Overview (ES6 4)</h1>
+  <emu-clause id="Overview.Overview">
+    <h1>ECMAScript Overview (ES6 4.2)</h1>
+    <p>In the third paragraph, include <b>SharedArrayBuffer</b> after <b>ArrayBuffer</b>.</p>
+  </emu-clause>
+  <emu-clause id="Overview.Terms">
+    <h1>Terms and Definitions (ES6 4.3)</h1>
+    <emu-clause id="Overview.Terms.Agent">
+      <h1>Agent</h1>
+      <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
+      <emu-note>
+        <p> (Issue 27) This should be worded in terms of running 'jobs', and it needs to be broken out of Terms and Definitions and given a proper section, probably within ES6 section 8. </p>
+      </emu-note>
+    </emu-clause>
+    <emu-clause id="Overview.Terms.AgentComm">
+      <h1>Agent communication</h1>
+      <p> Two agents are said to be able to communicate through shared
+      memory if there can exist a Shared Data Block that can come to
+      be referenced from both agents, not necessarily at the same
+      time.  (Note this does not require the agents to have
+      overlapping lifetimes.) </p>
+    </emu-clause>
+    <emu-clause id="Overview.Terms.Cluster">
+      <h1>Agent cluster</h1>
+      <p> A maximal set of agents that are able to communicate through shared memory. </p>
+    </emu-clause>
+    <emu-clause id="Overview.Terms.AgentEvent">
+      <h1>Agent event</h1>
+      <p> (TBD, but we're looking for something that captures an agent's observation of an external effect, or the causing of such observation in another agent.  In the Sharedmem spec these events are things like sending and receiving messages.) </p>
+    </emu-clause>
+    <emu-clause id="Overview.Terms.ProgramOrder">
+      <h1>Program order</h1>
+      <p> The order of steps within a single agent as determined by the language semantics </p>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+-->
+
+<emu-clause id="ExecutableCodeAndContexts">
+  <h1>Executable Code and Execution Contexts (ES6 8)</h1>
+
+  <emu-clause id="ExecutableCodeAndContexts.ExecutionContexts">
+    <h1>Execution contexts (ES6 8.3)</h1>
+    <p> Paragraph one: Change the last two sentences to the following (changes bolded): </p>
+    <blockquote>
+      At any point in time, there is at most one execution context <b>per
+      agent</b> that is actually executing code. This is known as
+      the <b>agent's</b> <em>running execution context</em>.  <b>All references
+      to the <em>running execution context</em> in this specification 
+      reference the running execution context in the agent within which the
+	referencing code is executing.</b>
+    </blockquote>
+  </emu-clause>
+
+  <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues">
+    <h1>Jobs and Job Queues (ES6 8.4)</h1>
+
+    <p> In the paragraph between tables 25 and table 26, append the following
+      sentence: </p>
+
+    <blockquote>
+      <b> Each agent has its own set of named job queues.  All references to a
+	named job queue, such as within the EnqueueJob and NextJob semantic
+	functions, reference the named queue in the agent within which the referencing code
+	is executing.</b>
+    </blockquote>
+
+    <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
+      <h1>Forward Progress Guarantees</h1>
+
+      <p>Implementations must ensure that all unblocked jobs eventually make
+	progress. </p>
+
+      <emu-note>
+        <p>(Issue 28) This section may be formalized at least partly in the
+          terms of the C++ working paper on forward progress, see the referenced
+          issue, or it may be left as-is.  An ES6 execution thread is most plausibly a
+          'Concurrent agent' in the terms of that paper. </p>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+
+  <emu-clause id="ExecutableCodeAndContexts.Agent">
+    <h1>Agents (NEW)</h1>
+
+    <p> An <em>agent</em> comprises a set of ECMAScript execution environments,
+      an execution context stack, a running execution context for that
+      agent, a set of named job queues, per-agent attributes, and an executing
+      thread.  Except for the executing thread, the constituents of an agent
+      belong exclusively to that agent. </p>
+
+    <emu-note>
+      <p> (See ES6 8.3) When the ECMAScript specification references the <em>running
+	  execution context</em> it always does so in the dynamic context of
+	a particular agent, and it will use the running execution context of that agent. </p>
+    </emu-note>
+
+    <emu-note>
+      <p> (See ES6 8.4) When the ECMAScript specification looks up a job queue such as
+	in EnqueueJob and NextJob, those operations are always performed
+	in the dynamic context of a particular agent, and will find that
+	agent's job queues exclusively. </p>
+    </emu-note>
+
+    <p> An agent's executing thread executes the jobs in the agent's job queues
+      on the agent's execution contexts independently of other agents.  An
+      execution thread may be used as the execution thread by multiple agents
+      only if none of the agents sharing the thread have <b>canBlock</b>
+      attributes that are ~true~. </p>
+
+    <emu-note>
+      <p> This is a case of bowing to reality, since browsers do share the main
+	thread across tabs in the same process and will prohibit main-thread
+	code to block.  The damage to the forward progress guarantee from
+	allowing sharing is only slight so long as blocking is precluded. </p>
+    </emu-note>
+
+    <p> The set of per-agent attributes is at least this:</p>
+    <ul>
+      <li> <b> littleEndian </b>: the default value computed for
+	the <em>littleEndian</em> parameter when it is needed by E262 algorithms. 
+	Set at agent creation time; constant.
+      <li> <b> canBlock </b>: determines whether the agent can block to wait for an
+	external unblock event or not.  Set at agent creation time; constant.
+      <li> <b> state </b>: the state of the agent.  A string, it can take on the 
+	following values:
+	<ul>
+	  <li> <b> Starting </b>: agent is in the process of being created
+	  <li> <b> Waiting </b>: agent is waiting for work to appear in a queue
+	  <li> <b> Running </b>: agent is processing a job
+	  <li> <b> Blocked </b>: agent has put itself to sleep
+	  <li> <b> Closing </b>: agent is in the process of being destroyed
+	  <li> <b> Closed </b>: agent has been destroyed
+	</ul>
+    </ul>
+
+    <p> If an agent has a representation within an ECMAScript program it is as a
+      host object value. </p>
+
+    <p> Programs within different agents may communicate by unspecified means.
+      With the exception of the backing memory for ~SharedArrayBuffer~ objects
+      this communication cannot cause any memory that is mutable in any agent to
+      become shared between agents, and the ECMAScript implementation is not
+      required to preserve object identity if an object value is sent from one
+      agent to another and back. </p>
+
+    <p> An program within an agent may communicate an ArrayBuffer to a program
+      within another agent and in doing so cause the ArrayBuffer to become
+      detached in the sending agent. </p>
+
+    <!--
+    <emu-note>
+      <p> (Spec draft note) It's arguable that there should be restrictions on
+	the value of <b>littleEndian</b> in agents that can communicate, but
+	since it would be absurd to require the attribute to be the same on two
+	agents that can communicate over the network, where do we draw the line?
+	The SAB spec requires agents that can communicate through shared memory
+	to have the same value for <b>littleEndian</b>, which seems reasonable,
+	since in all other cases there will be marshaling/unmarshaling.  Yet,
+	some chips support per-process endianness.  Is it reasonable to have any
+	restriction at all? </p>
+    </emu-note>
+    -->
+
+  </emu-clause>
+
+  <emu-clause id="ExecutableCodeAndContexts.AgentCluster">
+    <h1>Agent Clusters (NEW)</h1>
+
+    <p> An <em>agent cluster</em> is a maximal set of agents that can in
+      principle communicate by operating on the memory of a ~SharedArrayBuffer~.
+      The agent cluster has a set of attributes. </p>
+
+    <emu-note>
+      <p> Observe that the agents need not all be alive at some point in
+	time, <b>A</b> can share a buffer with <b>B</b>, after which <b>A</b>
+	terminates and <b>B</b> creates <b>C</b> and shares the buffer
+	with <b>C</b>. </p>
+    </emu-note>
+
+    <p> The agent cluster's set of attributes includes: </p>
+    <ul>
+      <li> (Nothing here yet, though the SAB spec will add some)
+    </ul>
+
+    <p> The value of the agent's <b>littleEndian</b> attribute must be the same
+      for all agents within a cluster. </p>
+
+    <emu-note>
+      <p> (Spec draft note) Is this overreach?  It seemed reasonable at the
+	time, but on some architectures it's possible for different processes to
+	have different endianness.  The rule precludes sharing memory among such
+	processes, in any ECMAScript implementation. </p>
+    </emu-note>
+
+  </emu-clause>
+
+</emu-clause>
+
+
+<emu-clause id="WebBrowserEmbedding">
+  <h1>Web browser embedding (informative)</h1>
+
+  <emu-clause id="WebBrowserEmbedding.Agents">
+    <h1>Agent mapping</h1>
+    <p> In a web browser setting, the <em>agents</em> comprise a document's main
+    thread environment and worker thread environments.  Normal Web Workers must
+    be supported.</p>
+
+    <p> There are reasons not to support ServiceWorkers and Shared Workers
+    ("non-page workers").  In some browsers, non-page workers may be technically
+    incapable of receiving shared memory segments due to process separation.
+    Also, if a non-page is communicating through shared memory with a web
+    worker, a deadlock can ensue if the non-page worker is waiting to be woken
+    up by the web worker and the web worker is suspended or killed because its
+    owning document is placed into the history or closed. </p>
+
+    <p> Browsers will typically outlaw blocking on the main thread.  Browsers
+      that support several tabs within the same process may share a single
+      execution thread across all the tabs in that case (Firefox does). </p>
+
+  </emu-clause>
+  
+  <emu-clause id="WebBrowserEmbedding.WorkerSemantics">
+    <h1>Clarifications and changes to Web Worker semantics</h1>
+
+    <emu-note>
+      <p> Several of these issues have been reported as bugs against the WHATWG
+      spec, <a href='https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039'>see
+      this bug report</a>. </p>
+    </emu-note>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Start">
+      <h1>Actions to start a worker</h1>
+      <p> (Clarification) The only action required to start a worker is to call
+	"new Worker()". </p>
+
+      <p> (Compatible change) If a worker cannot be started for reasons of
+	resource exhaustion (notably, no threads available, including arbitrary
+	implementation limits on the number of threads) then an exception must be
+	thrown or the error must be reported in some other way, eg as an error
+	event. </p>
+
+      <emu-note>
+        <p> Some browsers currently violate those requirements. </p>
+
+        <ul>
+          <li> In current Firefox, a worker is not actually created until the
+            parent has returned to its event loop and allowed the event loop to
+            process runnables related to the worker creation.  (This is unlikely to
+	    be fixed.)  Not blocking on the main thread mitigates most problems
+	    around this problem.
+
+          <li> In current Firefox, there is a per-domain limit on the number of
+            workers.  An attempt to create a worker will silently not start the
+            worker if the limit has been reached; the worker will be queued and
+            started when another worker has terminated.  (A fix is being discussed.)
+        </ul>
+
+        <p> If an agent creates a worker and then -- if the worker is not
+          started because the agent does not return to its event loop or because
+          the worker is not assigned a thread -- the agent goes to sleep on a
+          location waiting for the worker to wake it, there will be a
+          deadlock. </p>
+
+        <p> There are other error situations during worker startup that can't
+          necessarily be signaled synchronously, notably, a load error on the URL.
+          Those have to be signaled via an event callback, or the creating agent
+          must poll the state of the worker to see if it enters an error state
+          (see more below on the state). </p>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Jobs">
+      <h1>Events and scripts run in a worker as ES6 jobs</h1>
+      <p> (Clarification) ECMAscript code running in a worker runs as an ES6
+	job, and scheduling of work in a Worker happens by the rules of ES6
+	jobs.</p>
+      <emu-note>
+        <p> Thus the forward-progress guarantee of jobs also applies to workers. </p>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.LicenseToKill">
+      <h1>Curtail the license to kill</h1>
+
+      <p> (Compatible change) Workers may be killed by the browser only for
+	specific reasons.  These reasons are TBD but include evicting the owning
+	page from the history and closing the owning page.  These reasons do not
+	include workers that 'run too long'. </p>
+
+      <emu-note>
+        <p> Currently the WHATWG spec allows the browser to kill any worker at
+          any time.  The purpose of the rule is probably a combination of the
+          need to stop runaway scripts (without the normal slow-script dialog)
+          and the need to remove workers once a page is evicted from the browser
+          cache or a tab is closed.  However, the wording is overly broad.
+          Also, common uses of workers for computation conflict with the ability
+          to detect 'runaway' agents:</p>
+
+        <ul>
+          <li> The worker may perform a genuinely long-running computation
+          <li> The worker will have its own user-implemented 'event' loop,
+            communicating synchronously through shared memory; it will not use the
+            browser's event loop
+        </ul>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Introspection">
+      <h1>Termination detection</h1>
+      <p> (Compatible(?) change) The worker object should have a read-only
+	property called "state" whose value represents the state of the worker (eg
+	a string naming the state).  One state might be "terminated", indicating
+	the worker is dead. </p>
+
+      <emu-note>
+        <p> There appears to be no way at present to directly determine whether
+        a Worker has terminated. </p>
+      </emu-note>
+
+      <emu-note>
+        <p> Possible complementary mechanisms include throwing an exception when
+          a message is sent to a terminated worker, and to send an error event to
+          the creating agent when a worker is killed. </p>
+      </emu-note>
+
+      <emu-note>
+	<p> The spec here can be related back to the agent attributes, specified
+	earlier. </p>
+      </emu-note>
+    </emu-clause>
+
+  </emu-clause>
+  
+  <emu-clause id="WebBrowserEmbedding.MemoryModel">
+    <h1>Agent communication semantics</h1>
+
+    <p>Agent-to-agent communication extends the happens-before relation of the
+      program, as follows:</p>
+
+    <ul>
+      <li>The call to the Worker constructor in the parent happens-before the
+	execution of the main script in the worker.
+      <li>The termination of a worker happens-before the parent of the worker
+	(or any other agent) can determine that the worker has terminated.
+      <li>A postMessage to a worker happens-before the event fires in the worker.
+    </ul>
+
+  </emu-clause>
+
+  <emu-clause id="WebBrowserEmbedding.Termination">
+    <h1>Agent termination</h1>
+    <p>If a worker is terminated by a call to its terminate method while it is
+      blocked in a call to futexWait then the worker is first woken (removed from
+      any wait queue) and then immediately terminated (the wakeup is not observed
+      by the caller of futexWait).  There are no provisions for cleaning up locked
+      state unless the browser supports a close handler.</p>
+
+    <p>If a worker is terminated for any other reason, such as the user agent
+      reloading or closing the window or frame, and the worker is blocked in a
+      call to futexWait when it is terminated, then the worker is first woken
+      (removed from any wait queue) and then immediately terminated (the wakeup is
+      not observed by the caller of futexWait).  However, after the running script
+      has been terminated the worker's close handler(s) will be run as if the wait
+      had not been aborted.</p>
+
+    <p> Some corner cases are unresolved:</p>
+    <ul>
+      <li> If Service Workers have access to shared memory then it is possible
+	for a service worker to wait on an action from another agent, say, a
+	document's main thread.  But if the document in question is suspended
+	(because the user is navigating away from the document) then the service
+	worker may never be woken: the document may remain suspended and may
+	eventually be evicted from the history.
+    </ul>
+        
+  </emu-clause>
+  
+  <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
+    <h1>Transmitting and Cloning SharedArrayBuffers and Views</h1>
+
+    <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffers can be
+      transmitted from one worker to another using postMessage() and are handled
+      by the HTML5 structured clone algorithm as follows.</p>
+
+    <p>When a SharedArrayBuffer input object is cloned in the originating agent
+      the result is a new SharedArrayBuffer object in the receiving agent that
+      references the same Shared Data Block as the input object.  The input object
+      must be present in the transfer map for the clone operation; if not, a
+      standard clone exception will be thrown.</p>
+
+    <p>When a SharedArrayBuffer object is cloned its Shared Data Block is not
+      detached (SharedArrayBuffers are never detached).</p>
+
+    <p>A Shared Data Block remains accessible so long as at least one
+      SharedArrayBuffer object references it in some agent.</p>
+
+    <p>When a TypedArray object that is a view on a SharedArrayBuffer is cloned
+      the result is a new TypedArray object of the same element type.  The
+      "buffer" property of the new TypedArray will reference a clone of the input
+      object's "buffer" property.  The input object's "buffer" property must be
+      present in the transfer map for the clone, or a standard clone exception
+      will be thrown.</p>
+
+  </emu-clause>
+
+</emu-clause>
