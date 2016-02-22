@@ -885,9 +885,9 @@ These call AllocateTypedArray with a specified length:
             1. Return the original value of ~Atomics.NOTEQUAL~.
           1. Let _W_ be AgentSignifier().
           1. Call AddWaiter(_W_, _G_, _i_)
-          1. Let awoken = Suspend(_W_, _t_)
+          1. Let _awoken_ = Suspend(_W_, _t_)
           1. Call RemoveWaiter(_W_, _G_, _i_)
-        1. If awoken is ~true~ then return the original value of ~Atomics.OK~.
+        1. If _awoken_ is ~true~ then return the original value of ~Atomics.OK~.
         1. Return the original value of ~Atomics.TIMEDOUT~.
       </emu-alg>
 

@@ -1,0 +1,351 @@
+<!-- -*- indent-tabs-mode: nil; fill-column: 80 -*-
+
+     Process this file with ../format.sh to produce shmem.html.  See comments in that file.
+-->
+<!doctype html>
+<meta charset="utf8">
+<title>ECMAScript Shared Memory and Atomics - "synchronic" addendum</title>
+<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<h1>ECMAScript Shared Memory and Atomics - "synchronic" addendum</h1>
+<p> Revised: 2016-02-22 / lhansen@mozilla.com </p>
+
+<emu-intro id="intro">
+<h1>Motivation</h1>
+
+<p> The current proposal for Shared Memory and Atomics uses a mechanism based on
+  Linux "futexes" to block threads.  As specified, the mechanism has performance
+  problems: Atomics.futexWait blocks the thread unconditionally in the operating
+  system, Atomics.futexWake must wake the thread, and both operations require a
+  mutex to be acquired and data structures to be traversed.  In the simple case
+  of two threads trying to coordinate at high speed, futexes used naively will
+  perform poorly.  The following two programs manage about 250,000 messages per
+  second on the author's MacBook Pro: </p>
+
+<pre>
+// Program A                                          // Program B
+
+var x = 0;                                            var x = 0;
+for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterations ; i++ ) {
+  Atomics.futexWait(s, 0, x++);                         mem[n]++;  // work
+  mem[n]++;  // work                                    Atomics.store(s, 0, ++x);
+  Atomics.store(s, 0, ++x);                             Atomics.futexWake(s, 0, 1);
+  Atomics.futexWake(s, 0, 1);                           Atomics.futexWait(s, 0, x++);
+}                                                     }
+</pre>
+
+<p> In contrast, it is possible to speed the program up by a factor of about 40
+  with a combination of additional bookkeeping, spinning, and other techniques
+  such as micro-waiting and yielding.  Unfortunately, not only do those
+  techniques require fairly sophisticated programming skills, but they are
+  platform-dependent, and ECMAScript is unlikely ever to expose all the
+  necessary primitives.  It is therefore desirable to package the functionality
+  so as to make the higher performance available to more programs. </p>
+
+<p> To remedy the situation we propose that futexes be removed from the Shared
+  Memory and Atomics proposal and replaced by semantically similar, but more
+  performant, signaling primitives based on the C++17 proposal for "synchronic"
+  objects
+  (<a href="http://open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0126r1.pdf">latest revision</a>).
+  These primitives use a change in a shared-memory value as the signal; the
+  "waiting" primitives look for an update and the "signaling" primitives provide
+  the value; a handshake allows the waiting primitives to suspend operation and
+  be woken by the signaling primitives. </p>
+
+<p> For example, the following programs using synchronics instead of futexes
+  manage about 11,000,000 messages per second with the prototype synchronics in
+  Firefox.  JIT support would likely improve the performance further.  </p>
+
+<pre>
+// Program A                                          // Program B
+
+var x = 0;                                            var x = 0;
+for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterations ; i++ ) {
+  Atomics.expectUpdate(s, 0, x++);                      mem[n]++;  // work
+  mem[n]++;  // work                                    Atomics.storeNotify(s, 0, ++x);
+  Atomics.storeNotify(s, 0, ++x);                       Atomics.expectUpdate(s, 0, x++);
+}                                                     }
+</pre>
+</emu-intro>
+
+<emu-intro id="api">
+<h1>API overview</h1>
+
+<p> Four primitives are proposed: </p>
+<ul>
+  <li> <b>expect</b> waits for a cell to take on a value
+  <li> <b>expectUpdate</b> waits for a cell to change away from a value or for a time to pass
+  <li> <b>storeNotify</b> updates a cell and notifies any waiters of the update
+  <li> <b>notify</b> just notifies waiters of an independent update
+</ul>
+
+<p> Notification is required to handshake with waiters that have been suspended.
+  The expectation is that waiters will actively look for a change in the cell
+  value for a short time, and then gradually reduce the rate of examination,
+  before finally going to sleep.  Thus a regular atomic store (indeed also a
+  racy store) may in fact wake a waiter that is not yet sleeping, and the
+  "notification" is a no-op.  </p>
+
+<p> All primitives take an ~Int32Array~ and an index within it, and it is the
+  value in that cell that will be used as the signal.  No additional storage
+  need be supplied by the user program.  In a typical high-performance system
+  additional storage will be required within the implementation for bookkeeping
+  but it seems wrong to require the user program to deal with that.  That
+  contrasts with the C++ proposal, where special "Synchronic" objects can
+  contain implementation-dependent space for bookkeeping. </p>
+
+</emu-intro>
+
+<emu-intro id="discussion">
+<h1>Discussion</h1>
+
+<p> Unlike the C++ proposal there are no variants of <b>expect</b>
+  and <b>expectUpdate</b> that take a user-supplied predicate to determine if
+  the wait should end.  There are also no performance hints about the urgency of
+  the signal. However, I have adopted the other performance hint, about how many
+  waiters to wake, since it seems sensible in situations where we build a mutex,
+  for example. </p>
+
+</emu-intro>
+
+<emu-clause id="AtomicsObject">
+  <h1>The Atomics Object</h1>
+  
+  <emu-clause id="AtomicsObjectFunctionProps.semantics">
+    <h1>Runtime semantics</h1>
+    
+    <emu-note>
+      <p> Most semantic primitives are as in the draft Shared Memory and Atomics spec. </p>
+    </emu-note>
+
+    <emu-clause id="Atomics.Suspend" aoid="Suspend">
+      <h1>Runtime semantics: Suspend( W, timeout )</h1>
+      <p> Remove this clause </p>
+    </emu-clause>
+
+    <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
+      <h1>Runtime semantics: AddWaiter( W, G, i )</h1>
+      <p> When AddWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: _W_ is not in any global list of waiters
+        1. Add _W_ at an arbitrary location in the global list of all waiters that wait on (_G_, _i_)
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
+      <h1>Runtime semantics: RemoveWaiters( G, i, c )</h1>
+      <p> Remove this clause </p>
+    </emu-clause>
+
+    <emu-clause id="Atomics.SuspendRandom" aoid="SuspendRandom">
+      <h1>Runtime semantics: SuspendRandom( W, timeout )</h1>
+      <p> When SuspendRandom is called with a an agent signifier _W_ and nonnegative number _timeout_, then the following steps are taken. </p>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is on some global list of waiters
+        1. Assert: _W_ is equal to AgentSignifier()
+        1. Assert: AgentCanSuspend() is equal to true
+        1. Unpredictably return ~false~.
+        1. Atomically relinquish the futex critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired, because it was woken explicitly by another agent calling WakeWaiter(_W_), or unpredictably.
+        1. Re-acquire the futex critical section.
+        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
+        1. Return ~false~
+      </emu-alg>
+
+      <emu-note>
+        <p> SuspendRandom may unpredictably suspend the caller or not, and if it
+          does suspend it the suspension may end unpredictably.  This is meant
+          to model the situation where a waiter can actively monitor the cell
+          location and may wake without being notified by WakeWaiter or a
+          timeout. </p>
+      </emu-note>
+    </emu-clause>
+
+    <emu-clause id="Atomics.WakeWaiter_OLD">
+      <h1>Runtime semantics: WakeWaiter( W )</h1>
+      <p> Remove this clause </p>
+    </emu-clause>
+
+    <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
+      <h1>Runtime semantics: WakeWaiter( G, i )</h1>
+      <p> When WakeWaiter is called with Shared Data Block ID _G_ and nonnegative integers _i_, then the following steps are taken. </p>
+      <emu-alg>
+        1. Assert: The calling agent is in the futex critical section.
+        1. Let _S_ be a reference to the global list of all waiters that wait on (_G_, _i_)
+        1. If _S_ is empty return ~false~
+        1. Let _W_ be any worker in _S_ that has not been woken
+        1. Wake _W_
+        1. Return ~W~
+      </emu-alg>
+      
+      <emu-note>
+        <p> (Spec draft note) This needs a little formalization, since _W_ is
+          not removed from the list here but by whoever added it after it wakes
+          up.  We need an independent bit of information indicating whether a
+          worker is awake or not. </p>
+      </emu-note>
+    </emu-clause>
+
+  </emu-clause>
+
+  <emu-clause id="AtomicsObjectFunctionProps">
+    <h1>Function Properties of the Atomics Object</h1>
+
+    <emu-clause id="Atomics.expect">
+      <h1>Atomics.expect( typedArray, index, desired )</h1>
+      <p> Atomics.expect waits until the memory cell takes on the value _desired_. The following steps are taken:</p>
+      <emu-alg>
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
+        1. ReturnIfAbrupt(_buffer_)
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
+        1. ReturnIfAbrupt(_i_)
+        1. Let _v_ be the result of ToInt32(_desired_).
+        1. ReturnIfAbrupt(_v_)
+        1. Let _B_ be AgentCanSuspend()
+        1. If _B_ is ~false~ then throw a ~TypeError~ exception.
+        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
+        1. Let _G_ be SharedDataBlockID(_bufferVal_)
+        1. Within the futex critical section do:
+          1. Loop:
+            1. Let _w_ be Atomics.load(_typedArray_, _i_)
+            1. If _v_ equals _w_ then return ~undefined~
+            1. Let _W_ be AgentSignifier().
+            1. Call AddWaiter(_W_, _G_, _i_)
+            1. Let _awoken_ = SuspendRandom(_W_, _t_)
+            1. Call RemoveWaiter(_W_, _G_, _i_)
+            1. Assert: _awoken_ equals ~false~
+      </emu-alg>
+
+    </emu-clause>
+
+    <emu-clause id="Atomics.expectUpdate">
+      <h1>Atomics.expectUpdate( typedArray, index, current [, timeout ] )</h1>
+      <p> Atomics.expectUpdate waits until the memory cell takes on a value different from _current_ or the timeout is reached. The following steps are taken:</p>
+      <emu-alg>
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
+        1. ReturnIfAbrupt(_buffer_)
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
+        1. ReturnIfAbrupt(_i_)
+        1. Let _v_ be the result of ToInt32( _current_ ).
+        1. ReturnIfAbrupt(_v_)
+        1. If _timeout_ is not provided or is ~undefined~ then let _t_ be +Infinity.  Otherwise:
+          1. Let _q_ be the result of ToNumber(_timeout_)
+          1. ReturnIfAbrupt(_q_)
+          1. If _q_ is NaN then let _t_ be +Infinity, otherwise let _t_ be max(0, _q_).
+        1. Let _B_ be AgentCanSuspend()
+        1. If _B_ is ~false~ then throw a ~TypeError~ exception.
+        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
+        1. Let _G_ be SharedDataBlockID(_bufferVal_)
+        1. Within the futex critical section do:
+          1. Loop:
+            1. Let _w_ be Atomics.load(_typedArray_, _i_)
+            1. If _v_ does not equal _w_ then return ~undefined~
+            1. Let _W_ be AgentSignifier().
+            1. Call AddWaiter(_W_, _G_, _i_)
+            1. Let _awoken_ = SuspendRandom(_W_, _t_)
+            1. Call RemoveWaiter(_W_, _G_, _i_)
+            1. If _awoken_ is ~false~ then return ~undefined~
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.storeNotify">
+      <h1>Atomics.storeNotify( typedArray, index, value [, justOne ] )</h1>
+
+      <p> Atomics.storeNotify stores _value_ in the memory cell and notifies those agents waiting in Atomics.expect and Atomics.expectUpdate whose waits might be ended by the updated cell value.  The following steps are taken: </p>
+
+      <emu-alg>
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray( _typedArray_, ~true~ )
+        1. ReturnIfAbrupt( _buffer_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
+        1. ReturnIfAbrupt( _i_ )
+        1. Let _v_ be ToNumber( _value_ )
+        1. ReturnIfAbrupt(_v_)
+        1. Let _j_ be ToBoolean( _justOne_ )
+        1. ReturnIfAbrupt( _j_ )
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
+        1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
+        1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
+        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
+          1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _v_ )
+        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
+        1. Let _G_ be SharedDataBlockID( _bufferVal_ )
+        1. Within the futex critical section do:
+          1. Loop:
+            1. Let _W_ be WakeWaiter( _G_, _i_ )
+            1. If _W_ is ~false~ return ~undefined~
+            1. If _j_ is ~true~ then unpredictably return ~undefined~
+      </emu-alg>
+
+      <emu-note>
+        <p> The effect of Atomics.storeNotify is obtainable through the
+          combination of Atomics.store and Atomics.notify, but the combined
+          operation can easily be faster: it may have fewer memory barriers, and
+          it can wake agents that are waiting for _value_, while Atomics.notify
+          must in principle wake all agents. </p>
+      </emu-note>
+
+      <emu-note>
+        <p> (Spec draft note) TC39 does not like "optionally" steps.  I'm not
+          sure I do either.  The meaning of _justOne_ is particularly slippery
+          here because it may be "known" to the system that the agent that is
+          woken doesn't care a whit about updates with _value_, eg, the agent
+          could be waiting for a different value to appear while another agent
+          further back in the wait list might actually be waiting for
+          _value_. </p>
+
+        <p> Note that <em>requiring</em> only one waiter to be woken is
+          impractical, since multiple waiters may be monitoring the cell
+          actively for a change in its value. </p>
+
+      </emu-note>
+
+    </emu-clause>
+
+    <emu-clause id="Atomics.notify">
+      <h1>Atomics.notify( typedArray, index [, justOne ] )</h1>
+      <p> Atomics.notify notifies agents waiting in Atomics.expect and Atomics.expectUpdate whose waits monitor the memory cell.  The following steps are taken: </p>
+      <emu-alg>
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray( _typedArray_, ~true~ )
+        1. ReturnIfAbrupt( _buffer_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
+        1. ReturnIfAbrupt( _i_ )
+        1. Let _j_ be ToBoolean( _justOne_ )
+        1. ReturnIfAbrupt( _j_ )
+        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
+        1. Let _G_ be SharedDataBlockID( _bufferVal_ )
+        1. Within the futex critical section do:
+          1. Loop:
+            1. Let _W_ be WakeWaiter( _G_, _i_ )
+            1. If _W_ is ~false~ return ~undefined~
+            1. If _j_ is ~true~ then unpredictably return ~undefined~
+        1. Return ~undefined~
+      </emu-alg>
+
+      <emu-note>
+        <p> See Atomics.storeNotify for a discussion on performance hints such as _justOne_. </p>
+      </emu-note>
+
+    </emu-clause>
+
+    <emu-clause id="Atomics.futexWait">
+      <h1>Atomics.futexWait( typedArray, index, value, timeout )</h1>
+      <p> Remove this clause </p>
+    </emu-clause>
+
+    <emu-clause id="Atomics.futexWake">
+      <h1>Atomics.futexWake( typedArray, index, count )</h1>
+      <p> Remove this clause </p>
+    </emu-clause>
+
+    <emu-clause id="Atomics.futexWakeOrRequeue">
+      <h1>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</h1>
+      <p> Remove this clause </p>
+    </emu-clause>
+
+  </emu-clause>
+</emu-clause>
