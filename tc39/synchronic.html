@@ -10,36 +10,39 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics - "synchronic" addendum</h1>
-<p> Revised: 2016-02-22 / lhansen@mozilla.com </p>
+<p> Revised: 2016-02-24 / lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Motivation</h1>
 
 <p> The current proposal for Shared Memory and Atomics uses a mechanism based on
-  Linux "futexes" to block threads.  As specified, the mechanism has performance
-  problems: Atomics.futexWait blocks the thread unconditionally in the operating
-  system, Atomics.futexWake must wake the thread, and both operations require a
-  mutex to be acquired and data structures to be traversed.  In the simple case
-  of two threads trying to coordinate at high speed, futexes used naively will
-  perform poorly.  The following two programs manage about 250,000 messages per
-  second on the author's MacBook Pro: </p>
+  Linux "futexes" to block threads.  As specified, the mechanism is not only
+  tricky to use properly, but it has performance problems as well:
+  Atomics.futexWait blocks the thread unconditionally in the operating system,
+  Atomics.futexWake must wake the thread, and both operations require a mutex to
+  be acquired and data structures to be traversed.  In the simple case of two
+  threads trying to coordinate at high speed, futexes used naively will perform
+  poorly.  The following two programs exchange about 280,000 messages per second
+  on the author's MacBook Pro using current futexes in Firefox or Chrome: </p>
 
 <pre>
 // Program A                                          // Program B
 
 var x = 0;                                            var x = 0;
 for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterations ; i++ ) {
-  Atomics.futexWait(s, 0, x++);                         mem[n]++;  // work
-  mem[n]++;  // work                                    Atomics.store(s, 0, ++x);
-  Atomics.store(s, 0, ++x);                             Atomics.futexWake(s, 0, 1);
-  Atomics.futexWake(s, 0, 1);                           Atomics.futexWait(s, 0, x++);
+  while (Atomics.load(s, 0) == x)                       mem[n]++;  // work
+    Atomics.futexWait(s, 0, x);                         Atomics.store(s, 0, ++x);
+  x++;                                                  Atomics.futexWake(s, 0, 1);
+  mem[n]++;  // work                                    while (Atomics.load(s, 0) == x)
+  Atomics.store(s, 0, ++x);                               Atomics.futexWait(s, 0, x);
+  Atomics.futexWake(s, 0, 1);                           x++;
 }                                                     }
 </pre>
 
-<p> In contrast, it is possible to speed the program up by a factor of about 40
-  with a combination of additional bookkeeping, spinning, and other techniques
-  such as micro-waiting and yielding.  Unfortunately, not only do those
-  techniques require fairly sophisticated programming skills, but they are
+<p> In contrast, it is possible to speed the program up significantly with a
+  combination of additional bookkeeping, spinning, and other techniques such as
+  micro-waiting and yielding.  Unfortunately, not only do those techniques
+  require fairly sophisticated programming skills, but they are
   platform-dependent, and ECMAScript is unlikely ever to expose all the
   necessary primitives.  It is therefore desirable to package the functionality
   so as to make the higher performance available to more programs. </p>
@@ -54,9 +57,14 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
   the value; a handshake allows the waiting primitives to suspend operation and
   be woken by the signaling primitives. </p>
 
+<p> The synchronic primitives are also slightly easier to use correctly than the
+  futex primitives. </p>
+
 <p> For example, the following programs using synchronics instead of futexes
-  manage about 11,000,000 messages per second with the prototype synchronics in
-  Firefox.  JIT support would likely improve the performance further.  </p>
+  exchange about 11,000,000 messages per second with the prototype synchronics
+  in Firefox, a 40x speedup.  JIT support might improve the performance further
+  by in-lining the fast paths for <b>expectUpdate</b>
+  and <b>storeNotify</b>.  </p>
 
 <pre>
 // Program A                                          // Program B
@@ -73,12 +81,15 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
 <emu-intro id="api">
 <h1>API overview</h1>
 
-<p> Four primitives are proposed: </p>
+<p> Four new primitives are proposed: </p>
 <ul>
-  <li> <b>expect</b> waits for a cell to take on a value
-  <li> <b>expectUpdate</b> waits for a cell to change away from a value or for a time to pass
-  <li> <b>storeNotify</b> updates a cell and notifies any waiters of the update
-  <li> <b>notify</b> just notifies waiters of an independent update
+  <li> <b>expect(ia, index, value)</b> waits for a cell to take on a value
+  <li> <b>expectUpdate(ia, index, current [, timeout])</b> waits for a cell to change
+    away from a current value or for a time to pass
+  <li> <b>storeNotify(ia, index, value [, justOne])</b> updates a cell and notifies
+    waiters of the update
+  <li> <b>notify(ia, index [, justOne])</b> just notifies waiters of a preceding
+    atomic update
 </ul>
 
 <p> Notification is required to handshake with waiters that have been suspended.
@@ -90,23 +101,102 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
 
 <p> All primitives take an ~Int32Array~ and an index within it, and it is the
   value in that cell that will be used as the signal.  No additional storage
-  need be supplied by the user program.  In a typical high-performance system
-  additional storage will be required within the implementation for bookkeeping
-  but it seems wrong to require the user program to deal with that.  That
-  contrasts with the C++ proposal, where special "Synchronic" objects can
-  contain implementation-dependent space for bookkeeping. </p>
+  need be supplied by the user program. </p>
 
 </emu-intro>
 
 <emu-intro id="discussion">
 <h1>Discussion</h1>
 
+<p> <b> Bookkeeping storage </b> </p>
+
+<p> In the C++ proposal a synchronic value is an object that references an
+  atomic location; the synchronic object can have storage of its own, which it
+  uses for bookkeeping.  In the JS proposal the synchronic object is identical
+  with the atomic location, and any bookkeeping storage must be managed by the
+  runtime.  There is some overhead to that, especially for sophisticated
+  implementations, but it did not seem reasonable for the JS program to have to
+  manage that shared storage itself.  First, the storage would contain state
+  internal to the synchronic implementation, which we do not want exposed, and
+  second, we'd like the amount of storage needed for a synchronic to be constant
+  across JS implementations and across time, to simplify shared memory layout
+  for the application. </p>
+
+<p> <b> Predicates vs value equality </b> </p>
+
 <p> Unlike the C++ proposal there are no variants of <b>expect</b>
-  and <b>expectUpdate</b> that take a user-supplied predicate to determine if
-  the wait should end.  There are also no performance hints about the urgency of
-  the signal. However, I have adopted the other performance hint, about how many
+  and <b>expectUpdate</b> that take a user-supplied predicate (rather than a
+  value) to determine if the wait should end.  I think experimentation is
+  called for before adding such a feature.  It can (likely) be simulated using
+  an additional shared location for coordination.  </p>
+
+
+<p> <b> Performance hints </b> </p>
+
+<p> Unlike the C++ proposal there are no performance hints about the urgency of
+  the signal.  The hint would be useful to avoid spinning if the signal is
+  expected to take some time to arrive.  I'd like to see some data from real
+  code (ideally JS code) before proposing something here. </p>
+
+<p> In contrast I have adopted the other performance hint, about how many
   waiters to wake, since it seems sensible in situations where we build a mutex,
-  for example. </p>
+  for example.  But perhaps that is premature, and that we should hold off until
+  there's data, and just always wake all waiters for now.  Additionally,
+  TC39 frowns on performance hints. </p>
+
+
+<p> <b> Timeouts </b> </p>
+
+<p> The <b>expect</b> method does not take a timeout argument because it does
+  not take one in the C++ design, but the motivation for the omission in the C++
+  design is unclear to me. </p>
+
+
+<p> <b> Int32 values only </b> </p>
+
+<p> The reason ~Int32Array~ is the only legal data type for the synchronic
+  operations is that it reduces implementation complexity somewhat, and the lack
+  of support for other integer types does not seem important.  Nobody has
+  complained about futexes allowing only ~Int32Array~.  Int32 is preferred to
+  Uint32 because the former type is easier to handle in fast JS
+  implementations. </p>
+
+
+<p> <b> Optimizing futexes instead of introducing synchronics </b> </p>
+
+<p> Existing futex implementations can likely be optimized in the runtime using
+  some hidden state, probably yielding significant speedup.  The complexity of
+  this is unknown, it's probably on the order of a lock-free or spinlocked hash
+  table. </p>
+
+<p> The synchronics in their basic form also require some runtime support, but a
+  simpler structure suffices than for optimized futexes, and a simple structure
+  is probably enough for the end-user systems that typically run JS.  Should
+  that not be the case, synchronics are probably easier to optimize for high
+  performance than futexes. </p>
+
+<p> Additionally, synchronics are easier to use correctly than futexes. </p>
+
+
+<p> <b> Are Synchronics enough? </b> </p>
+
+<p> What do we lose if we remove futexes?  Clearly, ported code that uses futexes
+  (library code for C/C++, exclusively) may have to be rewritten to use
+  synchronics, or we have to emulate futexes with synchronics.  Emulation is
+  straightforward if synchronics can be used to implement simple locks and
+  condition variables, which seems plausible to me.  There may be better
+  emulations.  Rewriting the code may be best.  </p>
+
+
+<p> <b> Polyfills </b> </p>
+
+<p> A polyfill built on top of futexes
+  is <a href="https://github.com/lars-t-hansen/parlib-simple/blob/master/bench/synchronic-polyfill.js">here</a>.
+  On the benchmark above it performs about 20% slower than the C++
+  implementation in Firefox.  (About 10% of the win comes from being able to use
+  the PAUSE instruction within the synchronic's spinloop in the C++
+  implementation.)  The polyfill requires a little manual setup for its shared
+  state. </p>
 
 </emu-intro>
 
@@ -117,32 +207,36 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
     <h1>Runtime semantics</h1>
     
     <emu-note>
-      <p> Most semantic primitives are as in the draft Shared Memory and Atomics spec. </p>
+      <p> Most semantic primitives are as in the draft Shared Memory and Atomics
+        spec.  Several clauses are
+        removed or updated: <b>Suspend</b>, <b>AddWaiter</b>, <b>RemoveWaiters</b>,
+        and <b>WakeWaiter</b>. </p>
     </emu-note>
-
-    <emu-clause id="Atomics.Suspend" aoid="Suspend">
-      <h1>Runtime semantics: Suspend( W, timeout )</h1>
-      <p> Remove this clause </p>
-    </emu-clause>
 
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
       <h1>Runtime semantics: AddWaiter( W, G, i )</h1>
-      <p> When AddWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
+      <p> When AddWaiter is called with an agent signifier _W_, a Shared Data
+      Block ID _G_, and a nonnegative integer _i_, then the following steps are
+      taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: _W_ is not in any global list of waiters
         1. Add _W_ at an arbitrary location in the global list of all waiters that wait on (_G_, _i_)
       </emu-alg>
-    </emu-clause>
 
-    <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1>Runtime semantics: RemoveWaiters( G, i, c )</h1>
-      <p> Remove this clause </p>
+      <emu-note>
+        <p> (Spec draft note) The "futex critical section" should be renamed if
+          we remove futexes.  In any case, the <b>futexMutex</b> is an attribute
+          on the <em>surrounding agent</em>'s agent cluster, in the parlance of
+          the agents spec. </p>
+      </emu-note>
+
     </emu-clause>
 
     <emu-clause id="Atomics.SuspendRandom" aoid="SuspendRandom">
       <h1>Runtime semantics: SuspendRandom( W, timeout )</h1>
-      <p> When SuspendRandom is called with a an agent signifier _W_ and nonnegative number _timeout_, then the following steps are taken. </p>
+      <p> When SuspendRandom is called with a an agent signifier _W_ and
+      nonnegative number _timeout_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Assert: The calling agent is on some global list of waiters
@@ -151,8 +245,8 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
         1. Unpredictably return ~false~.
         1. Atomically relinquish the futex critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired, because it was woken explicitly by another agent calling WakeWaiter(_W_), or unpredictably.
         1. Re-acquire the futex critical section.
-        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
-        1. Return ~false~
+        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~false~
+        1. Return ~true~ (the wait timed out)
       </emu-alg>
 
       <emu-note>
@@ -164,28 +258,22 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
       </emu-note>
     </emu-clause>
 
-    <emu-clause id="Atomics.WakeWaiter_OLD">
-      <h1>Runtime semantics: WakeWaiter( W )</h1>
-      <p> Remove this clause </p>
-    </emu-clause>
-
     <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
       <h1>Runtime semantics: WakeWaiter( G, i )</h1>
       <p> When WakeWaiter is called with Shared Data Block ID _G_ and nonnegative integers _i_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the futex critical section.
         1. Let _S_ be a reference to the global list of all waiters that wait on (_G_, _i_)
-        1. If _S_ is empty return ~false~
-        1. Let _W_ be any worker in _S_ that has not been woken
+        1. If there is no worker in _S_ that is suspended, return ~false~
+        1. Let _W_ be any worker in _S_ that is suspended,
         1. Wake _W_
-        1. Return ~W~
+        1. Return _W_
       </emu-alg>
       
       <emu-note>
-        <p> (Spec draft note) This needs a little formalization, since _W_ is
-          not removed from the list here but by whoever added it after it wakes
-          up.  We need an independent bit of information indicating whether a
-          worker is awake or not. </p>
+        <p> There is a hidden bit of per-agent state here, whether it is
+          suspended or not.  The bit is manipulated only in the futex critical
+          section. </p>
       </emu-note>
     </emu-clause>
 
@@ -214,9 +302,9 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
             1. If _v_ equals _w_ then return ~undefined~
             1. Let _W_ be AgentSignifier().
             1. Call AddWaiter(_W_, _G_, _i_)
-            1. Let _awoken_ = SuspendRandom(_W_, _t_)
+            1. Let _timedout_ = SuspendRandom(_W_, _t_)
             1. Call RemoveWaiter(_W_, _G_, _i_)
-            1. Assert: _awoken_ equals ~false~
+            1. Assert: _timedout_ equals ~false~
       </emu-alg>
 
     </emu-clause>
@@ -245,9 +333,9 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
             1. If _v_ does not equal _w_ then return ~undefined~
             1. Let _W_ be AgentSignifier().
             1. Call AddWaiter(_W_, _G_, _i_)
-            1. Let _awoken_ = SuspendRandom(_W_, _t_)
+            1. Let _timedout_ = SuspendRandom(_W_, _t_)
             1. Call RemoveWaiter(_W_, _G_, _i_)
-            1. If _awoken_ is ~false~ then return ~undefined~
+            1. If _timedout_ is ~true~ then return ~undefined~
       </emu-alg>
     </emu-clause>
 
@@ -295,7 +383,7 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
           here because it may be "known" to the system that the agent that is
           woken doesn't care a whit about updates with _value_, eg, the agent
           could be waiting for a different value to appear while another agent
-          further back in the wait list might actually be waiting for
+          elsewhere in the wait list might actually be waiting for
           _value_. </p>
 
         <p> Note that <em>requiring</em> only one waiter to be woken is
@@ -330,21 +418,6 @@ for ( let i=0 ; i < iterations ; i++ ) {              for ( let i=0 ; i < iterat
         <p> See Atomics.storeNotify for a discussion on performance hints such as _justOne_. </p>
       </emu-note>
 
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWait">
-      <h1>Atomics.futexWait( typedArray, index, value, timeout )</h1>
-      <p> Remove this clause </p>
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWake">
-      <h1>Atomics.futexWake( typedArray, index, count )</h1>
-      <p> Remove this clause </p>
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</h1>
-      <p> Remove this clause </p>
     </emu-clause>
 
   </emu-clause>

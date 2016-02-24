@@ -5,36 +5,39 @@
 <link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
-<script type="application/json" id="menu-search-biblio">{"clauses":{"intro":{"location":"","id":"intro","aoid":null,"title":"Motivation","number":""},"api":{"location":"","id":"api","aoid":null,"title":"API overview","number":""},"discussion":{"location":"","id":"discussion","aoid":null,"title":"Discussion","number":""},"AtomicsObject":{"location":"","id":"AtomicsObject","aoid":null,"title":"The Atomics Object","number":"1"},"AtomicsObjectFunctionProps.semantics":{"location":"","id":"AtomicsObjectFunctionProps.semantics","aoid":null,"title":"Runtime semantics","number":"1.1"},"Atomics.Suspend":{"location":"","id":"Atomics.Suspend","aoid":"Suspend","title":"Runtime semantics: Suspend( W, timeout )","number":"1.1.1"},"Atomics.AddWaiter":{"location":"","id":"Atomics.AddWaiter","aoid":"AddWaiter","title":"Runtime semantics: AddWaiter( W, G, i )","number":"1.1.2"},"Atomics.RemoveWaiters":{"location":"","id":"Atomics.RemoveWaiters","aoid":"RemoveWaiters","title":"Runtime semantics: RemoveWaiters( G, i, c )","number":"1.1.3"},"Atomics.SuspendRandom":{"location":"","id":"Atomics.SuspendRandom","aoid":"SuspendRandom","title":"Runtime semantics: SuspendRandom( W, timeout )","number":"1.1.4"},"Atomics.WakeWaiter_OLD":{"location":"","id":"Atomics.WakeWaiter_OLD","aoid":null,"title":"Runtime semantics: WakeWaiter( W )","number":"1.1.5"},"Atomics.WakeWaiter":{"location":"","id":"Atomics.WakeWaiter","aoid":"WakeWaiter","title":"Runtime semantics: WakeWaiter( G, i )","number":"1.1.6"},"AtomicsObjectFunctionProps":{"location":"","id":"AtomicsObjectFunctionProps","aoid":null,"title":"Function Properties of the Atomics Object","number":"1.2"},"Atomics.expect":{"location":"","id":"Atomics.expect","aoid":null,"title":"Atomics.expect( typedArray, index, desired )","number":"1.2.1"},"Atomics.expectUpdate":{"location":"","id":"Atomics.expectUpdate","aoid":null,"title":"Atomics.expectUpdate( typedArray, index, current [, timeout ] )","number":"1.2.2"},"Atomics.storeNotify":{"location":"","id":"Atomics.storeNotify","aoid":null,"title":"Atomics.storeNotify( typedArray, index, value [, justOne ] )","number":"1.2.3"},"Atomics.notify":{"location":"","id":"Atomics.notify","aoid":null,"title":"Atomics.notify( typedArray, index [, justOne ] )","number":"1.2.4"},"Atomics.futexWait":{"location":"","id":"Atomics.futexWait","aoid":null,"title":"Atomics.futexWait( typedArray, index, value, timeout )","number":"1.2.5"},"Atomics.futexWake":{"location":"","id":"Atomics.futexWake","aoid":null,"title":"Atomics.futexWake( typedArray, index, count )","number":"1.2.6"},"Atomics.futexWakeOrRequeue":{"location":"","id":"Atomics.futexWakeOrRequeue","aoid":null,"title":"Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )","number":"1.2.7"}},"ops":{"Suspend":{"aoid":"Suspend","id":"Atomics.Suspend","location":""},"AddWaiter":{"aoid":"AddWaiter","id":"Atomics.AddWaiter","location":""},"RemoveWaiters":{"aoid":"RemoveWaiters","id":"Atomics.RemoveWaiters","location":""},"SuspendRandom":{"aoid":"SuspendRandom","id":"Atomics.SuspendRandom","location":""},"WakeWaiter":{"aoid":"WakeWaiter","id":"Atomics.WakeWaiter","location":""}},"productions":{},"terms":{},"examples":{},"notes":{},"tables":{},"figures":{}}</script></head><body><div id="menu-toggle">☰</div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#intro" title="Motivation"><span class="secnum"></span> Motivation</a></li><li><span class="item-toggle-none"></span><a href="#api" title="API overview"><span class="secnum"></span> API overview</a></li><li><span class="item-toggle-none"></span><a href="#discussion" title="Discussion"><span class="secnum"></span> Discussion</a></li><li><span class="item-toggle">◢</span><a href="#AtomicsObject" title="The Atomics Object"><span class="secnum">1</span> The Atomics Object</a><ol class="toc"><li><span class="item-toggle">◢</span><a href="#AtomicsObjectFunctionProps.semantics" title="Runtime semantics"><span class="secnum">1.1</span> Runtime semantics</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#Atomics.Suspend" title="Runtime semantics: Suspend( W, timeout )"><span class="secnum">1.1.1</span> Runtime semantics: Suspend( W, timeout )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.AddWaiter" title="Runtime semantics: AddWaiter( W, G, i )"><span class="secnum">1.1.2</span> Runtime semantics: AddWaiter( W, G, i )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.RemoveWaiters" title="Runtime semantics: RemoveWaiters( G, i, c )"><span class="secnum">1.1.3</span> Runtime semantics: RemoveWaiters( G, i, c )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.SuspendRandom" title="Runtime semantics: SuspendRandom( W, timeout )"><span class="secnum">1.1.4</span> Runtime semantics: SuspendRandom( W, timeout )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.WakeWaiter_OLD" title="Runtime semantics: WakeWaiter( W )"><span class="secnum">1.1.5</span> Runtime semantics: WakeWaiter( W )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.WakeWaiter" title="Runtime semantics: WakeWaiter( G, i )"><span class="secnum">1.1.6</span> Runtime semantics: WakeWaiter( G, i )</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#AtomicsObjectFunctionProps" title="Function Properties of the Atomics Object"><span class="secnum">1.2</span> Function Properties of the Atomics Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#Atomics.expect" title="Atomics.expect( typedArray, index, desired )"><span class="secnum">1.2.1</span> Atomics.expect( typedArray, index, desired )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.expectUpdate" title="Atomics.expectUpdate( typedArray, index, current [, timeout ] )"><span class="secnum">1.2.2</span> Atomics.expectUpdate( typedArray, index, current [, timeout ] )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.storeNotify" title="Atomics.storeNotify( typedArray, index, value [, justOne ] )"><span class="secnum">1.2.3</span> Atomics.storeNotify( typedArray, index, value [, justOne ] )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.notify" title="Atomics.notify( typedArray, index [, justOne ] )"><span class="secnum">1.2.4</span> Atomics.notify( typedArray, index [, justOne ] )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.futexWait" title="Atomics.futexWait( typedArray, index, value, timeout )"><span class="secnum">1.2.5</span> Atomics.futexWait( typedArray, index, value, timeout )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.futexWake" title="Atomics.futexWake( typedArray, index, count )"><span class="secnum">1.2.6</span> Atomics.futexWake( typedArray, index, count )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.futexWakeOrRequeue" title="Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )"><span class="secnum">1.2.7</span> Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</a></li></ol></li></ol></li></ol></div></div><h1>ECMAScript Shared Memory and Atomics - "synchronic" addendum</h1>
-<p> Revised: 2016-02-22 / lhansen@mozilla.com </p>
+<script type="application/json" id="menu-search-biblio">{"clauses":{"intro":{"location":"","id":"intro","aoid":null,"title":"Motivation","number":""},"api":{"location":"","id":"api","aoid":null,"title":"API overview","number":""},"discussion":{"location":"","id":"discussion","aoid":null,"title":"Discussion","number":""},"AtomicsObject":{"location":"","id":"AtomicsObject","aoid":null,"title":"The Atomics Object","number":"1"},"AtomicsObjectFunctionProps.semantics":{"location":"","id":"AtomicsObjectFunctionProps.semantics","aoid":null,"title":"Runtime semantics","number":"1.1"},"Atomics.AddWaiter":{"location":"","id":"Atomics.AddWaiter","aoid":"AddWaiter","title":"Runtime semantics: AddWaiter( W, G, i )","number":"1.1.1"},"Atomics.SuspendRandom":{"location":"","id":"Atomics.SuspendRandom","aoid":"SuspendRandom","title":"Runtime semantics: SuspendRandom( W, timeout )","number":"1.1.2"},"Atomics.WakeWaiter":{"location":"","id":"Atomics.WakeWaiter","aoid":"WakeWaiter","title":"Runtime semantics: WakeWaiter( G, i )","number":"1.1.3"},"AtomicsObjectFunctionProps":{"location":"","id":"AtomicsObjectFunctionProps","aoid":null,"title":"Function Properties of the Atomics Object","number":"1.2"},"Atomics.expect":{"location":"","id":"Atomics.expect","aoid":null,"title":"Atomics.expect( typedArray, index, desired )","number":"1.2.1"},"Atomics.expectUpdate":{"location":"","id":"Atomics.expectUpdate","aoid":null,"title":"Atomics.expectUpdate( typedArray, index, current [, timeout ] )","number":"1.2.2"},"Atomics.storeNotify":{"location":"","id":"Atomics.storeNotify","aoid":null,"title":"Atomics.storeNotify( typedArray, index, value [, justOne ] )","number":"1.2.3"},"Atomics.notify":{"location":"","id":"Atomics.notify","aoid":null,"title":"Atomics.notify( typedArray, index [, justOne ] )","number":"1.2.4"}},"ops":{"AddWaiter":{"aoid":"AddWaiter","id":"Atomics.AddWaiter","location":""},"SuspendRandom":{"aoid":"SuspendRandom","id":"Atomics.SuspendRandom","location":""},"WakeWaiter":{"aoid":"WakeWaiter","id":"Atomics.WakeWaiter","location":""}},"productions":{},"terms":{},"examples":{},"notes":{},"tables":{},"figures":{}}</script></head><body><div id="menu-toggle">☰</div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#intro" title="Motivation"><span class="secnum"></span> Motivation</a></li><li><span class="item-toggle-none"></span><a href="#api" title="API overview"><span class="secnum"></span> API overview</a></li><li><span class="item-toggle-none"></span><a href="#discussion" title="Discussion"><span class="secnum"></span> Discussion</a></li><li><span class="item-toggle">◢</span><a href="#AtomicsObject" title="The Atomics Object"><span class="secnum">1</span> The Atomics Object</a><ol class="toc"><li><span class="item-toggle">◢</span><a href="#AtomicsObjectFunctionProps.semantics" title="Runtime semantics"><span class="secnum">1.1</span> Runtime semantics</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#Atomics.AddWaiter" title="Runtime semantics: AddWaiter( W, G, i )"><span class="secnum">1.1.1</span> Runtime semantics: AddWaiter( W, G, i )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.SuspendRandom" title="Runtime semantics: SuspendRandom( W, timeout )"><span class="secnum">1.1.2</span> Runtime semantics: SuspendRandom( W, timeout )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.WakeWaiter" title="Runtime semantics: WakeWaiter( G, i )"><span class="secnum">1.1.3</span> Runtime semantics: WakeWaiter( G, i )</a></li></ol></li><li><span class="item-toggle">◢</span><a href="#AtomicsObjectFunctionProps" title="Function Properties of the Atomics Object"><span class="secnum">1.2</span> Function Properties of the Atomics Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#Atomics.expect" title="Atomics.expect( typedArray, index, desired )"><span class="secnum">1.2.1</span> Atomics.expect( typedArray, index, desired )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.expectUpdate" title="Atomics.expectUpdate( typedArray, index, current [, timeout ] )"><span class="secnum">1.2.2</span> Atomics.expectUpdate( typedArray, index, current [, timeout ] )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.storeNotify" title="Atomics.storeNotify( typedArray, index, value [, justOne ] )"><span class="secnum">1.2.3</span> Atomics.storeNotify( typedArray, index, value [, justOne ] )</a></li><li><span class="item-toggle-none"></span><a href="#Atomics.notify" title="Atomics.notify( typedArray, index [, justOne ] )"><span class="secnum">1.2.4</span> Atomics.notify( typedArray, index [, justOne ] )</a></li></ol></li></ol></li></ol></div></div><h1>ECMAScript Shared Memory and Atomics - "synchronic" addendum</h1>
+<p> Revised: 2016-02-24 / lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1><span class="secnum"></span>Motivation<span class="utils"><span class="anchor"><a href="#intro">#</a></span></span></h1>
 
 <p> The current proposal for Shared Memory and Atomics uses a mechanism based on
-  Linux "futexes" to block threads.  As specified, the mechanism has performance
-  problems: Atomics.futexWait blocks the thread unconditionally in the operating
-  system, Atomics.futexWake must wake the thread, and both operations require a
-  mutex to be acquired and data structures to be traversed.  In the simple case
-  of two threads trying to coordinate at high speed, futexes used naively will
-  perform poorly.  The following two programs manage about 250,000 messages per
-  second on the author's MacBook Pro:  </p>
+  Linux "futexes" to block threads.  As specified, the mechanism is not only
+  tricky to use properly, but it has performance problems as well:
+  Atomics.futexWait blocks the thread unconditionally in the operating system,
+  Atomics.futexWake must wake the thread, and both operations require a mutex to
+  be acquired and data structures to be traversed.  In the simple case of two
+  threads trying to coordinate at high speed, futexes used naively will perform
+  poorly.  The following two programs exchange about 280,000 messages per second
+  on the author's MacBook Pro using current futexes in Firefox or Chrome:  </p>
 
 <pre>// Program A                                          // Program B
 
 var x = 0;                                            var x = 0;
 for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; iterations ; i++ ) {
-  Atomics.futexWait(s, 0, x++);                         mem[n]++;  // work
-  mem[n]++;  // work                                    Atomics.store(s, 0, ++x);
-  Atomics.store(s, 0, ++x);                             Atomics.futexWake(s, 0, 1);
-  Atomics.futexWake(s, 0, 1);                           Atomics.futexWait(s, 0, x++);
+  while (Atomics.load(s, 0) == x)                       mem[n]++;  // work
+    Atomics.futexWait(s, 0, x);                         Atomics.store(s, 0, ++x);
+  x++;                                                  Atomics.futexWake(s, 0, 1);
+  mem[n]++;  // work                                    while (Atomics.load(s, 0) == x)
+  Atomics.store(s, 0, ++x);                               Atomics.futexWait(s, 0, x);
+  Atomics.futexWake(s, 0, 1);                           x++;
 }                                                     }
 </pre>
 
-<p> In contrast, it is possible to speed the program up by a factor of about 40
-  with a combination of additional bookkeeping, spinning, and other techniques
-  such as micro-waiting and yielding.  Unfortunately, not only do those
-  techniques require fairly sophisticated programming skills, but they are
+<p> In contrast, it is possible to speed the program up significantly with a
+  combination of additional bookkeeping, spinning, and other techniques such as
+  micro-waiting and yielding.  Unfortunately, not only do those techniques
+  require fairly sophisticated programming skills, but they are
   platform-dependent, and ECMAScript is unlikely ever to expose all the
   necessary primitives.  It is therefore desirable to package the functionality
   so as to make the higher performance available to more programs.  </p>
@@ -49,9 +52,14 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
   the value; a handshake allows the waiting primitives to suspend operation and
   be woken by the signaling primitives.  </p>
 
+<p> The synchronic primitives are also slightly easier to use correctly than the
+  futex primitives.  </p>
+
 <p> For example, the following programs using synchronics instead of futexes
-  manage about 11,000,000 messages per second with the prototype synchronics in
-  Firefox.  JIT support would likely improve the performance further.    </p>
+  exchange about 11,000,000 messages per second with the prototype synchronics
+  in Firefox, a 40x speedup.  JIT support might improve the performance further
+  by in-lining the fast paths for  <b>expectUpdate</b>
+  and  <b>storeNotify</b>.    </p>
 
 <pre>// Program A                                          // Program B
 
@@ -67,15 +75,18 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
 <emu-intro id="api">
 <h1><span class="secnum"></span>API overview<span class="utils"><span class="anchor"><a href="#api">#</a></span></span></h1>
 
-<p> Four primitives are proposed:  </p>
+<p> Four new primitives are proposed:  </p>
 <ul>
-  <li> <b>expect</b> waits for a cell to take on a value
+  <li> <b>expect(ia, index, value)</b> waits for a cell to take on a value
   
-  </li><li> <b>expectUpdate</b> waits for a cell to change away from a value or for a time to pass
+  </li><li> <b>expectUpdate(ia, index, current [, timeout])</b> waits for a cell to change
+    away from a current value or for a time to pass
   
-  </li><li> <b>storeNotify</b> updates a cell and notifies any waiters of the update
+  </li><li> <b>storeNotify(ia, index, value [, justOne])</b> updates a cell and notifies
+    waiters of the update
   
-  </li><li> <b>notify</b> just notifies waiters of an independent update
+  </li><li> <b>notify(ia, index [, justOne])</b> just notifies waiters of a preceding
+    atomic update
 
 </li></ul>
 
@@ -88,23 +99,102 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
 
 <p> All primitives take an <emu-const>Int32Array</emu-const> and an index within it, and it is the
   value in that cell that will be used as the signal.  No additional storage
-  need be supplied by the user program.  In a typical high-performance system
-  additional storage will be required within the implementation for bookkeeping
-  but it seems wrong to require the user program to deal with that.  That
-  contrasts with the C++ proposal, where special "Synchronic" objects can
-  contain implementation-dependent space for bookkeeping.  </p>
+  need be supplied by the user program.  </p>
 
 </emu-intro>
 
 <emu-intro id="discussion">
 <h1><span class="secnum"></span>Discussion<span class="utils"><span class="anchor"><a href="#discussion">#</a></span></span></h1>
 
+<p> <b> Bookkeeping storage  </b> </p>
+
+<p> In the C++ proposal a synchronic value is an object that references an
+  atomic location; the synchronic object can have storage of its own, which it
+  uses for bookkeeping.  In the JS proposal the synchronic object is identical
+  with the atomic location, and any bookkeeping storage must be managed by the
+  runtime.  There is some overhead to that, especially for sophisticated
+  implementations, but it did not seem reasonable for the JS program to have to
+  manage that shared storage itself.  First, the storage would contain state
+  internal to the synchronic implementation, which we do not want exposed, and
+  second, we'd like the amount of storage needed for a synchronic to be constant
+  across JS implementations and across time, to simplify shared memory layout
+  for the application.  </p>
+
+<p> <b> Predicates vs value equality  </b> </p>
+
 <p> Unlike the C++ proposal there are no variants of  <b>expect</b>
-  and  <b>expectUpdate</b> that take a user-supplied predicate to determine if
-  the wait should end.  There are also no performance hints about the urgency of
-  the signal. However, I have adopted the other performance hint, about how many
+  and  <b>expectUpdate</b> that take a user-supplied predicate (rather than a
+  value) to determine if the wait should end.  I think experimentation is
+  called for before adding such a feature.  It can (likely) be simulated using
+  an additional shared location for coordination.    </p>
+
+
+<p> <b> Performance hints  </b> </p>
+
+<p> Unlike the C++ proposal there are no performance hints about the urgency of
+  the signal.  The hint would be useful to avoid spinning if the signal is
+  expected to take some time to arrive.  I'd like to see some data from real
+  code (ideally JS code) before proposing something here.  </p>
+
+<p> In contrast I have adopted the other performance hint, about how many
   waiters to wake, since it seems sensible in situations where we build a mutex,
-  for example.  </p>
+  for example.  But perhaps that is premature, and that we should hold off until
+  there's data, and just always wake all waiters for now.  Additionally,
+  TC39 frowns on performance hints.  </p>
+
+
+<p> <b> Timeouts  </b> </p>
+
+<p> The  <b>expect</b> method does not take a timeout argument because it does
+  not take one in the C++ design, but the motivation for the omission in the C++
+  design is unclear to me.  </p>
+
+
+<p> <b> Int32 values only  </b> </p>
+
+<p> The reason <emu-const>Int32Array</emu-const> is the only legal data type for the synchronic
+  operations is that it reduces implementation complexity somewhat, and the lack
+  of support for other integer types does not seem important.  Nobody has
+  complained about futexes allowing only <emu-const>Int32Array</emu-const>.  Int32 is preferred to
+  Uint32 because the former type is easier to handle in fast JS
+  implementations.  </p>
+
+
+<p> <b> Optimizing futexes instead of introducing synchronics  </b> </p>
+
+<p> Existing futex implementations can likely be optimized in the runtime using
+  some hidden state, probably yielding significant speedup.  The complexity of
+  this is unknown, it's probably on the order of a lock-free or spinlocked hash
+  table.  </p>
+
+<p> The synchronics in their basic form also require some runtime support, but a
+  simpler structure suffices than for optimized futexes, and a simple structure
+  is probably enough for the end-user systems that typically run JS.  Should
+  that not be the case, synchronics are probably easier to optimize for high
+  performance than futexes.  </p>
+
+<p> Additionally, synchronics are easier to use correctly than futexes.  </p>
+
+
+<p> <b> Are Synchronics enough?  </b> </p>
+
+<p> What do we lose if we remove futexes?  Clearly, ported code that uses futexes
+  (library code for C/C++, exclusively) may have to be rewritten to use
+  synchronics, or we have to emulate futexes with synchronics.  Emulation is
+  straightforward if synchronics can be used to implement simple locks and
+  condition variables, which seems plausible to me.  There may be better
+  emulations.  Rewriting the code may be best.    </p>
+
+
+<p> <b> Polyfills  </b> </p>
+
+<p> A polyfill built on top of futexes
+  is  <a href="https://github.com/lars-t-hansen/parlib-simple/blob/master/bench/synchronic-polyfill.js">here</a>.
+  On the benchmark above it performs about 20% slower than the C++
+  implementation in Firefox.  (About 10% of the win comes from being able to use
+  the PAUSE instruction within the synchronic's spinloop in the C++
+  implementation.)  The polyfill requires a little manual setup for its shared
+  state.  </p>
 
 </emu-intro>
 
@@ -115,30 +205,34 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
     <h1><span class="secnum">1.1</span>Runtime semantics<span class="utils"><span class="anchor"><a href="#AtomicsObjectFunctionProps.semantics">#</a></span></span></h1>
     
     <emu-note><span class="note">Note</span>
-      <p> Most semantic primitives are as in the draft Shared Memory and Atomics spec.  </p>
+      <p> Most semantic primitives are as in the draft Shared Memory and Atomics
+        spec.  Several clauses are
+        removed or updated:  <b>Suspend</b>,  <b><emu-xref aoid="AddWaiter"><a href="#Atomics.AddWaiter">AddWaiter</a></emu-xref></b>,  <b>RemoveWaiters</b>,
+        and  <b><emu-xref aoid="WakeWaiter"><a href="#Atomics.WakeWaiter">WakeWaiter</a></emu-xref></b>.  </p>
     </emu-note>
 
-    <emu-clause id="Atomics.Suspend" aoid="Suspend">
-      <h1><span class="secnum">1.1.1</span>Runtime semantics: Suspend( W, timeout )<span class="utils"><span class="anchor"><a href="#Atomics.Suspend">#</a></span></span></h1>
-      <p> Remove this clause  </p>
-    </emu-clause>
-
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
-      <h1><span class="secnum">1.1.2</span>Runtime semantics: AddWaiter( W, G, i )<span class="utils"><span class="anchor"><a href="#Atomics.AddWaiter">#</a></span></span></h1>
-      <p> When AddWaiter is called with an agent signifier <var>W</var>, a Shared <emu-xref href="#sec-data-blocks"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-data-blocks">Data Block</a></emu-xref> ID <var>G</var>, and a nonnegative integer <var>i</var>, then the following steps are taken.  </p>
+      <h1><span class="secnum">1.1.1</span>Runtime semantics: AddWaiter( W, G, i )<span class="utils"><span class="anchor"><a href="#Atomics.AddWaiter">#</a></span></span></h1>
+      <p> When AddWaiter is called with an agent signifier <var>W</var>, a Shared Data
+      Block ID <var>G</var>, and a nonnegative integer <var>i</var>, then the following steps are
+      taken.  </p>
       <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: <var>W</var> is not in any global list of waiters</li><li>Add <var>W</var> at an arbitrary location in the global list of all waiters that wait on (<var>G</var>, <var>i</var>)
       </li></ol></emu-alg>
-    </emu-clause>
 
-    <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1><span class="secnum">1.1.3</span>Runtime semantics: RemoveWaiters( G, i, c )<span class="utils"><span class="anchor"><a href="#Atomics.RemoveWaiters">#</a></span></span></h1>
-      <p> Remove this clause  </p>
+      <emu-note><span class="note">Note</span>
+        <p> (Spec draft note) The "futex critical section" should be renamed if
+          we remove futexes.  In any case, the  <b>futexMutex</b> is an attribute
+          on the  <em>surrounding agent</em>'s agent cluster, in the parlance of
+          the agents spec.  </p>
+      </emu-note>
+
     </emu-clause>
 
     <emu-clause id="Atomics.SuspendRandom" aoid="SuspendRandom">
-      <h1><span class="secnum">1.1.4</span>Runtime semantics: SuspendRandom( W, timeout )<span class="utils"><span class="anchor"><a href="#Atomics.SuspendRandom">#</a></span></span></h1>
-      <p> When SuspendRandom is called with a an agent signifier <var>W</var> and nonnegative number <var>timeout</var>, then the following steps are taken.  </p>
-      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: The calling agent is on some global list of waiters</li><li>Assert: <var>W</var> is equal to AgentSignifier()</li><li>Assert: AgentCanSuspend() is equal to true</li><li>Unpredictably return <emu-const>false</emu-const>.</li><li>Atomically relinquish the futex critical section and suspend <var>W</var> for up to <var>timeout</var> milliseconds.  <var>W</var> can wake up either because the timeout expired, because it was woken explicitly by another agent calling <emu-xref aoid="WakeWaiter"><a href="#Atomics.WakeWaiter">WakeWaiter</a></emu-xref>(<var>W</var>), or unpredictably.</li><li>Re-acquire the futex critical section.</li><li>If <var>W</var> was woken explicitly by another agent calling <emu-xref aoid="WakeWaiter"><a href="#Atomics.WakeWaiter">WakeWaiter</a></emu-xref>(<var>W</var>), then return <emu-const>true</emu-const></li><li>Return <emu-const>false</emu-const>
+      <h1><span class="secnum">1.1.2</span>Runtime semantics: SuspendRandom( W, timeout )<span class="utils"><span class="anchor"><a href="#Atomics.SuspendRandom">#</a></span></span></h1>
+      <p> When SuspendRandom is called with a an agent signifier <var>W</var> and
+      nonnegative number <var>timeout</var>, then the following steps are taken.  </p>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: The calling agent is on some global list of waiters</li><li>Assert: <var>W</var> is equal to AgentSignifier()</li><li>Assert: AgentCanSuspend() is equal to true</li><li>Unpredictably return <emu-const>false</emu-const>.</li><li>Atomically relinquish the futex critical section and suspend <var>W</var> for up to <var>timeout</var> milliseconds.  <var>W</var> can wake up either because the timeout expired, because it was woken explicitly by another agent calling <emu-xref aoid="WakeWaiter"><a href="#Atomics.WakeWaiter">WakeWaiter</a></emu-xref>(<var>W</var>), or unpredictably.</li><li>Re-acquire the futex critical section.</li><li>If <var>W</var> was woken explicitly by another agent calling <emu-xref aoid="WakeWaiter"><a href="#Atomics.WakeWaiter">WakeWaiter</a></emu-xref>(<var>W</var>), then return <emu-const>false</emu-const></li><li>Return <emu-const>true</emu-const> (the wait timed out)
       </li></ol></emu-alg>
 
       <emu-note><span class="note">Note</span>
@@ -150,22 +244,16 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
       </emu-note>
     </emu-clause>
 
-    <emu-clause id="Atomics.WakeWaiter_OLD">
-      <h1><span class="secnum">1.1.5</span>Runtime semantics: WakeWaiter( W )<span class="utils"><span class="anchor"><a href="#Atomics.WakeWaiter_OLD">#</a></span></span></h1>
-      <p> Remove this clause  </p>
-    </emu-clause>
-
     <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
-      <h1><span class="secnum">1.1.6</span>Runtime semantics: WakeWaiter( G, i )<span class="utils"><span class="anchor"><a href="#Atomics.WakeWaiter">#</a></span></span></h1>
+      <h1><span class="secnum">1.1.3</span>Runtime semantics: WakeWaiter( G, i )<span class="utils"><span class="anchor"><a href="#Atomics.WakeWaiter">#</a></span></span></h1>
       <p> When WakeWaiter is called with Shared <emu-xref href="#sec-data-blocks"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-data-blocks">Data Block</a></emu-xref> ID <var>G</var> and nonnegative integers <var>i</var>, then the following steps are taken.  </p>
-      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Let <var>S</var> be a reference to the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li><li>If <var>S</var> is empty return <emu-const>false</emu-const></li><li>Let <var>W</var> be any worker in <var>S</var> that has not been woken</li><li>Wake <var>W</var></li><li>Return <emu-const>W</emu-const>
+      <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Let <var>S</var> be a reference to the global list of all waiters that wait on (<var>G</var>, <var>i</var>)</li><li>If there is no worker in <var>S</var> that is suspended, return <emu-const>false</emu-const></li><li>Let <var>W</var> be any worker in <var>S</var> that is suspended,</li><li>Wake <var>W</var></li><li>Return <var>W</var>
       </li></ol></emu-alg>
       
       <emu-note><span class="note">Note</span>
-        <p> (Spec draft note) This needs a little formalization, since <var>W</var> is
-          not removed from the list here but by whoever added it after it wakes
-          up.  We need an independent bit of information indicating whether a
-          worker is awake or not.  </p>
+        <p> There is a hidden bit of per-agent state here, whether it is
+          suspended or not.  The bit is manipulated only in the futex critical
+          section.  </p>
       </emu-note>
     </emu-clause>
 
@@ -177,7 +265,7 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
     <emu-clause id="Atomics.expect">
       <h1><span class="secnum">1.2.1</span>Atomics.expect( typedArray, index, desired )<span class="utils"><span class="anchor"><a href="#Atomics.expect">#</a></span></span></h1>
       <p> Atomics.expect waits until the memory cell takes on the value <var>desired</var>. The following steps are taken:</p>
-      <emu-alg><ol><li>Let <var>buffer</var> be ValidateSharedIntegerTypedArray(<var>typedArray</var>, <emu-const>true</emu-const>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>buffer</var>)</li><li>Let <var>i</var> be ValidateAtomicAccess( <var>typedArray</var>, <var>index</var> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>i</var>)</li><li>Let <var>v</var> be the result of <emu-xref aoid="ToInt32"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-toint32">ToInt32</a></emu-xref>(<var>desired</var>).</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>v</var>)</li><li>Let <var>B</var> be AgentCanSuspend()</li><li>If <var>B</var> is <emu-const>false</emu-const> then throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be SharedDataBlockID(<var>bufferVal</var>)</li><li>Within the futex critical section do:<ol><li>Loop:<ol><li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li><li>If <var>v</var> equals <var>w</var> then return <emu-const>undefined</emu-const></li><li>Let <var>W</var> be AgentSignifier().</li><li>Call <emu-xref aoid="AddWaiter"><a href="#Atomics.AddWaiter">AddWaiter</a></emu-xref>(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Let <var>awoken</var> = <emu-xref aoid="SuspendRandom"><a href="#Atomics.SuspendRandom">SuspendRandom</a></emu-xref>(<var>W</var>, <var>t</var>)</li><li>Call RemoveWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Assert: <var>awoken</var> equals <emu-const>false</emu-const>
+      <emu-alg><ol><li>Let <var>buffer</var> be ValidateSharedIntegerTypedArray(<var>typedArray</var>, <emu-const>true</emu-const>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>buffer</var>)</li><li>Let <var>i</var> be ValidateAtomicAccess( <var>typedArray</var>, <var>index</var> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>i</var>)</li><li>Let <var>v</var> be the result of <emu-xref aoid="ToInt32"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-toint32">ToInt32</a></emu-xref>(<var>desired</var>).</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>v</var>)</li><li>Let <var>B</var> be AgentCanSuspend()</li><li>If <var>B</var> is <emu-const>false</emu-const> then throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be SharedDataBlockID(<var>bufferVal</var>)</li><li>Within the futex critical section do:<ol><li>Loop:<ol><li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li><li>If <var>v</var> equals <var>w</var> then return <emu-const>undefined</emu-const></li><li>Let <var>W</var> be AgentSignifier().</li><li>Call <emu-xref aoid="AddWaiter"><a href="#Atomics.AddWaiter">AddWaiter</a></emu-xref>(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Let <var>timedout</var> = <emu-xref aoid="SuspendRandom"><a href="#Atomics.SuspendRandom">SuspendRandom</a></emu-xref>(<var>W</var>, <var>t</var>)</li><li>Call RemoveWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Assert: <var>timedout</var> equals <emu-const>false</emu-const>
       </li></ol></li></ol></li></ol></emu-alg>
 
     </emu-clause>
@@ -185,7 +273,7 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
     <emu-clause id="Atomics.expectUpdate">
       <h1><span class="secnum">1.2.2</span>Atomics.expectUpdate( typedArray, index, current [, timeout ] )<span class="utils"><span class="anchor"><a href="#Atomics.expectUpdate">#</a></span></span></h1>
       <p> Atomics.expectUpdate waits until the memory cell takes on a value different from <var>current</var> or the timeout is reached. The following steps are taken:</p>
-      <emu-alg><ol><li>Let <var>buffer</var> be ValidateSharedIntegerTypedArray(<var>typedArray</var>, <emu-const>true</emu-const>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>buffer</var>)</li><li>Let <var>i</var> be ValidateAtomicAccess( <var>typedArray</var>, <var>index</var> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>i</var>)</li><li>Let <var>v</var> be the result of <emu-xref aoid="ToInt32"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-toint32">ToInt32</a></emu-xref>( <var>current</var> ).</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>v</var>)</li><li>If <var>timeout</var> is not provided or is <emu-const>undefined</emu-const> then let <var>t</var> be +Infinity.  Otherwise:<ol><li>Let <var>q</var> be the result of <emu-xref aoid="ToNumber"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a></emu-xref>(<var>timeout</var>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>q</var>)</li><li>If <var>q</var> is NaN then let <var>t</var> be +Infinity, otherwise let <var>t</var> be max(0, <var>q</var>).</li></ol></li><li>Let <var>B</var> be AgentCanSuspend()</li><li>If <var>B</var> is <emu-const>false</emu-const> then throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be SharedDataBlockID(<var>bufferVal</var>)</li><li>Within the futex critical section do:<ol><li>Loop:<ol><li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li><li>If <var>v</var> does not equal <var>w</var> then return <emu-const>undefined</emu-const></li><li>Let <var>W</var> be AgentSignifier().</li><li>Call <emu-xref aoid="AddWaiter"><a href="#Atomics.AddWaiter">AddWaiter</a></emu-xref>(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Let <var>awoken</var> = <emu-xref aoid="SuspendRandom"><a href="#Atomics.SuspendRandom">SuspendRandom</a></emu-xref>(<var>W</var>, <var>t</var>)</li><li>Call RemoveWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>If <var>awoken</var> is <emu-const>false</emu-const> then return <emu-const>undefined</emu-const>
+      <emu-alg><ol><li>Let <var>buffer</var> be ValidateSharedIntegerTypedArray(<var>typedArray</var>, <emu-const>true</emu-const>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>buffer</var>)</li><li>Let <var>i</var> be ValidateAtomicAccess( <var>typedArray</var>, <var>index</var> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>i</var>)</li><li>Let <var>v</var> be the result of <emu-xref aoid="ToInt32"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-toint32">ToInt32</a></emu-xref>( <var>current</var> ).</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>v</var>)</li><li>If <var>timeout</var> is not provided or is <emu-const>undefined</emu-const> then let <var>t</var> be +Infinity.  Otherwise:<ol><li>Let <var>q</var> be the result of <emu-xref aoid="ToNumber"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-tonumber">ToNumber</a></emu-xref>(<var>timeout</var>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>q</var>)</li><li>If <var>q</var> is NaN then let <var>t</var> be +Infinity, otherwise let <var>t</var> be max(0, <var>q</var>).</li></ol></li><li>Let <var>B</var> be AgentCanSuspend()</li><li>If <var>B</var> is <emu-const>false</emu-const> then throw a <emu-const>TypeError</emu-const> exception.</li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be SharedDataBlockID(<var>bufferVal</var>)</li><li>Within the futex critical section do:<ol><li>Loop:<ol><li>Let <var>w</var> be Atomics.load(<var>typedArray</var>, <var>i</var>)</li><li>If <var>v</var> does not equal <var>w</var> then return <emu-const>undefined</emu-const></li><li>Let <var>W</var> be AgentSignifier().</li><li>Call <emu-xref aoid="AddWaiter"><a href="#Atomics.AddWaiter">AddWaiter</a></emu-xref>(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>Let <var>timedout</var> = <emu-xref aoid="SuspendRandom"><a href="#Atomics.SuspendRandom">SuspendRandom</a></emu-xref>(<var>W</var>, <var>t</var>)</li><li>Call RemoveWaiter(<var>W</var>, <var>G</var>, <var>i</var>)</li><li>If <var>timedout</var> is <emu-const>true</emu-const> then return <emu-const>undefined</emu-const>
       </li></ol></li></ol></li></ol></emu-alg>
     </emu-clause>
 
@@ -211,7 +299,7 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
           here because it may be "known" to the system that the agent that is
           woken doesn't care a whit about updates with <var>value</var>, eg, the agent
           could be waiting for a different value to appear while another agent
-          further back in the wait list might actually be waiting for
+          elsewhere in the wait list might actually be waiting for
           <var>value</var>.  </p>
 
         <p> Note that  <em>requiring</em> only one waiter to be woken is
@@ -232,21 +320,6 @@ for ( let i=0 ; i &lt; iterations ; i++ ) {              for ( let i=0 ; i &lt; 
         <p> See Atomics.storeNotify for a discussion on performance hints such as <var>justOne</var>.  </p>
       </emu-note>
 
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWait">
-      <h1><span class="secnum">1.2.5</span>Atomics.futexWait( typedArray, index, value, timeout )<span class="utils"><span class="anchor"><a href="#Atomics.futexWait">#</a></span></span></h1>
-      <p> Remove this clause  </p>
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWake">
-      <h1><span class="secnum">1.2.6</span>Atomics.futexWake( typedArray, index, count )<span class="utils"><span class="anchor"><a href="#Atomics.futexWake">#</a></span></span></h1>
-      <p> Remove this clause  </p>
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1><span class="secnum">1.2.7</span>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )<span class="utils"><span class="anchor"><a href="#Atomics.futexWakeOrRequeue">#</a></span></span></h1>
-      <p> Remove this clause  </p>
     </emu-clause>
 
   </emu-clause>
