@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-02-10 </p>
+<p> Revised: 2016-02-26 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -48,18 +48,30 @@ and in Google Chrome (where it is not enabled by default). </p>
 
 <p>This specification constitutes a restatement and formalization of
 an earlier
-work, <a href="https://docs.google.com/document/d/1NDGA_gZJ7M7w1Bh8S0AoDyEqwDdRh4uSoTPSNn77PFk/edit?usp=sharing">the
+work, <a href="https://github.com/tc39/ecmascript_sharedmem/blob/master/historical/Spec_JavaScriptSharedMemoryAtomicsandLocks.pdf">the
 spec document for which</a> also contains additional rationale,
 background information, discussions, implementation notes, and
 comments.</p>
 
-<p> This specification is substantially complete, apart from these aspects: </p>
+<p> This specification is substantially complete.  However, the
+  following aspects are still undergoing refinement.  The refinements
+  are expected to have only local effects on the specification. </p>
+
 <ul>
-  <li> The memory model is going to be refined further (for a while).
+  <li> The agent model and its mapping to web technology are being improved. <a href="https://axis-of-eval.org/shmem/agents-formatted.html">Current draft proposal.</a>
+  <li> The "futex" primitives may be replaced by a refinement based on C++ synchronics.  <a href="https://axis-of-eval.org/shmem/synchronic-formatted.html">Current draft proposal.</a>
+  <li> The memory model is being improved (Issues
+    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/22">22</a>,
+    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/37">37</a>, 
+    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/47">47</a>,
+    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/48">48</a>,
+    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/51">51</a>,
+    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/55">55</a>)
 </ul>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-02-26 -- Editorial work in preparation for first review.
   <li> 2016-02-10 -- (Issue 62) Rewrote ValidateAtomicAccess so as to process index values in the same way as ES6.
   <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
   <li> 2016-02-10 -- (Issue 60) ValidateSharedIntegerTypedArray needs to check for a TypedArrayName slot.  
@@ -98,7 +110,7 @@ comments.</p>
       <h1>Agent</h1>
       <p> The combination of an instance of an ECMAScript execution environment and the ECMAScript programs running within that environment. </p>
       <emu-note>
-        <p> (Issue 27) This should be worded in terms of running 'jobs', and it needs to be broken out of Terms and Definitions and given a proper section, probably within ES6 section 8. </p>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) This will be provided by the Agents Specification. </p>
       </emu-note>
     </emu-clause>
     <emu-clause id="Overview.Terms.AgentComm">
@@ -108,6 +120,9 @@ comments.</p>
     <emu-clause id="Overview.Terms.Cluster">
       <h1>Agent cluster</h1>
       <p> A maximal set of agents that are able to communicate through shared memory. </p>
+      <emu-note>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) This will be provided by the Agents Specification. </p>
+      </emu-note>
     </emu-clause>
   </emu-clause>
 </emu-clause>
@@ -160,7 +175,7 @@ comments.</p>
         <h1>SharedDataBlockID( block )</h1>
         <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument _block_, the following steps are taken:</p>
         <emu-alg>
-          1. Let _G_ be an address-free identifier for _block_.  All agents in the same cluster must use the same value for _G_ for any given _block_.
+          1. Let _G_ be an address-free identifier for _block_.  All agents in the same agent cluster must use the same value for _G_ for any given _block_.
           1. Return _G_.
         </emu-alg>
         <emu-note>
@@ -179,7 +194,8 @@ comments.</p>
       <h1>Forward Progress Guarantees</h1>
       <p>Implementations should ensure that all unblocked jobs eventually make progress. </p>
       <emu-note>
-        <p>(Issue 28) This section may be formalized at least partly in the terms of the C++ working paper on forward progress, see the referenced issue, or it may be left as-is.  An ES6 job is most plausibly a 'Concurrent agent' in the terms of that paper. </p>
+        <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/28">Issue 28</a>,
+          <a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) This section will be provided by the Agents Specification. </p>
       </emu-note>
     </emu-clause>
   </emu-clause>
@@ -219,9 +235,9 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="IndexedCollections.TypedArray">
     <h1>TypedArray Objects (ES6 22.2)</h1>
     <emu-note>
-      <p>(Issue 29)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
-      <p>(Issue 30) Should TypedArray constructors should be extended to allow them to allocate shared memory?</p>
-      <p>(Issue 31) Should TypedArray static methods (%TypedArray%.of, %TypedArray%.from) should be extended to allow them to allocate shared memory?</p>
+      <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/29">Issue 29</a>)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
+      <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/30">Issue 30</a>) Should TypedArray constructors be extended to allow them to allocate shared memory?</p>
+      <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/31">Issue 31</a>) Should TypedArray static methods (%TypedArray%.of, %TypedArray%.from) be extended to allow them to allocate shared memory?</p>
       <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer (or the constructors of any user-defined subclasses of SharedArrayBuffer).</p>
     </emu-note>
 
@@ -232,7 +248,7 @@ These call AllocateTypedArray with a specified length:
         <h1>%TypedArray%( object ) (ES6 22.2.1.4)</h1>
         <p>This algorithm is modified as follows:</p>
         <ul>
-          <li> Add the restriction on the applicability of this constructor that it does not apply if the object has a [[SharedArrayBufferData]] internal slot.
+          <li> Add a restriction on the applicability of this constructor: it does not apply if the object has a [[SharedArrayBufferData]] internal slot.
         </ul>
       </emu-clause>
 
@@ -306,9 +322,13 @@ These call AllocateTypedArray with a specified length:
         <p> This algorithm is modified as follows:</p>
         <ul>
           <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
-          <li> All agents in the same cluster must compute the same value for _isLittleEndian_ if it is not present.
+          <li> All agents in the same agent cluster must compute the same value for _isLittleEndian_ if it is not present.
           <li> In step 4, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
         </ul>
+
+        <emu-note>
+          <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The Agents Specification will detail how to compute the value of _isLittleEndian_. </p>
+        </emu-note>
 
         <emu-note>
           <p> If IsSharedMemory( _arrayBuffer_ ) is ~true~ then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may or may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer. </p>
@@ -321,9 +341,13 @@ These call AllocateTypedArray with a specified length:
         <p> This algorithm is modified as follows:</p>
         <ul>
           <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
-          <li> All agents in the same cluster must compute the same value for _isLittleEndian_ if it is not present.
+          <li> All agents in the same agent cluster must compute the same value for _isLittleEndian_ if it is not present.
           <li> In step 5, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
         </ul>
+
+        <emu-note>
+          <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The Agents Specification will detail how to compute the value of _isLittleEndian_. </p>
+        </emu-note>
 
         <emu-note>
           <p> When SetValueInBuffer is called to set bytes in shared memory the implementation may set several bytes at a time (and that is the normal case), but it may not use read-modify-write on a larger datum, as that might introduce data races where the source program has none.  Data races are discussed in the section on the Atomics object. </p>
@@ -422,7 +446,7 @@ These call AllocateTypedArray with a specified length:
           1. Return ~false~.
         </emu-alg>
         <emu-note>
-          <p> (Issue 32)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared views.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return ~true~ only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return ~false~ if its argument is viewing a SharedArrayBuffer.</p>
+          <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/32">Issue 32</a>)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared buffers.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return ~true~ only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return ~false~ if its argument is viewing a SharedArrayBuffer.</p>
         </emu-note>
       </emu-clause>
 
@@ -644,7 +668,7 @@ These call AllocateTypedArray with a specified length:
         can read back as anything whatsoever. </p>
 
       <emu-note>
-        <p> (Issue 22, broadly) There are problems with the preceding
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/22">Issue 22</a>, broadly) There are problems with the preceding
           clause.  One problem is that the affected memory region in a
           race is not properly defined.  Another problem is semantic:
           The intent of the clause is that a race poisons a delimited
@@ -708,6 +732,12 @@ These call AllocateTypedArray with a specified length:
       </ul>
     </emu-clause>
 
+    <emu-note>
+      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The Agents Specification will have
+        machinery for formalizing the notion of a "single critial
+        section for the futex operations" in the cluster. </p>
+    </emu-note>
+
     <emu-clause id="Atomics.AgentSignifier" aoid="AgentSignifier">
       <h1>Runtime semantics: AgentSignifier( )</h1>
       <p> When AgentSignifier is called without arguments then the following steps are taken.</p>
@@ -715,6 +745,11 @@ These call AllocateTypedArray with a specified length:
         1. Let _W_ be an identifier that identifies the calling agent within its cluster.
         2. Return _W_.
       </emu-alg>
+
+      <emu-note>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The Agents Specification will provide the AgentSignifier function. </p>
+      </emu-note>
+
     </emu-clause>
     
     <emu-clause id="Atomics.AgentCanSuspend" aoid="AgentCanSuspend">
@@ -732,6 +767,11 @@ These call AllocateTypedArray with a specified length:
           in a web browser environment, it may be reasonable to disallow suspending a document's main event
           handling thread, while still allowing workers' event handling threads to suspend. </p>
       </emu-note>
+
+      <emu-note>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The Agents Specification will provide the AgentCanSuspend function. </p>
+      </emu-note>
+
     </emu-clause>
     
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
@@ -920,6 +960,10 @@ These call AllocateTypedArray with a specified length:
             1. Add 1 to _n_
         1. Return _n_.
       </emu-alg>
+
+      <emu-note>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/63">Issue 63</a>) The count argument should probably default to "all", in the manner of the timeout argument for futexWait. </p>
+      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
@@ -961,6 +1005,9 @@ These call AllocateTypedArray with a specified length:
         <p> Atomics.futexWaitOrRequeue is an optimization that helps programs avoid a "thundering herd" problem when many agents are woken and compete for a lock (as in a broadcast). </p>
       </emu-note>
 
+      <emu-note>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/11">Issue 11</a>) Atomics.futexWaitOrRequeue may be a premature optimization. </p>
+      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.isLockFree">
@@ -976,7 +1023,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>If Atomics.isLockFree(k) returns a value <em>v</em> at some point in some agent then every other invocation of Atomics.isLockFree(k) in that agent must return <em>v</em>.</p>
 
-      <p>If Atomics.isLockFree(k) returns a value <em>v</em> in some agent then every invocation of Atomics.isLockFree(k) in any agent in the same cluster as the first agent must also return <em>v</em>.</p>
+      <p>If Atomics.isLockFree(k) returns a value <em>v</em> in some agent then every invocation of Atomics.isLockFree(k) in any agent in the same agent cluster as the first agent must also return <em>v</em>.</p>
 
       <emu-note>
         <p> Atomics.isLockFree() is an optimization primitive.  High-performance algorithms will use it to determine whether to use locks or atomic operations in critical sections.  If an atomic primitive is not lock-free then it is often more efficient for an algorithm to provide its own locking.</P>
@@ -984,6 +1031,10 @@ These call AllocateTypedArray with a specified length:
 
       <emu-note>
         <p>The return value for a given argument is not necessarily a constant on a given piece of hardware, but also reflects implementation choices that can vary over time and across engines.</p>
+      </emu-note>
+
+      <emu-note>
+        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/46">Issue 46</a>) Should the spec provide a type that is guaranteed to be lock-free on all platforms?  The only candidate is probably int32.  Having the guarantee would simplify programs. </p>
       </emu-note>
 
     </emu-clause>
@@ -1048,11 +1099,21 @@ These call AllocateTypedArray with a specified length:
 <emu-clause id="WebBrowserEmbedding">
   <h1>Web browser embedding (informative)</h1>
 
+  <emu-note>
+    <p> Most of this section will move to other specifications, be it
+      the Agents Specification (most of it) or the HTML specification
+      (details about web workers and structured cloning). </p>
+  </emu-note>
+
   <emu-clause id="WebBrowserEmbedding.Agents">
     <h1>Agent mapping</h1>
     <p> In a web browser setting, the <em>agents</em> comprise a document's main thread environment and worker thread environments.  Normal Web Workers must be supported.</p>
 
     <p> There are reasons not to support ServiceWorkers and Shared Workers ("non-page workers").  In some browsers, non-page workers may be technically incapable of receiving shared memory segments due to process separation.  Also, if a non-page is communicating through shared memory with a web worker, a deadlock can ensue if the non-page worker is waiting to be woken up by the web worker and the web worker is suspended or killed because its owning document is placed into the history or closed. </p>
+
+    <emu-note>
+      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>)  We need to formalize what happens if illegal sharing is attempted. </p>
+    </emu-note>
 
   </emu-clause>
   
@@ -1137,8 +1198,18 @@ These call AllocateTypedArray with a specified length:
         
   </emu-clause>
   
+  <emu-clause id="WebBrowserEmbedding.DOM">
+    <h1>DOM, browser APIs, WebIDL</h1>
+    <p> See Issue 38 for details. </p>
+  </emu-clause>
+
   <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
     <h1>Transmitting and Cloning SharedArrayBuffers and Views</h1>
+
+    <emu-note>
+      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/65">Issue 65</a>) This will move to the HTML spec. </p>
+      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>)  We need to formalize what happens if illegal sharing is attempted, eg, attempting to share with a ServiceWorker.  See earlier section. </p>
+    </emu-note>
 
     <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffers can be transmitted from one worker to another using postMessage() and are handled by the HTML5 structured clone algorithm as follows.</p>
 
