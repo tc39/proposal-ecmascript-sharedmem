@@ -48,7 +48,7 @@ Memory can be created in any agent and then shared with any other agent, and can
 
 A SharedArrayBuffer is like an ArrayBuffer, apart from its memory being shared, and the memory is accessed in the same way as an ArrayBuffer's memory is: by creating views on the buffer, and then accessing the memory via the view using standard array access syntax.  The same view types can be applied to SharedArrayBuffer as to ArrayBuffer, from Int8Array to Float64Array.
 
-Suppose the creator of the shared memory wants to share a large constant array of prime numbers with its workers.  It allocates the memory, fills it, and sends it:
+Suppose the creator of the shared memory wants to share a large array of prime numbers with its workers, without any intent of modifying that array.  It allocates the memory, fills it, and sends it:
 
 ```js
 var sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 100000); // 100000 primes
