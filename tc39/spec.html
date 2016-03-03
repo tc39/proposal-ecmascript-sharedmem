@@ -71,6 +71,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-03 -- (Issue 78) Change ValidateAtomicAccess to behave as the DataView and SIMD specs, atomic ops are related to those method suites.
   <li> 2016-03-03 -- (Issue 72) The _value_ argument of the atomics ops that take a value are converted by ToInteger, not ToNumber.
   <li> 2016-03-03 -- (Issue 63) The _count_ argument of futexWake and futexWakeOrRequeue defaults to +Infinity, not 0.
   <li> 2016-03-03 -- (Issue 79, Issue 80) Replaced most of the section on web browser embedding with references to agents spec and structured cloning spec.
@@ -710,19 +711,17 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
-      <h1>Runtime semantics: ValidateAtomicAccess( typedArray, propertyName )</h1>
+      <h1>Runtime semantics: ValidateAtomicAccess( typedArray, requestIndex )</h1>
       <P> Perform the following steps: </p>
       <emu-alg>
         1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot
-        1. Let _propertyKey_ be ToPropertyKey(_propertyName_)
-        1. If Type(_propertyKey_) is not String, throw a ~RangeError~ exception
-        1. Let _numericIndex_ be CanonicalNumericIndexString(_propertyKey_)
-        1. Assert: _numericIndex_ is not an abrupt completion
-        1. If IsInteger(_numericIndex_) is ~false~, throw a ~RangeError~ exception
-        1. If _numericIndex_ = -0, throw a ~RangeError~ exception
+        1. Let _numberIndex_ be ToNumber(_requestIndex_)
+        1. ReturnIfAbrupt(_numberIndex_)
+        1. Let _accessIndex_ be ToInteger(_numberIndex_)
+        1. If _numberIndex_ &ne; _accessIndex_, throw a ~RangeError~ exception
         1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot
-        1. If _numericIndex_ &lt; 0 or _numericIndex_ &ge; _length_ throw a ~RangeError~ exception
-        1. Return _numericIndex_
+        1. If _accessIndex_ &lt; 0 or _accessIndex_ &ge; _length_, throw a ~RangeError~ exception
+        1. Return _accessIndex_
       </emu-alg>
     </emu-clause>
     
