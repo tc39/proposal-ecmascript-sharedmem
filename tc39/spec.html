@@ -71,6 +71,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-03 -- (Issue 72) The _value_ argument of the atomics ops that take a value are converted by ToInteger, not ToNumber.
   <li> 2016-03-03 -- (Issue 63) The _count_ argument of futexWake and futexWakeOrRequeue defaults to +Infinity, not 0.
   <li> 2016-03-03 -- (Issue 79, Issue 80) Replaced most of the section on web browser embedding with references to agents spec and structured cloning spec.
   <li> 2016-02-26 -- Editorial work in preparation for first review.
@@ -850,7 +851,7 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt(_buffer_)
         1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _v_ be ToNumber(_value_)
+        1. Let _v_ be ToInteger(_value_)
         1. ReturnIfAbrupt(_value_).
         1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
         1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
@@ -878,9 +879,9 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt(_buffer_)
         1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _expected_ be ToNumber(_expectedValue_)
+        1. Let _expected_ be ToInteger(_expectedValue_)
         1. ReturnIfAbrupt(_expected_)
-        1. Let _replacement_ be ToNumber(_replacedValue_)
+        1. Let _replacement_ be ToInteger(_replacedValue_)
         1. ReturnIfAbrupt(_replacement_)
         1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
         1. Let _convOp_ be the conversion operation specified in Table 49 for _arrayTypeName_
@@ -891,7 +892,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to ( _buffer_, _indexedPosition_, _elementType_ ), do:
           1. Let _r_ be GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
-          1. If _r_ is the same number value as _x_ then:
+          1. If _r_ is the same as _x_ then:
             1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
         1. Return _r_
       </emu-alg>
@@ -1075,7 +1076,7 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt(_buffer_)
         1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _v_ be ToNumber(_value_)
+        1. Let _v_ be ToInteger(_value_)
         1. ReturnIfAbrupt(_v_)
         1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
         1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
