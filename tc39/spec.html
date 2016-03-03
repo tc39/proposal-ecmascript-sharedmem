@@ -71,7 +71,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-03-03 -- Replaced most of the section on web browser embedding with references to agents spec and structured cloning spec.
+  <li> 2016-03-03 -- (Issue 63) The _count_ argument of futexWake and futexWakeOrRequeue defaults to +Infinity, not 0.
+  <li> 2016-03-03 -- (Issue 79, Issue 80) Replaced most of the section on web browser embedding with references to agents spec and structured cloning spec.
   <li> 2016-02-26 -- Editorial work in preparation for first review.
   <li> 2016-02-10 -- (Issue 62) Rewrote ValidateAtomicAccess so as to process index values in the same way as ES6.
   <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
@@ -946,9 +947,10 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt( _buffer_ )
         1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
         1. ReturnIfAbrupt( _i_ )
-        1. Let _tmp_ be ToInteger( _count_ )
-        1. ReturnIfAbrupt( _tmp_ )
-        1. Let _c_ be max( +0, _tmp_ ).
+        1. If _count_ is not provided or is ~undefined~ then let _c_ be +Infinity.  Otherwise:
+          1. Let _tmp_ be ToInteger( _count_ )
+          1. ReturnIfAbrupt( _tmp_ )
+          1. Let _c_ be max( +0, _tmp_ ).
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID( _bufferVal_ )
         1. Let _n_ = 0
@@ -975,9 +977,10 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt(_buffer_)
         1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index1_ )
         1. ReturnIfAbrupt(_i_)
-        1. Let _tmp_ be ToInteger(_count_)
-        1. ReturnIfAbrupt(_tmp_)
-        1. Let _c_ be max(+0,_tmp_)
+        1. If _count_ is not provided or is ~undefined~ then let _c_ be +Infinity.  Otherwise:
+          1. Let _tmp_ be ToInteger( _count_ )
+          1. ReturnIfAbrupt( _tmp_ )
+          1. Let _c_ be max( +0, _tmp_ ).
         1. Let _j_ be ValidateAtomicAccess( _typedArray_, _index2_ )
         1. ReturnIfAbrupt(_j_)
         1. Let _v_ be ToInt32(_value_)
