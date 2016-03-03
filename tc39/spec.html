@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-02-26 </p>
+<p> Revised: 2016-03-03 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -71,6 +71,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-03 -- Replaced most of the section on web browser embedding with references to agents spec and structured cloning spec.
   <li> 2016-02-26 -- Editorial work in preparation for first review.
   <li> 2016-02-10 -- (Issue 62) Rewrote ValidateAtomicAccess so as to process index values in the same way as ES6.
   <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
@@ -1100,75 +1101,37 @@ These call AllocateTypedArray with a specified length:
   <h1>Web browser embedding (informative)</h1>
 
   <emu-note>
-    <p> Most of this section will move to other specifications, be it
-      the Agents Specification (most of it) or the HTML specification
-      (details about web workers and structured cloning). </p>
+    <p>
+      The <a href="https://axis-of-eval.org/shmem/agents-formatted.html">emerging
+      Agents specification</a> has details on how agents are mapped to
+      web technologies.  The emerging revision of the Structured Clone
+      specification has details on how SharedArrayBuffers are
+      transmitted among agents.  What is left here comprises
+      additional constraints and agent mapping detail. </p>
+
+    <p> (Editor's memo to self) The shared memory specification will
+      rely on a number of fine points in the Agents specification.
+      Those should be pointed out, when they are used, in the prose in
+      the preceding sections. </p>
   </emu-note>
 
   <emu-clause id="WebBrowserEmbedding.Agents">
     <h1>Agent mapping</h1>
-    <p> In a web browser setting, the <em>agents</em> comprise a document's main thread environment and worker thread environments.  Normal Web Workers must be supported.</p>
+    <p> Normal ("dedicated") Web Workers must be supported.</p>
 
-    <p> There are reasons not to support ServiceWorkers and Shared Workers ("non-page workers").  In some browsers, non-page workers may be technically incapable of receiving shared memory segments due to process separation.  Also, if a non-page is communicating through shared memory with a web worker, a deadlock can ensue if the non-page worker is waiting to be woken up by the web worker and the web worker is suspended or killed because its owning document is placed into the history or closed. </p>
+    <p> There are reasons not to support transmitting shared memory
+      from a web page to a ServiceWorker or SharedWorker ("non-page
+      workers").  In some browsers, non-page workers may be
+      technically incapable of receiving shared memory segments due to
+      process separation.  Also, if a non-page is communicating
+      through shared memory with a web worker, a deadlock can ensue if
+      the non-page worker is waiting to be woken up by the web worker
+      and the web worker is suspended or killed because its owning
+      document is placed into the history or closed. </p>
 
-    <emu-note>
-      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>)  We need to formalize what happens if illegal sharing is attempted. </p>
-    </emu-note>
-
-  </emu-clause>
-  
-  <emu-clause id="WebBrowserEmbedding.WorkerSemantics">
-    <h1>Clarifications and changes to Web Worker semantics</h1>
-
-    <emu-note>
-      <p> Several of these issues have been reported as bugs against the WHATWG spec, <a href='https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039'>see this bug report</a>. </p>
-    </emu-note>
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Start">
-      <h1>Actions to start a worker</h1>
-      <p> (Clarification) The only action required to start a worker is to call "new Worker()". </p>
-      <p> (Compatible change) If a worker cannot be started for reasons of resource exhaustion (notably, no threads available, including arbitrary implementation limits on the number of threads) then an exception must be thrown. </p>
-      <emu-note>
-        <p> Some browsers currently violate those requirements. </p>
-        <ul>
-          <li> In current Firefox, a worker is not actually created until the parent has returned to its event loop and allowed the event loop to process runnables related to the worker creation.
-          <li> In current Firefox, there is a per-domain limit on the number of workers.  An attempt to create a worker will silently not start the worker if the limit has been reached; the worker will be queued and started when another worker has terminated.
-        </ul>
-        <p> If an agent creates a worker and then -- if the worker is not started because the agent does not return to its event loop or because the worker is not assigned a thread -- the agent goes to sleep on a location waiting for the worker to wake it, there will be a deadlock. </p>
-        <p> There are other error situations during worker startup that can't necessarily be signaled synchronously, notably, a load error on the URL.  Those have to be signaled via an event callback, or the creating agent must poll the state of the worker to see if it enters an error state (see more below on the state). </p>
-      </emu-note>
-    </emu-clause>
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Jobs">
-      <h1>Events and scripts run in a worker as ES6 jobs</h1>
-      <p> (Clarification) ECMAscript code running in a worker runs as an ES6 job, and scheduling of work in a Worker happens by the rules of ES6 jobs.</p>
-      <emu-note>
-        <p> Thus the forward-progress guarantee of jobs also applies to workers. </p>
-      </emu-note>
-    </emu-clause>
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.LicenseToKill">
-      <h1>Curtail the license to kill</h1>
-      <p> (Compatible change) Workers may be killed by the browser only for specific reasons.  These reasons are TBD but include evicting the owning page from the history and closing the owning page.  These reasons do not include workers that 'run too long'. </p>
-      <emu-note>
-        <p> Currently the WHATWG spec allows the browser to kill any worker at any time.  The purpose of the rule is probably a combination of the need to stop runaway scripts (without the normal slow-script dialog) and the need to remove workers once a page is evicted from the browser cache or a tab is closed.  However, the wording is overly broad.  Also, common uses of workers for computation conflict with the ability to detect 'runaway' agents:</p>
-        <ul>
-          <li> The worker may perform a genuinely long-running computation
-          <li> The worker will have its own user-implemented 'event' loop, communicating synchronously through shared memory; it will not use the browser's event loop
-        </ul>
-      </emu-note>
-    </emu-clause>
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Introspection">
-      <h1>Termination detection</h1>
-      <p> (Compatible(?) change) The worker object should have a read-only property called "state" whose value represents the state of the worker (eg a string naming the state).  One state could be "terminated", indicating the worker is dead. </p>
-      <emu-note>
-        <p> There appears to be no way at present to directly determine whether a Worker has terminated. </p>
-      </emu-note>
-      <emu-note>
-        <p> Possible complementary mechanisms include throwing an exception when a message is sent to a terminated worker, and to send an error event to the creating agent when a worker is killed. </p>
-      </emu-note>
-    </emu-clause>
+    <p> The structured clone spec makes (or will make) an allowance for
+      the transmission to fail.  If shared memory cannot be transmitted
+      that failure mechanism will be invoked. </p>
 
   </emu-clause>
   
@@ -1185,41 +1148,20 @@ These call AllocateTypedArray with a specified length:
 
   </emu-clause>
 
-  <emu-clause id="WebBrowserEmbedding.Termination">
-    <h1>Agent termination</h1>
-    <p>If a worker is terminated by a call to its terminate method while it is blocked in a call to futexWait then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  There are no provisions for cleaning up locked state unless the browser supports a close handler.</p>
-
-    <p>If a worker is terminated for any other reason, such as the user agent reloading or closing the window or frame, and the worker is blocked in a call to futexWait when it is terminated, then the worker is first woken (removed from any wait queue) and then immediately terminated (the wakeup is not observed by the caller of futexWait).  However, after the running script has been terminated the worker's close handler(s) will be run as if the wait had not been aborted.</p>
-
-    <p> Some corner cases are unresolved:</p>
-    <ul>
-      <li> If Service Workers have access to shared memory then it is possible for a service worker to wait on an action from another agent, say, a document's main thread.  But if the document in question is suspended (because the user is navigating away from the document) then the service worker may never be woken: the document may remain suspended and may eventually be evicted from the history.
-    </ul>
-        
-  </emu-clause>
-  
   <emu-clause id="WebBrowserEmbedding.DOM">
     <h1>DOM, browser APIs, WebIDL</h1>
-    <p> See Issue 38 for details. </p>
+
+    <p> APIs that can accept shared memory should do so explicitly.  See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/38">Issue #38</a>
+      for a discussion of possible changes to WebIDL to make the necessary annotations possible. </p>
+
   </emu-clause>
 
   <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
     <h1>Transmitting and Cloning SharedArrayBuffers and Views</h1>
 
-    <emu-note>
-      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/65">Issue 65</a>) This will move to the HTML spec. </p>
-      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>)  We need to formalize what happens if illegal sharing is attempted, eg, attempting to share with a ServiceWorker.  See earlier section. </p>
-    </emu-note>
-
-    <p> SharedArrayBuffers and TypedArrays that view SharedArrayBuffers can be transmitted from one worker to another using postMessage() and are handled by the HTML5 structured clone algorithm as follows.</p>
-
-    <p>When a SharedArrayBuffer input object is cloned in the originating agent the result is a new SharedArrayBuffer object in the receiving agent that references the same Shared Data Block as the input object.  The input object must be present in the transfer map for the clone operation; if not, a standard clone exception will be thrown.</p>
-
-    <p>When a SharedArrayBuffer object is cloned its Shared Data Block is not detached (SharedArrayBuffers are never detached).</p>
-
-    <p>A Shared Data Block remains accessible so long as at least one SharedArrayBuffer object references it in some agent.</p>
-
-    <p>When a TypedArray object that is a view on a SharedArrayBuffer is cloned the result is a new TypedArray object of the same element type.  The "buffer" property of the new TypedArray will reference a clone of the input object's "buffer" property.  The input object's "buffer" property must be present in the transfer map for the clone, or a standard clone exception will be thrown.</p>
+    <p> Transmitting and cloning in a web browser are addressed by the HTML spec.  See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/65">Issue #65</a> for a discussion and
+      for the prose that was previously here, <a href="https://github.com/whatwg/html/pull/727">Issue #727 of the WHATWG spec</a> for the proposed changes (and many other things),
+      and <a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue #39</a> for a discussion of how transfering and cloning can fail. </p>
 
   </emu-clause>
 
