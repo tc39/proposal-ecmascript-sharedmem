@@ -11,7 +11,7 @@
 
 <h1>DOM/ECMAScript "Agents"</h1>
 
-<p> Early draft.  Revised: 2016-02-20.  lhansen@mozilla.com </p>
+<p> Second draft.  Revised: 2016-03-04.  lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -56,6 +56,14 @@
   <li> <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf">C++ paper on forward progress, not sure yet if this is the latest</a>
   <li> <a href="https://mail.mozilla.org/pipermail/es-discuss/2014-October/039985.html">Allen's explanation of how things hang together, and useful followups</a>
   <li> <a href="https://esdiscuss.org/topic/holy-mixed-metaphors-batman-was-event-loops-in-navigated-away-from-windows#content-2">More discussion of the name, notably the origin of "continent"</a>
+</ul>
+
+<p>Changelog:</p>
+<ul>
+  <li> 2016-03-04 -- Changed the definition of agent clusters back to the old one where a cluster is monotonically growing.  Integrated several comments and cleaned up.  Removed the contents of the section on agent suspension (by moving it into other sections).
+  <li> 2016-03-04 -- Removed the contents of the section on inter-agent communication because it was not relevant to this spec.
+  <li> 2016-03-04 -- Removed wording about the kinds of objects that agents and agent clusters could be reified as.
+  <li> 2016-03-03 -- Added reference to Issue 39
 </ul>
 
 </emu-intro>
@@ -191,8 +199,10 @@
 	  <li> <b> Destroying </b>: agent is in the process of being destroyed
 	  <li> <b> Destroyed </b>: agent has been destroyed
 	</ul>
-      <li> (The SAB spec will add several constant attributes: <b>signifier</b>, <b>lockFree1</b>,
-	<b>lockFree2</b>, <b>lockFree4</b>)
+      <li> <b>signifier</b>: an identifier for the agent.
+      <li> <b>lockFree1</b> determines whether atomic operations on shared memory with one-byte granularity are lock-free.
+      <li> <b>lockFree2</b> determines whether atomic operations on shared memory with two-byte granularity are lock-free.
+      <li> <b>lockFree4</b> determines whether atomic operations on shared memory with four-byte granularity are lock-free.
     </ul>
 
     <emu-note>
@@ -202,20 +212,21 @@
     </emu-note>
 
     <p> An agent is a specification mechanism and need not correspond to any
-      particular artefact of an ECMAScript implementation.  It is
-      embedding-dependent whether ECMAScript code can directly access or observe
-      an agent.  If an agent has a value representation within an ECMAScript
-      program it is as a host object value. </p>
+      particular artefact of an ECMAScript implementation. </p>
 
     <emu-note>
-      <p> (Spec draft note) The SpiderMonkey shell allows workers to be created
-	but has no JS representation for workers.  SharedArrayBuffers are shared
-	not through messages but through a global mailbox mechanism. </p>
+      <p> There are several ways in which agents could be meaningful
+        without having a direct representation. </p>
 
-      <p> Also, the MessagePort mechanism in HTML5 allows workers to be passed
-	around implicitly; it is possible to communicate with a worker without
-	having a direct representation for the worker, only for a channel that
-	the worker listens on. </p>
+      <p> The standalone shell for Firefox's JS engine allows workers
+	to be created but has no JS representation for those workers.
+	SharedArrayBuffers are shared not through messages but through
+	a global mailbox mechanism. </p>
+
+      <p> The MessagePort mechanism in HTML5 allows workers to be
+	passed around implicitly; it is possible to communicate with a
+	worker without having a direct representation for the worker,
+	only for a channel that the worker listens on. </p>
     </emu-note>
 
   </emu-clause> <!-- agent -->
@@ -223,44 +234,30 @@
   <emu-clause id="ExecutableCodeAndContexts.AgentCluster">
     <h1>Agent Clusters (NEW)</h1>
 
-    <p> An <em>agent cluster</em> is a maximal time-varying set of agents that
-      can communicate by operating on shared memory.  The agent cluster also has
-      a set of attributes. </p>
+    <p> An <em>agent cluster</em> is a maximal set of agents that can
+      communicate by operating on shared memory. </p>
+
+    <emu-note>
+      <p> Programs within different agents may share memory by
+        unspecified means.  At a minimum, the backing memory for
+        ~SharedArrayBuffer~ objects can be shared among the agents in
+        the cluster. </p>
+
+      <p> There may be agents that can communicate by message passing
+	that cannot share memory; they are never in the same
+	cluster. </p>
+    </emu-note>
 
     <p> Every agent belongs to exactly one agent cluster. </p>
 
     <emu-note>
-      <p> (Spec draft note) The agent cluster notion is needed by the SAB spec
-	to talk about memory ordering.  It doesn't have to be part of the agent
-	spec, but I'm exposing it here in case there are other benefits to be
-	had from it. </p>
-
-      <p> Agent clusters comprise agents that are all "on the same machine".
-	There may be agents that can communicate by message passing that cannot
-	share memory; they are never in the same cluster. </p>
+      <p> The agents in a cluster need not all be alive at some
+	particular point in time.  If agent <b>A</b> creates another
+	agent <b>B</b>, after which <b>A</b> terminates and <b>B</b>
+	creates agent <b>C</b>, the three agents are in the same
+	cluster if <b>A</b> could share some memory with <b>B</b>
+	and <b>B</b> could share some memory with <b>C</b>. </p>
     </emu-note>
-
-    <emu-note>
-      <p> Observe that the agents in a cluster need not all be alive at some
-	point in time, <b>A</b> can share a buffer with <b>B</b>, after
-	which <b>A</b> terminates and <b>B</b> creates <b>C</b> and shares a
-	buffer with <b>C</b>.  Observe also that the two buffers need not be the
-	same. </p>
-    </emu-note>
-
-    <emu-note>
-      <p> When an agent in an agent cluster shares a SharedArrayBuffer with an
-	agent not in that agent cluster, then the two agents' agent clusters are
-	merged and the resulting agent cluster becomes the agent cluster of all
-	of the agents in the new agent cluster.  The agent cluster shrinks when
-	one of the agents in the agent cluster terminates or drops the last
-	reference to the last buffer that keeps it in the cluster. </p>
-    </emu-note>
-
-    <p> The agent cluster's set of attributes includes: </p>
-    <ul>
-      <li> (The SAB spec will add several, notably <b>futexMutex</b>.)
-    </ul>
 
     <p> All agents within a cluster must have the same value for
       their <b>littleEndian</b> attributes. </p>
@@ -273,68 +270,54 @@
 	implementation. </p>
     </emu-note>
 
+    <p> All agents within a cluster must have the same values for
+      their <b>lockFree1</b> attributes; the same values for
+      their <b>lockFree2</b> attributes; and the same values for
+      their <b>lockFree4</b> attributes. </p>
+
+    <p> All agents within a cluster must have different values for
+      their <b>signifier</b> attributes. </p>
+
     <p> An agent cluster is a specification mechanism and need not correspond to
-      any particular artefact of an ECMAScript implementation.  It is
-      embedding-dependent whether ECMAScript code can directly access or observe
-      an agent cluster.  If an agent cluster has a value representation within
-      an ECMAScript program it is as a host object value. </p>
+      any particular artefact of an ECMAScript implementation. </p>
+
+    <p> An embedding may suspend and wake an agent without the agent's
+      knowledge or cooperation.  If the embedding does so, it must
+      suspend and wake all agents in an agent cluster together. </p>
 
     <emu-note>
-      <p> (Spec draft note) Should an agent cluster be an object in an
-	implementation then it may actually expose GC, since it may become
-	detectable that an agent cluster has shrunk.  We can fix that by saying
-	that an agent cluster can only grow, for example, or by outlawing agent
-	cluster reification, or by prohibiting the type of introspection that
-	discovers shrinkage. </p>
-    </emu-note>
+      <p> The purpose of that restriction is to avoid a situation
+        where a worker deadlocks or starves because another agent has
+        been suspended.  For example, if a DOM SharedWorker shares
+        memory with a regular worker, and the regular worker is
+        suspended while it holds a lock (because the web page the
+        regular worker is in is pushed into the window history), and
+        the SharedWorker tries to acquire the lock, then the
+        SharedWorker will be blocked until the regular worker wakes up
+        again, if ever.  Meanwhile other workers trying to access the
+        SharedWorker from other web pages will starve. </p>
 
+      <p> The implication of the restriction is that it will not be
+        possible to share memory between agents that don't belong to
+        the same suspend/wake collective within the embedding. </p>
+
+      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>) That, in
+        turn, places interesting demands on the structured clone algorithm in web browsers. </p>
+    </emu-note>
+        
   </emu-clause> <!-- agent cluster -->
 
   <emu-clause id="ExecutableCodeAndContexts.AgentCommunication">
     <h1>Inter-Agent Communication (NEW)</h1>
 
-    <p> Programs within different agents may communicate by unspecified means.
-      With the exception of the backing memory for ~SharedArrayBuffer~ objects
-      this communication cannot cause any ECMAScript object memory that is
-      mutable in any agent to become shared between agents, and the ECMAScript
-      implementation is not required to preserve object identity if an object
-      value is sent from one agent to another and back. </p>
-
-    <p> A program within an agent may communicate an ArrayBuffer to a program
-      within another agent and in doing so cause the ArrayBuffer to become
-      detached in the sending agent. </p>
-
-    <p> An agent may at any time send a communication to another agent.  If the
-      receiving agent needs to create a job to handle that communication it will
-      add the job to its job queues at an implementation-specific time. </p>
-
-    <emu-note>
-      <p> (Spec draft note) Some overlap here with prose in ES6 8.4.  The
-	purpose of the preceding paragraph is to give job execution the chance
-	to take priority over handling external events. </p>
-    </emu-note>
+    <p> (Removed; section kept to avoid changing the numbering) </p>
 
   </emu-clause> <!-- inter-agent communication -->
 
   <emu-clause id="ExecutableCodeAndContexts.ExternalSuspension">
     <h1>External suspension of agents (NEW)</h1>
 
-    <p> An embedding may suspend and wake agents without the agents' knowledge.  If it does that, then: </p>
-    <ul>
-      <li> This must not be detectable to the agents and
-      <li> All agents within the agent cluster of any suspended agent must be suspended together
-    </ul>
-
-    <emu-note>
-      <p> (Spec draft note) The purpose of that point is to avoid deadlocks as
-	pages are pushed into the window history, for example.  It creates an
-	interesting conundrum for shared workers and service workers, since
-	they would be part of the agent cluster if memory can be shared with
-	them but would normally not be suspended when the page goes into the
-	history.  However, this is one of the several good reasons not to
-	allow memory to be shared with shared workers and service workers, see
-	the SAB spec for more. </p>
-    </emu-note>
+    <p> (Integrated into the Agent Clusters section; section kept to avoid changing the numbering) </p>
 
   </emu-clause> <!-- external suspension -->
 
@@ -485,6 +468,10 @@
             browser's event loop
         </ul>
       </emu-note>
+
+      <p> FIXME: Here and/or in termination detection below we want to
+      reference the discussion on partial failure in Issue#55 </p>
+
     </emu-clause> <!-- license to kill -->
 
     <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Introspection">
