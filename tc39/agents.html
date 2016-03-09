@@ -60,7 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-03-09 -- Agent termination semantics clarified.
+  <li> 2016-03-09 -- Agent termination semantics clarified.  Clarified that an Agent is an HTML event loop, removed some redundant prose.
   <li> 2016-03-04 -- Changed the definition of agent clusters back to the old one where a cluster is monotonically growing.  Integrated several comments and cleaned up.  Removed the contents of the section on agent suspension (by moving it into other sections).
   <li> 2016-03-04 -- Removed the contents of the section on inter-agent communication because it was not relevant to this spec.
   <li> 2016-03-04 -- Removed wording about the kinds of objects that agents and agent clusters could be reified as.
@@ -395,19 +395,14 @@
 
   <emu-clause id="WebBrowserEmbedding.Agents">
     <h1>Agent mapping</h1>
-    <p> In a web browser setting, the <em>agents</em> comprise a document's main
-      thread environment and worker thread environments. </p>
 
-    <p> Browsers will typically let main-thread agents
+    <p> In a web browser an <em>agent</em> is an
+      HTML <em>event loop</em> <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">[here]</a>.  </p>
+
+    <p> Browsers will typically let agents that run on the browser's main thread 
       have <b>canBlock</b>=false.  Browsers that support several tabs within the
       same content process may share a single agent execution thread across all
       the tabs in that case (Firefox does). </p>
-
-    <p> Agents are represented to ES programs as Worker objects.  There is no
-      representation of agent clusters.  Agents communicate (in the sense of the
-      Inter-Agent Communication section) by messages on message channels,
-      including on the implicit channel created between a parent and its
-      child.  </p>
 
   </emu-clause> <!-- agents -->
   
