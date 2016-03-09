@@ -11,7 +11,7 @@
 
 <h1>DOM/ECMAScript "Agents"</h1>
 
-<p> Second draft.  Revised: 2016-03-04.  lhansen@mozilla.com </p>
+<p> Second draft.  Revised: 2016-03-09.  lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-09 -- Agent termination semantics clarified.
   <li> 2016-03-04 -- Changed the definition of agent clusters back to the old one where a cluster is monotonically growing.  Integrated several comments and cleaned up.  Removed the contents of the section on agent suspension (by moving it into other sections).
   <li> 2016-03-04 -- Removed the contents of the section on inter-agent communication because it was not relevant to this spec.
   <li> 2016-03-04 -- Removed wording about the kinds of objects that agents and agent clusters could be reified as.
@@ -305,6 +306,34 @@
         turn, places interesting demands on the structured clone algorithm in web browsers. </p>
     </emu-note>
         
+    <p> An embedding may terminate an agent without any
+      of the agent's cluster's other agents' prior knowledge or cooperation.  If the
+      embedding terminates an agent it must make it possible for any other agents
+      in the terminated agent's cluster that continue to run to discover the
+      termination. </p>
+
+    <emu-note>
+      <p> Examples of that type of termination are: operating systems
+        or users terminating agents that are running in separate
+        processes; the embedding itself terminating an agent that is
+        running in-process with the other agents when per-agent
+        resource accounting indicates that the agent is runaway. </p>
+    </emu-note>
+
+    <emu-note>
+      <p> (Spec draft note) The requirement that the embedding must
+        make the termination known to other agents is actually very
+        soft.  The shared memory spec will require that detecing
+        termination creates the necessary happens-before edge in the
+        memory ordering, which is a tougher requirement.  The web
+        platform provides nothing at the moment to detect
+        termination. </p>
+
+      <p> In current browsers, given that dedicated workers are
+        in-process, an agent cluster will normally terminate en masse,
+        so the requirement is trivially satisfied for now. </p>
+    </emu-note>
+
   </emu-clause> <!-- agent cluster -->
 
   <emu-clause id="ExecutableCodeAndContexts.AgentCommunication">
@@ -324,13 +353,7 @@
   <emu-clause id="ExecutableCodeAndContexts.ExternalTermination">
     <h1>External termination of agents (NEW)</h1>
 
-    <p> An embedding may terminate agents without the agents' knowledge.  If it does that, then: </p>
-
-    <p> <b>TODO</b> </p>
-
-    <emu-note>
-      <p> The reasons for termination include resource exhaustion and embedding-specific agent management. </p>
-    </emu-note>
+    <p> (Integrated into the Agent Clusters section; section kept to avoid changing the numbering) </p>
     
   </emu-clause> <!-- external termination -->
 
