@@ -60,6 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-11 -- Cleaned up the language on forward progress to distinguish between agents on a dedicated thread and those on a shared thread.
   <li> 2016-03-11 -- Converted agent attributes into fields in an Agent Record.
   <li> 2016-03-09 -- Agent termination semantics clarified.  Clarified that an Agent is an HTML event loop, removed some redundant prose.
   <li> 2016-03-04 -- Changed the definition of agent clusters back to the old one where a cluster is monotonically growing.  Integrated several comments and cleaned up.  Removed the contents of the section on agent suspension (by moving it into other sections).
@@ -140,14 +141,39 @@
     <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
       <h1>Forward Progress Guarantees</h1>
 
-      <p>Implementations must ensure that all unblocked jobs eventually make
+      <p>Implementations must ensure that all unblocked jobs in agents
+	whose <b>[[CanBlock]]</b> attribute is ~true~ eventually make
 	progress. </p>
+
+      <emu-note>
+        <p> For example, if there are two agents A and B where neither
+          is waiting for an event, and A either enters an infinite
+          loop or blocks in a synchronous operation such as
+          Atomics.futexWait without ever being unblocked, then B will
+          still execute further steps of its program. </p>
+      </emu-note>
+
+      <p> Provided that no job run by an agent
+        whose <b>[[CanBlock]]</b> attribute is false blocks forever,
+        implementations must ensure that all unblocked jobs in agents
+	whose <b>[[CanBlock]]</b> attribute is ~false~ eventually make
+	progress. </p>
+
+      <emu-note>
+        <p> Agents that share an execution thread can be blocked from
+          making forward progress if any job in any of those agents
+          enters an infinite loop, for example. </p>
+      </emu-note>
 
       <emu-note>
         <p>(Issue 28) This section may be formalized at least partly in the
           terms of the C++ working paper on forward progress, see the referenced
           issue, or it may be left as-is.  An ES6 execution thread is most plausibly a
           'Concurrent agent' in the terms of that paper. </p>
+
+        <p>Some work is going on in the HTML spec (<a href="https://github.com/whatwg/html/issues/851">see this issue</a>) to 
+          make it possible to control whether a worker can share an execution thread or not. </p>
+
       </emu-note>
     </emu-clause> <!-- progress -->
   </emu-clause> <!-- jobs and job queues -->
@@ -472,12 +498,13 @@
 	<p> (Spec draft note) Firefox requires a trip through the event loop
 	  to start the worker.  I'm told this won't be fixed, spec or no spec. </p>
 
-	<p> The current state is a deadlock hazard.  If one worker creates
-	  another and then blocks on a futex waiting for the new worker to
-	  unblock it, the workers may deadlock since the new one may not have
-	  been created.  The hazard is reduced by (a) prohibiting blocking on
-	  the main thread and (b) either disallowing nested workers or not
-	  requiring workers to return to their event loops to get a nested
+	<p> The current state of affairs is a minor deadlock hazard.  If one
+	  worker creates another and then blocks on a futex waiting
+	  for the new worker to unblock it, the workers may deadlock
+	  since the new one may not have been created.  The hazard is
+	  reduced by (a) prohibiting blocking on the main thread and
+	  (b) either disallowing nested workers or not requiring
+	  workers to return to their event loops to get a nested
 	  worker started. </p>
       </emu-note>
 
@@ -513,10 +540,11 @@
     <emu-clause id="WebBrowserEmbedding.WorkerSemantics.LicenseToKill">
       <h1>Curtail the license to kill</h1>
 
-      <p> (Compatible change) Workers may be killed by the browser only for
-	specific reasons.  These reasons are TBD (TODO) but include evicting the owning
-	page from the history and closing the owning page.  These reasons do not
-	include workers that 'run too long'. </p>
+      <p> (Compatible change) Workers may be killed by the browser
+	only for specific reasons.  These reasons are TBD (TODO) but
+	include evicting the owning page from the history and closing
+	the owning page.  These reasons do not include workers that
+	'run too long'. </p>
 
       <emu-note>
         <p> Currently the WHATWG spec allows the browser to kill any worker at
@@ -534,9 +562,6 @@
             browser's event loop
         </ul>
       </emu-note>
-
-      <p> FIXME: Here and/or in termination detection below we want to
-      reference the discussion on partial failure in Issue#55 </p>
 
     </emu-clause> <!-- license to kill -->
 
