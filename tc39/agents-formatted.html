@@ -353,11 +353,16 @@
         turn, places interesting demands on the structured clone algorithm in web browsers.  </p>
     </emu-note>
         
-    <p> An embedding may terminate an agent without any
-      of the agent's cluster's other agents' prior knowledge or cooperation.  If the
-      embedding terminates an agent the embedding must make it possible for any other agents
-      in the terminated agent's cluster that continue to run to discover the
-      termination.  </p>
+    <p> An embedding may terminate an agent without any of the agent's
+      cluster's other agents' prior knowledge or cooperation.  If an
+      agent is terminated not by programmatic action of its own or of
+      another agent in the cluster but by forces external to the
+      cluster, then the embedding has two choices: Either terminate
+      all the agents in the cluster, or provide reliable APIs that
+      allow the agents in the cluster to coordinate so that at least
+      one remaining member of the cluster will be able to detect the
+      termination, with the termination data containing enough
+      information to identify the agent that was terminated.  </p>
 
     <emu-note><span class="note">Note 5</span>
       <p> Examples of that type of termination are: operating systems
@@ -368,17 +373,23 @@
     </emu-note>
 
     <emu-note><span class="note">Note 6</span>
-      <p> (Spec draft note) The requirement that the embedding must
-        make the termination known to other agents is actually very
-        soft.  The shared memory spec will require that detecing
-        termination creates the necessary happens-before edge in the
-        memory ordering, which is a tougher requirement.  The web
-        platform provides nothing at the moment to detect
-        termination.  </p>
+      <p> (Spec draft note) Issue 55 contains discussions around the
+        termination signaling requirement.  It is not
+        uncontroversial.    </p>
 
-      <p> In current browsers, given that dedicated workers are
-        in-process, an agent cluster will normally terminate en masse,
-        so the requirement is trivially satisfied for now.  </p>
+      <p> The shared memory spec will additionally require that if
+        termination is signaled then the signal creates the necessary
+        happens-before edge in the memory ordering, which is a tougher
+        requirement.  </p>
+
+      <p> The web platform provides nothing at the moment to detect or
+        signal termination, regardless of shared memory, and this is
+        already a problem for developers.  Agent clusters are more
+        tightly coupled than pages that can signal each other, so the
+        problem may be easier to solve for agent clusters.  In current
+        browsers dedicated workers are anyway in-process and an agent
+        cluster will normally terminate en masse, so the requirement
+        is satisfied for now.  </p>
     </emu-note>
 
   </emu-clause> <!-- agent cluster -->
