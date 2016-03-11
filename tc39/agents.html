@@ -11,7 +11,7 @@
 
 <h1>DOM/ECMAScript "Agents"</h1>
 
-<p> Second draft.  Revised: 2016-03-09.  lhansen@mozilla.com </p>
+<p> Second draft.  Revised: 2016-03-11.  lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-11 -- Converted agent attributes into fields in an Agent Record.
   <li> 2016-03-09 -- Agent termination semantics clarified.  Clarified that an Agent is an HTML event loop, removed some redundant prose.
   <li> 2016-03-04 -- Changed the definition of agent clusters back to the old one where a cluster is monotonically growing.  Integrated several comments and cleaned up.  Removed the contents of the section on agent suspension (by moving it into other sections).
   <li> 2016-03-04 -- Removed the contents of the section on inter-agent communication because it was not relevant to this spec.
@@ -163,7 +164,7 @@
     <p> An agent's executing thread executes the jobs in the agent's job queues
       on the agent's execution contexts independently of other agents.  An
       execution thread may be used as the execution thread by multiple agents
-      only if none of the agents sharing the thread have a <b>canBlock</b>
+      only if none of the agents sharing the thread have a <b>[[CanBlock]]</b>
       attribute that is ~true~. </p>
 
     <emu-note>
@@ -179,35 +180,71 @@
       jobs.  The code uses the surrounding agent to access the specification
       level execution objects held within the agent: the <em>running execution
       context</em>, the execution context stack, the named job queues, and the
-      agent attributes. </p>
+      agent record's fields. </p>
 
-    <p> The set of per-agent attributes is at least this:</p>
-    <ul>
-      <li> <b> littleEndian </b>: the default value computed for
-	the <em>isLittleEndian</em> parameter when it is needed by E262
-	algorithms GetValueFromBuffer and SetValueInBuffer.  The choice is
-	implementation dependent and should be the alternative that is most
-	efficient for the implementation.  Set at agent creation time; constant.
-      <li> <b> canBlock </b>: determines whether the agent can block (to wait for an
-	external unblock event) or not.  Set at agent creation time; constant.
-      <li> <b> state </b>: the state of the agent.  It can take on the following symbolic
-	values:
-	<ul>
-	  <li> <b> Creating </b>: agent is in the process of being created
-	  <li> <b> Waiting </b>: agent is waiting for work to appear in a queue
-	  <li> <b> Running </b>: agent is processing a job
-	  <li> <b> Blocked </b>: agent has put itself to sleep
-	  <li> <b> Destroying </b>: agent is in the process of being destroyed
-	  <li> <b> Destroyed </b>: agent has been destroyed
-	</ul>
-      <li> <b>signifier</b>: an identifier for the agent.
-      <li> <b>lockFree1</b> determines whether atomic operations on shared memory with one-byte granularity are lock-free.
-      <li> <b>lockFree2</b> determines whether atomic operations on shared memory with two-byte granularity are lock-free.
-      <li> <b>lockFree4</b> determines whether atomic operations on shared memory with four-byte granularity are lock-free.
-    </ul>
+    <emu-table id="table-999" caption="Agent Record Fields">
+      <table>
+        <tbody>
+          <tr>
+            <th> Field name </th>
+            <th> Value </th>
+            <th> Meaning </th>
+          </tr>
+          <tr>
+            <td> [[LittleEndian]] </td>
+            <td> Boolean </td>
+            <td> The default value computed for the <em>isLittleEndian</em> parameter when it is needed by
+	      the algorithms GetValueFromBuffer and SetValueInBuffer.  The
+	      choice is implementation dependent and should be the
+	      alternative that is most efficient for the implementation.
+	      Constant. </td>
+          </tr>
+          <tr>
+            <td> [[CanBlock]] </td>
+            <td> Boolean </td>
+            <td> Determines whether the agent can block (to wait for an
+	      external unblock event) or not.  Constant. </td>
+          </tr>
+          <tr>
+            <td> [[State]] </td>
+            <td> String </td>
+            <td> The state of the agent.  It can take on the following	values:
+	      <ul>
+	        <li> <b> "creating" </b>: agent is in the process of being created
+	        <li> <b> "waiting" </b>: agent is waiting for work to appear in a queue
+	        <li> <b> "running" </b>: agent is processing a job
+	        <li> <b> "blocked" </b>: agent has put itself to sleep
+	        <li> <b> "destroying" </b>: agent is in the process of being destroyed
+	        <li> <b> "destroyed" </b>: agent has been destroyed
+	      </ul>
+            </td>
+          </tr>
+          <tr>
+            <td> [[Signifier]] </td>
+            <td> A value that admits equality testing </td>
+            <td> Uniquely identifies the agent within its agent cluster.  Constant. </td>
+          </tr>
+          <tr>
+            <td> [[IsLockFree1]] </td>
+            <td> Boolean </td>
+            <td> True iff atomic operations on one-byte values are lock-free.  Constant. </td>
+          </tr>
+          <tr>
+            <td> [[IsLockFree2]] </td>
+            <td> Boolean </td>
+            <td> True iff atomic operations on two-byte values are lock-free.  Constant. </td>
+          </tr>
+          <tr>
+            <td> [[IsLockFree4]] </td>
+            <td> Boolean </td>
+            <td> True iff atomic operations on four-byte values are lock-free.  Constant. </td>
+          </tr>
+        </tbody>
+      </table>
+    </emu-table>
 
     <emu-note>
-      <p> (Spec draft note) The <b>state</b> values are not yet being used, but will
+      <p> (Spec draft note) The <b>[[State]]</b> values are not yet being used, but will
 	be used by to-be-drafted semantic functions in the SAB spec, and may be used
 	here to discuss agent termination. </p>
     </emu-note>
@@ -308,7 +345,7 @@
         
     <p> An embedding may terminate an agent without any
       of the agent's cluster's other agents' prior knowledge or cooperation.  If the
-      embedding terminates an agent it must make it possible for any other agents
+      embedding terminates an agent the embedding must make it possible for any other agents
       in the terminated agent's cluster that continue to run to discover the
       termination. </p>
 
@@ -372,8 +409,8 @@
         <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type [, isLittleEndian] ) (ES6 24.1.1.5)</h1>
         <p> Replace step 7 of this algorithm with the following:</p>
         <ul>
-	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>isLittleEndian</b> attribute of
-	    the <em>surrounding agent</em>.
+	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> attribute of
+	    the <em>surrounding agent's</em> Agent Record.
         </ul>
       </emu-clause>
 
@@ -381,8 +418,8 @@
         <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value [, isLittleEndian] ) (ES6 24.1.1.6)</h1>
         <p> Replace step 8 of this algorithm with the following:</p>
         <ul>
-	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>isLittleEndian</b> attribute of
-	    the <em>surrounding agent</em>.
+	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> attribute of
+	    the <em>surrounding agent's</em> Agent Record.
         </ul>
       </emu-clause>
       
@@ -400,7 +437,7 @@
       HTML <em>event loop</em> <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">[here]</a>.  </p>
 
     <p> Browsers will typically let agents that run on the browser's main thread 
-      have <b>canBlock</b>=false.  Browsers that support several tabs within the
+      have <b>[[CanBlock]]</b>=false.  Browsers that support several tabs within the
       same content process may share a single agent execution thread across all
       the tabs in that case (Firefox does). </p>
 
