@@ -11,7 +11,7 @@
 
 <h1>DOM/ECMAScript "Agents"</h1>
 
-<p> Second draft.  Revised: 2016-03-11.  lhansen@mozilla.com </p>
+<p> Second draft.  Revised: 2016-03-15.  lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-15 -- Editorial: Further cleaned up the language around the properties on the Agent Record.
   <li> 2016-03-11 -- Cleaned up the language on forward progress to distinguish between agents on a dedicated thread and those on a shared thread.
   <li> 2016-03-11 -- Converted agent attributes into fields in an Agent Record.
   <li> 2016-03-09 -- Agent termination semantics clarified.  Clarified that an Agent is an HTML event loop, removed some redundant prose.
@@ -142,7 +143,7 @@
       <h1>Forward Progress Guarantees</h1>
 
       <p>Implementations must ensure that all unblocked jobs in agents
-	whose <b>[[CanBlock]]</b> attribute is ~true~ eventually make
+	whose <b>[[CanBlock]]</b> property is ~true~ eventually make
 	progress. </p>
 
       <emu-note>
@@ -154,9 +155,9 @@
       </emu-note>
 
       <p> Provided that no job run by an agent
-        whose <b>[[CanBlock]]</b> attribute is false blocks forever,
+        whose <b>[[CanBlock]]</b> property is false blocks forever,
         implementations must ensure that all unblocked jobs in agents
-	whose <b>[[CanBlock]]</b> attribute is ~false~ eventually make
+	whose <b>[[CanBlock]]</b> property is ~false~ eventually make
 	progress. </p>
 
       <emu-note>
@@ -183,7 +184,7 @@
 
     <p> An <em>agent</em> comprises a set of ECMAScript execution contexts, an
       execution context stack, a running execution context, a set of named job
-      queues, a set of attributes, and an executing thread.  Except for the
+      queues, an Agent Record, and an executing thread.  Except for the
       executing thread, the constituents of an agent belong exclusively to that
       agent. </p>
 
@@ -191,7 +192,7 @@
       on the agent's execution contexts independently of other agents.  An
       execution thread may be used as the execution thread by multiple agents
       only if none of the agents sharing the thread have a <b>[[CanBlock]]</b>
-      attribute that is ~true~. </p>
+      property that is ~true~. </p>
 
     <emu-note>
       <p> This is a case of bowing to reality, since browsers do share the main
@@ -324,10 +325,10 @@
     </emu-note>
 
     <p> All agents within a cluster must have the same value for
-      their <b>littleEndian</b> attributes. </p>
+      the <b>[[LittleEndian]]</b> property in their respective Agent Records. </p>
 
     <emu-note>
-      <p> (Spec draft note) Is the restriction on <b>littleEndian</b> overreach?
+      <p> (Spec draft note) Is the restriction on <b>[[LittleEndian]]</b> overreach?
 	It seemed reasonable at the time, but on some architectures it's
 	possible for different processes to have different endianness.  The rule
 	precludes sharing memory among such processes, in any ECMAScript
@@ -335,12 +336,11 @@
     </emu-note>
 
     <p> All agents within a cluster must have the same values for
-      their <b>lockFree1</b> attributes; the same values for
-      their <b>lockFree2</b> attributes; and the same values for
-      their <b>lockFree4</b> attributes. </p>
+      the <b>[[LockFree1]]</b> property in their respective Agent Records; similarly for
+      the <b>[[LockFree2]]</b> property and the <b>[[LockFree4]]</b> property. </p>
 
     <p> All agents within a cluster must have different values for
-      their <b>signifier</b> attributes. </p>
+      the <b>[[Signifier]]</b> property in their respective Agent Records. </p>
 
     <p> An agent cluster is a specification mechanism and need not correspond to
       any particular artefact of an ECMAScript implementation. </p>
@@ -396,7 +396,8 @@
       <p> The shared memory spec will additionally require that if
         termination is signaled then the signal creates the necessary
         happens-before edge in the memory ordering, which is a tougher
-        requirement. </p>
+        requirement than the requirement that it be possible to detect
+        termination. </p>
 
       <p> The web platform provides nothing at the moment to detect or
         signal termination, regardless of shared memory, and this is
@@ -446,7 +447,7 @@
         <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type [, isLittleEndian] ) (ES6 24.1.1.5)</h1>
         <p> Replace step 7 of this algorithm with the following:</p>
         <ul>
-	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> attribute of
+	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> property of
 	    the <em>surrounding agent's</em> Agent Record.
         </ul>
       </emu-clause>
@@ -455,7 +456,7 @@
         <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value [, isLittleEndian] ) (ES6 24.1.1.6)</h1>
         <p> Replace step 8 of this algorithm with the following:</p>
         <ul>
-	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> attribute of
+	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> property of
 	    the <em>surrounding agent's</em> Agent Record.
         </ul>
       </emu-clause>
@@ -584,7 +585,7 @@
       </emu-note>
 
       <emu-note>
-	<p> The spec here can be related back to the agent attributes, specified
+	<p> The spec here can be related back to the properties of the Agent Record, specified
 	  earlier. </p>
       </emu-note>
     </emu-clause> <!-- introspection -->
