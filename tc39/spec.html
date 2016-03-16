@@ -63,7 +63,6 @@ comments.</p>
   <li> The memory model is being improved (Issues
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/22">22</a>,
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/37">37</a>, 
-    <a href="https://github.com/tc39/ecmascript_sharedmem/issues/47">47</a>,
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/48">48</a>,
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/51">51</a>,
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/55">55</a>)
@@ -71,6 +70,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
   <li> 2016-03-16 -- (Issue 81) Rewrote prose to reference the Agents spec where appropriate.
   <li> 2016-03-03 -- (Issue 78) Change ValidateAtomicAccess to behave as the DataView and SIMD specs, atomic ops are related to those method suites.
   <li> 2016-03-03 -- (Issue 72) The _value_ argument of the atomics ops that take a value are converted by ToInteger, not ToNumber.
@@ -548,17 +548,18 @@ These call AllocateTypedArray with a specified length:
     <h1>Runtime semantics</h1>
     
     <emu-clause id="Atomics.WithAtomicAccessTo">
-      <h1>With atomic access to ( buffer, indexedPosition, elementSize )</h1>
+      <h1>With atomic access to shared memory</h1>
       
       <p> Let <em>atomic accesses</em> be those algorithm steps that
-        are labeled 'With atomic access to ...' in the algorithms below,
+        are labeled "With atomic access to shared memory" in the algorithms below,
         ie, atomic load, atomic store, and the atomic read-modify-write
         operations add, sub, and, or, xor, exchange, and
         compareExchange.</p>
 
       <p> Let <em>data accesses</em> be those invocations of
-        GetValueFromBuffer() and SetValueInBuffer() that are not part of
-        atomic accesses.</p>
+        GetValueFromBuffer() and SetValueInBuffer() that are not part
+        of atomic accesses, when those invocations' _arrayBuffer_
+        argument is a SharedArrayBuffer. </p>
         
       <p> Let the <em>access range</em> of an atomic or data access be the
         memory cells read or written by the access. </p>
@@ -568,8 +569,9 @@ These call AllocateTypedArray with a specified length:
         consistent with each agent's program order.  An atomic access
         is not viable if its access range intersects with but is not
         equal to the access range of another atomic access from
-        another agent that could be adjacent to it in the total
-        order.  (None of the accesses that intersect in that way are viable.) </p>
+        another agent that could be adjacent to it in the total order.
+        (None of the accesses that intersect in that way are
+        viable.) </p>
 
       <emu-note>
         <p> ECMAScript allows TypedArrays to alias each other and
@@ -828,7 +830,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to shared memory, do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. Compute: Let _w_ be _r_ + _v_
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
@@ -860,7 +862,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. With atomic access to ( _buffer_, _indexedPosition_, _elementType_ ), do:
+        1. With atomic access to shared memory, do:
           1. Let _r_ be GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
           1. If _r_ is the same as _x_ then:
             1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _replacement_ )
@@ -1026,7 +1028,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to shared memory, do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
         1. Return _r_
       </emu-alg>
@@ -1052,7 +1054,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
-        1. With atomic access to ( _buffer_, _indexedPosition_, _elementSize_ ), do:
+        1. With atomic access to shared memory, do:
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _v_ )
         1. Return _v_
       </emu-alg>
