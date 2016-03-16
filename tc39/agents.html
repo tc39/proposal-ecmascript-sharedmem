@@ -11,7 +11,7 @@
 
 <h1>DOM/ECMAScript "Agents"</h1>
 
-<p> Second draft.  Revised: 2016-03-15.  lhansen@mozilla.com </p>
+<p> Second draft.  Revised: 2016-03-16.  lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-15 -- Added a note about the IsLockFree values.  Minor cleanup.
   <li> 2016-03-15 -- Editorial: Further cleaned up the language around the properties on the Agent Record.
   <li> 2016-03-11 -- Cleaned up the language on forward progress to distinguish between agents on a dedicated thread and those on a shared thread.
   <li> 2016-03-11 -- Converted agent attributes into fields in an Agent Record.
@@ -143,7 +144,7 @@
       <h1>Forward Progress Guarantees</h1>
 
       <p>Implementations must ensure that all unblocked jobs in agents
-	whose <b>[[CanBlock]]</b> property is ~true~ eventually make
+	whose [[CanBlock]] property is ~true~ eventually make
 	progress. </p>
 
       <emu-note>
@@ -155,9 +156,9 @@
       </emu-note>
 
       <p> Provided that no job run by an agent
-        whose <b>[[CanBlock]]</b> property is false blocks forever,
+        whose [[CanBlock]] property is false blocks forever,
         implementations must ensure that all unblocked jobs in agents
-	whose <b>[[CanBlock]]</b> property is ~false~ eventually make
+	whose [[CanBlock]] property is ~false~ eventually make
 	progress. </p>
 
       <emu-note>
@@ -191,7 +192,7 @@
     <p> An agent's executing thread executes the jobs in the agent's job queues
       on the agent's execution contexts independently of other agents.  An
       execution thread may be used as the execution thread by multiple agents
-      only if none of the agents sharing the thread have a <b>[[CanBlock]]</b>
+      only if none of the agents sharing the thread have a [[CanBlock]]
       property that is ~true~. </p>
 
     <emu-note>
@@ -271,9 +272,17 @@
     </emu-table>
 
     <emu-note>
-      <p> (Spec draft note) The <b>[[State]]</b> values are not yet being used, but will
+      <p> (Spec draft note) The [[State]] values are not yet being used, but will
 	be used by to-be-drafted semantic functions in the SAB spec, and may be used
 	here to discuss agent termination. </p>
+    </emu-note>
+
+    <emu-note>
+      <p>The values of [[IsLockFree1]], [[IsLockFree2]],
+        and [[IsLockFree4]] are not necessarily constant on a
+        given piece of hardware, but may reflect implementation
+        choices that can vary over time and between ECMAScript
+        implemenations.</p>
     </emu-note>
 
     <p> An agent is a specification mechanism and need not correspond to any
@@ -325,10 +334,10 @@
     </emu-note>
 
     <p> All agents within a cluster must have the same value for
-      the <b>[[LittleEndian]]</b> property in their respective Agent Records. </p>
+      the [[LittleEndian]] property in their respective Agent Records. </p>
 
     <emu-note>
-      <p> (Spec draft note) Is the restriction on <b>[[LittleEndian]]</b> overreach?
+      <p> (Spec draft note) Is the restriction on [[LittleEndian]] overreach?
 	It seemed reasonable at the time, but on some architectures it's
 	possible for different processes to have different endianness.  The rule
 	precludes sharing memory among such processes, in any ECMAScript
@@ -336,11 +345,11 @@
     </emu-note>
 
     <p> All agents within a cluster must have the same values for
-      the <b>[[LockFree1]]</b> property in their respective Agent Records; similarly for
-      the <b>[[LockFree2]]</b> property and the <b>[[LockFree4]]</b> property. </p>
+      the [[IsLockFree1]] property in their respective Agent Records; similarly for
+      the [[IsLockFree2]] property and the [[IsLockFree4]] property. </p>
 
     <p> All agents within a cluster must have different values for
-      the <b>[[Signifier]]</b> property in their respective Agent Records. </p>
+      the [[Signifier]] property in their respective Agent Records. </p>
 
     <p> An agent cluster is a specification mechanism and need not correspond to
       any particular artefact of an ECMAScript implementation. </p>
@@ -447,7 +456,7 @@
         <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type [, isLittleEndian] ) (ES6 24.1.1.5)</h1>
         <p> Replace step 7 of this algorithm with the following:</p>
         <ul>
-	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> property of
+	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the [[LittleEndian]] property of
 	    the <em>surrounding agent's</em> Agent Record.
         </ul>
       </emu-clause>
@@ -456,7 +465,7 @@
         <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value [, isLittleEndian] ) (ES6 24.1.1.6)</h1>
         <p> Replace step 8 of this algorithm with the following:</p>
         <ul>
-	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the <b>[[LittleEndian]]</b> property of
+	  <li>  if _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the [[LittleEndian]] property of
 	    the <em>surrounding agent's</em> Agent Record.
         </ul>
       </emu-clause>
@@ -475,7 +484,7 @@
       HTML <em>event loop</em> <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">[here]</a>.  </p>
 
     <p> Browsers will typically let agents that run on the browser's main thread 
-      have <b>[[CanBlock]]</b>=false.  Browsers that support several tabs within the
+      have [[CanBlock]]=false.  Browsers that support several tabs within the
       same content process may share a single agent execution thread across all
       the tabs in that case (Firefox does). </p>
 
