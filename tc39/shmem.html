@@ -533,10 +533,10 @@ These call AllocateTypedArray with a specified length:
       <h1><span class="secnum">7.2.1</span>With atomic access to shared memory<span class="utils"><span class="anchor"><a href="#Atomics.WithAtomicAccessTo">#</a></span></span></h1>
       
       <p> Let  <em>atomic accesses</em> be those algorithm steps that
-        are labeled "With atomic access to shared memory" in the algorithms below,
-        ie, atomic load, atomic store, and the atomic read-modify-write
-        operations add, sub, and, or, xor, exchange, and
-        compareExchange.</p>
+        are labeled "With atomic access to shared memory" in the
+        algorithms below, ie, atomic load, atomic store, and the
+        atomic read-modify-write operations add, sub, and, or, xor,
+        exchange, and compareExchange.</p>
 
       <p> Let  <em>data accesses</em> be those invocations of
         <emu-xref aoid="GetValueFromBuffer"><a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a></emu-xref>() and <emu-xref aoid="SetValueInBuffer"><a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a></emu-xref>() that are not part
@@ -601,16 +601,16 @@ These call AllocateTypedArray with a specified length:
         receipt in another agent of that buffer,
         
         </li><li> A is the waking up a sleeping agent and B the agent being
-        woken up,
+          woken up,
         
         </li><li> A and B are paired embedding-specific events in separate
-        agents where the embedding states that A happens before B,
+          agents where the embedding states that A happens before B,
         
         </li><li> A and B are both atomic accesses to identical access ranges,
           B follows A in the synchronization order, and B reads
           the value written by A, or
         
-        </li><li> A happens before B and B happens before C (transitivity).
+        </li><li> A happens before C and C happens before B (transitivity).
       
       </li></ol>
 
