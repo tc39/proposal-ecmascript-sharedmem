@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-03-16 </p>
+<p> Revised: 2016-03-17 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -70,6 +70,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-17 -- (Issue 70) Fix a simple bug (typing error) in the definition of transitivity.
   <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
   <li> 2016-03-16 -- (Issue 81) Rewrote prose to reference the Agents spec where appropriate.
   <li> 2016-03-03 -- (Issue 78) Change ValidateAtomicAccess to behave as the DataView and SIMD specs, atomic ops are related to those method suites.
@@ -623,7 +624,7 @@ These call AllocateTypedArray with a specified length:
         <li> A and B are both atomic accesses to identical access ranges,
           B follows A in the synchronization order, and B reads
           the value written by A, or
-        <li> A happens before C and C happens before B (transitivity).
+        <li> A happens before B and B happens before C (transitivity).
       </ol>
 
       <p> Executions must be such that <em>happens before</em> is
