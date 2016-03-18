@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-03-17 </p>
+<p> Revised: 2016-03-18 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -70,6 +70,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
   <li> 2016-03-17 -- (Issue 70) Fix a simple bug (typing error) in the definition of transitivity.
   <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
   <li> 2016-03-16 -- (Issue 81) Rewrote prose to reference the Agents spec where appropriate.
@@ -649,31 +650,71 @@ These call AllocateTypedArray with a specified length:
         V. </p>
 
       <p> Two memory accesses whose access ranges intersect constitute
-        a <em>data race</em> if neither happens before the other and
-        at least one of them is not an atomic access. </p>
-
-      <p> A write involved in a data race stores a poison value that
-        can read back as anything whatsoever. </p>
-
-      <emu-note>
-        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/22">Issue 22</a>, broadly) There are problems with the preceding
-          clause.  One problem is that the affected memory region in a
-          race is not properly defined.  Another problem is semantic:
-          The intent of the clause is that a race poisons a delimited
-          part of memory, and subsequent reads from that area of
-          memory will see garbage.  However, "subsequent" is slippery
-          and not well defined.  C++ has made races undefined behavior
-          because of this, and Java has a complicated memory model to
-          deal with it.  What is most appropriate for ES is not yet
-          known. </p>
-      </emu-note>
+        a <em>data race</em> if neither happens before the other, at
+        least one of them is not an atomic access, and at least one of
+        them is a write. </p>
 
       <emu-note>
         <p> If the execution of an agent cluster has no data races, then
           the agent cluster behaves according to one of its sequentially
           consistent executions. </p>
       </emu-note>
-        
+
+      <p> The race affects the union of the access ranges involved in
+        the race, for the duration of the race.  The race ends only
+        when all the threads involved in the race have synchronized. </p>
+
+      <emu-note>
+        <p> (Spec draft note) The race starts after the last
+          preceding synchronization, but do we need to specify that further? </p>
+      </emu-note>
+      
+      <p> The access ranges involved in a race will contain
+        unpredictable values for the duration of the race, according to the
+        following rules: </p>
+
+      <ol>
+        <li> A read from shared memory always produces a value.
+        <li> The shared memory will always honor a write, but if there
+          is a race the memory can arbitrarily select bits from the
+          operands of the racing writes and the previous memory contents
+          at the racy written-to locations.
+        <li> The values at racy locations are not stable
+          until the race has ended.
+      </ol>
+
+      <emu-note>
+        <p> Mainstream memories behave according to these rules, so
+          the rules are really restrictions on the compiler: if there
+          is a race, and the compiler can prove that there is a race,
+          it still must not produce a completely arbitrary value (thus
+          risking revealing a secret by eg reusing register contents),
+          but must produce a value that could be a combination of some
+          values written to memory. (It could produce the last value
+          written by the thread executing the read.) </p>
+
+        <p> The third rule precludes a so-called rematerialization
+          optimization, where a read from shared memory can be
+          performed multiple times in such a way that several
+          different values are observed for what is a single value in
+          the semantics.  If ~mem~ is some integer TypedArray the
+          following program is not allowed to print 0: </p>
+        <pre>
+        let x = mem[n];
+        if (x)
+          print(x);
+        </pre>
+      </emu-note>
+
+      <emu-note>
+        <p> Although the rules above restrict the values that can be
+          written to racy locations, races have highly unpredictable
+          consequences: a racy -- ie largely unpredictable and
+          non-portable -- value used in a condition can confuse the
+          program and cause it to compute nonsensical or undesirable
+          results which are then used in further computations. </p>
+      </emu-note>
+
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
