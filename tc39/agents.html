@@ -11,7 +11,7 @@
 
 <h1>DOM/ECMAScript "Agents"</h1>
 
-<p> Second draft.  Revised: 2016-03-16.  lhansen@mozilla.com </p>
+<p> Draft.  Revised: 2016-03-24.  lhansen@mozilla.com </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -60,6 +60,7 @@
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-24 -- Removed [[IsLockFree4]], it is redundant (its value is always true).
   <li> 2016-03-15 -- Added a note about the IsLockFree values.  Minor cleanup.
   <li> 2016-03-15 -- Editorial: Further cleaned up the language around the properties on the Agent Record.
   <li> 2016-03-11 -- Cleaned up the language on forward progress to distinguish between agents on a dedicated thread and those on a shared thread.
@@ -262,11 +263,6 @@
             <td> Boolean </td>
             <td> True iff atomic operations on two-byte values are lock-free.  Constant. </td>
           </tr>
-          <tr>
-            <td> [[IsLockFree4]] </td>
-            <td> Boolean </td>
-            <td> True iff atomic operations on four-byte values are lock-free.  Constant. </td>
-          </tr>
         </tbody>
       </table>
     </emu-table>
@@ -278,11 +274,13 @@
     </emu-note>
 
     <emu-note>
-      <p>The values of [[IsLockFree1]], [[IsLockFree2]],
-        and [[IsLockFree4]] are not necessarily constant on a
-        given piece of hardware, but may reflect implementation
-        choices that can vary over time and between ECMAScript
-        implemenations.</p>
+      <p>The values of [[IsLockFree1]] and [[IsLockFree2]] are not
+        necessarily constant on a given piece of hardware, but may
+        reflect implementation choices that can vary over time and
+        between ECMAScript implemenations.</p>
+
+      <p>There is no [[IsLockFree4]] property: 4-byte atomic
+        operations are always lock-free. </p>
     </emu-note>
 
     <p> An agent is a specification mechanism and need not correspond to any
@@ -346,7 +344,7 @@
 
     <p> All agents within a cluster must have the same values for
       the [[IsLockFree1]] property in their respective Agent Records; similarly for
-      the [[IsLockFree2]] property and the [[IsLockFree4]] property. </p>
+      the [[IsLockFree2]] property. </p>
 
     <p> All agents within a cluster must have different values for
       the [[Signifier]] property in their respective Agent Records. </p>
