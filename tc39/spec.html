@@ -69,10 +69,11 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-24 -- (Issue 11) Removed Atomics.futexWakeOrRequeue.
   <li> 2016-03-24 -- (Issue 57) Added a note on how wait/wake can be throttled.
   <li> 2016-03-24 -- Removed an orphan note.
-  <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true
-  <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn
+  <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true.
+  <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn.
   <li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
   <li> 2016-03-17 -- (Issue 70) Fix a simple bug (typing error) in the definition of transitivity.
   <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
@@ -635,8 +636,7 @@ These call AllocateTypedArray with a specified length:
         irreflexive (acyclic). </p>
 
       <emu-note>
-        <p> If a call to Atomics.futexWait or
-          Atomics.futexWakeOrRequeue returns Atomics.NOTEQUAL then
+        <p> If a call to Atomics.futexWait returns Atomics.NOTEQUAL then
           there is a happens-before relation between any atomic write
           that wrote the slot that is read by those functions, because
           those functions use an atomic read to read that slot. </p>
@@ -991,48 +991,11 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1>Atomics.futexWakeOrRequeue( typedArray, index1, count, index2, value )</h1>
-      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue and moves other waiting agents to the back of the queue.  The following steps are taken: </p>
-      <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index1_ )
-        1. ReturnIfAbrupt(_i_)
-        1. If _count_ is not provided or is ~undefined~ then let _c_ be +Infinity.  Otherwise:
-          1. Let _tmp_ be ToInteger( _count_ )
-          1. ReturnIfAbrupt( _tmp_ )
-          1. Let _c_ be max( +0, _tmp_ ).
-        1. Let _j_ be ValidateAtomicAccess( _typedArray_, _index2_ )
-        1. ReturnIfAbrupt(_j_)
-        1. Let _v_ be ToInt32(_value_)
-        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_
-        1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Let _n_ = 0
-        1. Within the futex critical section do:
-          1. Let _w_ be Atomics.load(_typedArray_, _i_)
-          1. If _v_ does not equal _w_ then:
-            1. Return the original value of ~Atomics.NOTEQUAL~
-          1. Let _S_ be RemoveWaiters(_G_, _i_, +Infinity )
-          1. While _c_ &gt; 0 and _S_ is not the empty list:
-            1. Let _W_ be the first agent in _S_
-            1. Remove _W_ from the front of _S_
-            1. Call WakeWaiter(_W_)
-            1. Subtract 1 from _c_
-            1. Add 1 to _n_
-          1. While _S_ is not the empty list:
-            1. Let _W_ be the first agent in _S_
-            1. Remove _W_ from the front of _S_
-            1. Call AddWaiter(_W_, _G_, _j_)
-        1. Return _n_.
-      </emu-alg>        
+      <h1>Atomics.futexWakeOrRequeue()</h1>
 
-      <emu-note>
-        <p> Atomics.futexWaitOrRequeue is an optimization that helps programs avoid a "thundering herd" problem when many agents are woken and compete for a lock (as in a broadcast). </p>
-      </emu-note>
+      <p> This function has been removed.  See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/11">Issue #11</a>
+        for discussion. </p>
 
-      <emu-note>
-        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/11">Issue 11</a>) Atomics.futexWaitOrRequeue may be a premature optimization. </p>
-      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.isLockFree">
