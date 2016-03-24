@@ -72,7 +72,9 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn
+  <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true
+  
+  </li><li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn
   
   </li><li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
   
@@ -866,7 +868,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.isLockFree">
       <h1><span class="secnum">7.3.8</span>Atomics.isLockFree( size )<span class="utils"><span class="anchor"><a href="#Atomics.isLockFree">#</a></span></span></h1>
 
-      <emu-alg><ol><li>Let <var>n</var> be <emu-xref aoid="ToInteger"><a href="https://tc39.github.io/ecma262/#sec-tointeger">ToInteger</a></emu-xref>(<var>size</var>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="https://tc39.github.io/ecma262/#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>n</var>)</li><li>If <var>n</var> equals 1 then return the value of the [[IsLockFree1]] property of the Agent <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.github.io/ecma262/#sec-list-and-record-specification-type">Record</a></emu-xref> of the <em>surrounding agent</em>.</li><li>If <var>n</var> equals 2 then return the value of the [[IsLockFree2]] property of the Agent <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.github.io/ecma262/#sec-list-and-record-specification-type">Record</a></emu-xref> of the <em>surrounding agent</em>.</li><li>If <var>n</var> equals 4 then return the value of the [[IsLockFree4]] property of the Agent <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.github.io/ecma262/#sec-list-and-record-specification-type">Record</a></emu-xref> of the <em>surrounding agent</em>.</li><li>Return <emu-const>false</emu-const>
+      <emu-alg><ol><li>Let <var>n</var> be <emu-xref aoid="ToInteger"><a href="https://tc39.github.io/ecma262/#sec-tointeger">ToInteger</a></emu-xref>(<var>size</var>)</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="https://tc39.github.io/ecma262/#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>(<var>n</var>)</li><li>If <var>n</var> equals 1 then return the value of the [[IsLockFree1]] property of the Agent <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.github.io/ecma262/#sec-list-and-record-specification-type">Record</a></emu-xref> of the <em>surrounding agent</em>.</li><li>If <var>n</var> equals 2 then return the value of the [[IsLockFree2]] property of the Agent <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.github.io/ecma262/#sec-list-and-record-specification-type">Record</a></emu-xref> of the <em>surrounding agent</em>.</li><li>If <var>n</var> equals 4 then return <emu-const>true</emu-const>.</li><li>Return <emu-const>false</emu-const>
       </li></ol></emu-alg>
 
       <emu-note><span class="note">Note</span>
@@ -881,6 +883,11 @@ These call AllocateTypedArray with a specified length:
           atomic operations in critical sections.  If an atomic
           primitive is not lock-free then it is often more efficient
           for an algorithm to provide its own locking.  </p>
+
+        <p> Atomics.isLockFree(4) always returns <emu-const>true</emu-const> as that can be
+          supported on all known relevant hardware.  Being able to
+          assume this will generally simplify programs.  </p>
+
       </emu-note>
 
     </emu-clause>
