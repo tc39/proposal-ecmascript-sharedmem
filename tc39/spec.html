@@ -69,6 +69,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-24 -- (Issue 57) Added a note on how wait/wake can be throttled.
+  <li> 2016-03-24 -- Removed an orphan note.
   <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true
   <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn
   <li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
@@ -851,6 +853,13 @@ These call AllocateTypedArray with a specified length:
         1. Assert: _W_ is on some global list of waiters
         1. Wake the agent _W_
       </emu-alg>
+
+      <emu-note>
+        <p> The embedding may delay waking _W_, eg for resource
+          management reasons, but _W_ must eventually be woken in
+          order to guarantee forward progress. </p>
+      </emu-note>
+
     </emu-clause>
 
   </emu-clause> <!-- runtime semantics -->
@@ -979,10 +988,6 @@ These call AllocateTypedArray with a specified length:
             1. Add 1 to _n_
         1. Return _n_.
       </emu-alg>
-
-      <emu-note>
-        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/63">Issue 63</a>) The count argument should probably default to "all", in the manner of the timeout argument for futexWait. </p>
-      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">

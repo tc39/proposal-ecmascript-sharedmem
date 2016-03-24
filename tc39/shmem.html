@@ -72,7 +72,11 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true
+  <li> 2016-03-24 -- (Issue 57) Added a note on how wait/wake can be throttled.
+  
+  </li><li> 2016-03-24 -- Removed an orphan note.
+  
+  </li><li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true
   
   </li><li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn
   
@@ -795,6 +799,13 @@ These call AllocateTypedArray with a specified length:
       <p> When WakeWaiter is called with an agent signifier <var>W</var>, then the following steps are taken.  </p>
       <emu-alg><ol><li>Assert: The calling agent is in the futex critical section.</li><li>Assert: <var>W</var> is on some global list of waiters</li><li>Wake the agent <var>W</var>
       </li></ol></emu-alg>
+
+      <emu-note><span class="note">Note</span>
+        <p> The embedding may delay waking <var>W</var>, eg for resource
+          management reasons, but <var>W</var> must eventually be woken in
+          order to guarantee forward progress.  </p>
+      </emu-note>
+
     </emu-clause>
 
   </emu-clause> <!-- runtime semantics -->
@@ -844,10 +855,6 @@ These call AllocateTypedArray with a specified length:
       <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue.  The following steps are taken:  </p>
       <emu-alg><ol><li>Let <var>buffer</var> be <emu-xref aoid="ValidateSharedIntegerTypedArray"><a href="#Atomics.ValidateSharedIntegerTypedArray">ValidateSharedIntegerTypedArray</a></emu-xref>( <var>typedArray</var>, <emu-const>true</emu-const> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="https://tc39.github.io/ecma262/#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>( <var>buffer</var> )</li><li>Let <var>i</var> be <emu-xref aoid="ValidateAtomicAccess"><a href="#Atomics.ValidateAtomicAccess">ValidateAtomicAccess</a></emu-xref>( <var>typedArray</var>, <var>index</var> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="https://tc39.github.io/ecma262/#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>( <var>i</var> )</li><li>If <var>count</var> is not provided or is <emu-const>undefined</emu-const> then let <var>c</var> be +Infinity.  Otherwise:<ol><li>Let <var>tmp</var> be <emu-xref aoid="ToInteger"><a href="https://tc39.github.io/ecma262/#sec-tointeger">ToInteger</a></emu-xref>( <var>count</var> )</li><li><emu-xref aoid="ReturnIfAbrupt"><a href="https://tc39.github.io/ecma262/#sec-returnifabrupt">ReturnIfAbrupt</a></emu-xref>( <var>tmp</var> )</li><li>Let <var>c</var> be <emu-xref aoid="max"><a href="https://tc39.github.io/ecma262/#sec-algorithm-conventions">max</a></emu-xref>( +0, <var>tmp</var> ).</li></ol></li><li>Let <var>bufferVal</var> be the value of the internal [[SharedArrayBufferData]] property of <var>buffer</var>.</li><li>Let <var>G</var> be <emu-xref aoid="SharedDataBlockID"><a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">SharedDataBlockID</a></emu-xref>( <var>bufferVal</var> )</li><li>Let <var>n</var> = 0</li><li>Within the futex critical section do:<ol><li>Let <var>S</var> be <emu-xref aoid="RemoveWaiters"><a href="#Atomics.RemoveWaiters">RemoveWaiters</a></emu-xref>( <var>G</var>, <var>i</var>, <var>c</var> )</li><li>While <var>S</var> is not the empty list:<ol><li>Let <var>W</var> be the first agent in <var>S</var></li><li>Remove <var>W</var> from the front of <var>S</var></li><li>Call <emu-xref aoid="WakeWaiter"><a href="#Atomics.WakeWaiter">WakeWaiter</a></emu-xref>( <var>W</var> )</li><li>Add 1 to <var>n</var></li></ol></li></ol></li><li>Return <var>n</var>.
       </li></ol></emu-alg>
-
-      <emu-note><span class="note">Note</span>
-        <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/63">Issue 63</a>) The count argument should probably default to "all", in the manner of the timeout argument for futexWait.  </p>
-      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWakeOrRequeue">
