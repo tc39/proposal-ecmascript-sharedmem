@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-03-18 </p>
+<p> Revised: 2016-03-24 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -59,7 +59,6 @@ comments.</p>
 
 <ul>
   <li> The agent model and its mapping to web technology are being improved. <a href="https://axis-of-eval.org/shmem/agents-formatted.html">Current draft proposal.</a>
-  <li> The "futex" primitives will be complemented by, and later replaced by, a refinement based on C++ synchronics.  <a href="https://axis-of-eval.org/shmem/synchronic-formatted.html">Current draft proposal.</a>
   <li> The memory model is being improved (Issues
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/22">22</a>,
     <a href="https://github.com/tc39/ecmascript_sharedmem/issues/37">37</a>, 
@@ -70,6 +69,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn
   <li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
   <li> 2016-03-17 -- (Issue 70) Fix a simple bug (typing error) in the definition of transitivity.
   <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
