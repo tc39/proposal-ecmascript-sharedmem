@@ -539,15 +539,15 @@ These call AllocateTypedArray with a specified length:
     <h1>Value Properties of the Atomics Object</h1>
     <emu-clause id="Atomics.OK">
       <h1>Atomics.OK</h1>
-      <p>The value 0.</p>
+      <p>This proposed property has been removed, see <a href="https://github.com/tc39/ecmascript_sharedmem/issues/69">Issue #69</a> for discussion.</p>
     </emu-clause>
     <emu-clause id="Atomics.NOTEQUAL">
       <h1>Atomics.NOTEQUAL</h1>
-      <p>The value -1.</p>
+      <p>This proposed property has been removed, see <a href="https://github.com/tc39/ecmascript_sharedmem/issues/69">Issue #69</a> for discussion.</p>
     </emu-clause>
     <emu-clause id="Atomics.TIMEDOUT">
       <h1>Atomics.TIMEDOUT</h1>
-      <p>The value -2.</p>
+      <p>This proposed property has been removed, see <a href="https://github.com/tc39/ecmascript_sharedmem/issues/69">Issue #69</a> for discussion.</p>
     </emu-clause>
   </emu-clause>
 
@@ -637,7 +637,7 @@ These call AllocateTypedArray with a specified length:
         irreflexive (acyclic). </p>
 
       <emu-note>
-        <p> If a call to Atomics.futexWait returns Atomics.NOTEQUAL then
+        <p> If a call to Atomics.futexWait returns `"not-equal"` then
           there is a happens-before relation between any atomic write
           that wrote the slot that is read by those functions, because
           those functions use an atomic read to read that slot. </p>
@@ -950,13 +950,13 @@ These call AllocateTypedArray with a specified length:
         1. Within the futex critical section do:
           1. Let _w_ be Atomics.load(_typedArray_, _i_)
           1. If _v_ does not equal _w_ then:
-            1. Return the original value of ~Atomics.NOTEQUAL~.
+            1. Return the string `"not-equal"`.
           1. Let _W_ be AgentSignifier().
           1. Call AddWaiter(_W_, _G_, _i_)
           1. Let awoken = Suspend(_W_, _t_)
           1. Call RemoveWaiter(_W_, _G_, _i_)
-        1. If awoken is ~true~ then return the original value of ~Atomics.OK~.
-        1. Return the original value of ~Atomics.TIMEDOUT~.
+        1. If awoken is ~true~ then return the string `"ok"`.
+        1. Return the string `"timed-out"`.
       </emu-alg>
 
       <emu-note>
@@ -994,7 +994,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.futexWakeOrRequeue">
       <h1>Atomics.futexWakeOrRequeue()</h1>
 
-      <p> This function has been removed.  See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/11">Issue #11</a>
+      <p> This proposed function has been removed.  See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/11">Issue #11</a>
         for discussion. </p>
 
     </emu-clause>
