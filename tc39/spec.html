@@ -69,6 +69,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-30 -- (Issue 90) Factor AtomicFetchOp out as a semantic algorithm, and reference it formally where appropriate.
+  <li> 2016-03-30 -- (Issue 69) Remove Atomics.OK, Atomics.TIMEDOUT, Atomics.NOTEQUAL.  Return strings from Atomics.futexWait.
   <li> 2016-03-30 -- (Issue 93) Fix buggy restriction on byteLength in AllocateSharedArrayBuffer.
   <li> 2016-03-24 -- (Issue 11) Removed Atomics.futexWakeOrRequeue.
   <li> 2016-03-24 -- (Issue 57) Added a note on how wait/wake can be throttled.
@@ -863,14 +865,13 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
 
-  </emu-clause> <!-- runtime semantics -->
-
-  <emu-clause id="AtomicsObjectFunctionProps">
-    <h1>Function Properties of the Atomics Object</h1>
-
-    <emu-clause id="Atomics.add">
-      <h1>Atomics.add( typedArray, index, value )</h1>
-      <p> The following steps are taken: </p>
+    <emu-clause id="Atomics.FetchOp" aoid="AtomicFetchOp">
+      <h1>Runtime semantics: AtomicFetchOp( typedArray, index, value, op )</h1>
+      <p> AtomicFetchOp is a semantic function that atomically loads
+        a value, combines it with another value, and stores the result
+        of the combination.  It returns the loaded value.  It is
+        parameterized by the (pure) combining operation.  The following
+        steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
         1. ReturnIfAbrupt(_buffer_)
@@ -885,15 +886,35 @@ These call AllocateTypedArray with a specified length:
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to shared memory, do:
           1. Let _r_ be the result of GetValueFromBuffer( _buffer_, _indexedPosition_, _elementType_ )
-          1. Compute: Let _w_ be _r_ + _v_
+          1. Compute: Let _w_ be _op_(_r_, _v_)
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
         1. Return _r_
+      </emu-alg>
+  </emu-clause> <!-- runtime semantics -->
+
+  <emu-clause id="AtomicsObjectFunctionProps">
+    <h1>Function Properties of the Atomics Object</h1>
+
+    <emu-clause id="Atomics.add">
+      <h1>Atomics.add( typedArray, index, value )</h1>
+      <p> Let `add` denote a semantic function of two number arguments that returns the sum of the arguments. </p>
+      <p> The following steps are taken: </p>
+      <emu-alg>
+        1. Let _result_ be AtomicFetchOp( _typedArray_, _index_, _value_, `add` )
+        1. ReturnIfAbrupt(_result_)
+        1. Return _result_
       </emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.and">
       <h1>Atomics.and( typedArray, index, value )</h1>
-      <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ &amp; _v_.</p>
+      <p> Let `and` denote a semantic function of two number arguments that returns the bitwise "and" of the arguments. </p>
+      <p> The following steps are taken: </p>
+      <emu-alg>
+        1. Let _result_ be AtomicFetchOp( _typedArray_, _index_, _value_, `and` )
+        1. ReturnIfAbrupt(_result_)
+        1. Return _result_
+      </emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.compareExchange">
@@ -926,7 +947,13 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.exchange">
       <h1>Atomics.exchange( typedArray, index, value )</h1>
-      <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _v_.</p>
+      <p> Let `second` denote a semantic function of two number arguments that returns its second argument. </p>
+      <p> The following steps are taken: </p>
+      <emu-alg>
+        1. Let _result_ be AtomicFetchOp( _typedArray_, _index_, _value_, `second` )
+        1. ReturnIfAbrupt(_result_)
+        1. Return _result_
+      </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.futexWait">
@@ -1053,7 +1080,13 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.or">
       <h1>Atomics.or( typedArray, index, value )</h1>
-      <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ | _v_.</p>
+      <p> Let `or` denote a semantic function of two number arguments that returns the bitwise "or" of the arguments. </p>
+      <p> The following steps are taken: </p>
+      <emu-alg>
+        1. Let _result_ be AtomicFetchOp( _typedArray_, _index_, _value_, `or` )
+        1. ReturnIfAbrupt(_result_)
+        1. Return _result_
+      </emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.store">
@@ -1079,12 +1112,24 @@ These call AllocateTypedArray with a specified length:
     
     <emu-clause id="Atomics.sub">
       <h1>Atomics.sub( typedArray, index, value )</h1>
-      <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ - _v_.</p>
+      <p> Let `subtract` denote a semantic function of two number arguments that returns the difference of the arguments. </p>
+      <p> The following steps are taken: </p>
+      <emu-alg>
+        1. Let _result_ be AtomicFetchOp( _typedArray_, _index_, _value_, `subtract` )
+        1. ReturnIfAbrupt(_result_)
+        1. Return _result_
+      </emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.xor">
       <h1>Atomics.xor( typedArray, index, value )</h1>
-      <p> Use the same algorithm as for Atomics.add but in the "Compute" step let _w_ be _r_ ^ _v_.</p>
+      <p> Let `xor` denote a semantic function of two number arguments that returns the bitwise "xor" of the arguments. </p>
+      <p> The following steps are taken: </p>
+      <emu-alg>
+        1. Let _result_ be AtomicFetchOp( _typedArray_, _index_, _value_, `xor` )
+        1. ReturnIfAbrupt(_result_)
+        1. Return _result_
+      </emu-alg>
     </emu-clause>
   </emu-clause>
 </emu-clause>
