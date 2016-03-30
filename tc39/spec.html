@@ -69,7 +69,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-03-30 -- (Issue 90) Factor AtomicFetchOp out as a semantic algorithm, and reference it formally where appropriate.
+  <li> 2016-03-30 -- (Issue 95) Renamed Atomics.futexWait as Atomics.wait and Atomics.futexWake as Atomics.wake. No functional change.
+  <li> 2016-03-30 -- (Issue 90) Factor AtomicFetchOp out as a semantic algorithm, and reference it formally where appropriate. No functional change.
   <li> 2016-03-30 -- (Issue 69) Remove Atomics.OK, Atomics.TIMEDOUT, Atomics.NOTEQUAL.  Return strings from Atomics.futexWait.
   <li> 2016-03-30 -- (Issue 93) Fix buggy restriction on byteLength in AllocateSharedArrayBuffer.
   <li> 2016-03-24 -- (Issue 11) Removed Atomics.futexWakeOrRequeue.
@@ -78,7 +79,6 @@ comments.</p>
   <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true.
   <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn.
   <li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
-  <li> 2016-03-17 -- (Issue 70) Fix a simple bug (typing error) in the definition of transitivity.
   <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
   <li> 2016-03-16 -- (Issue 81) Rewrote prose to reference the Agents spec where appropriate.
   <li> 2016-03-03 -- (Issue 78) Change ValidateAtomicAccess to behave as the DataView and SIMD specs, atomic ops are related to those method suites.
@@ -187,7 +187,7 @@ comments.</p>
           1. Return _G_.
         </emu-alg>
         <emu-note>
-          <p>The Shared Data Block ID is used by the futex mechanism and names _block_ independently of any virtual addresses it may be mapped to in any particular agent.</p>
+          <p>The Shared Data Block ID is used by the wait/wake mechanism and names _block_ independently of any virtual addresses it may be mapped to in any particular agent.</p>
         </emu-note>
       </emu-clause>
     </emu-clause>
@@ -537,22 +537,6 @@ These call AllocateTypedArray with a specified length:
 <emu-clause id="AtomicsObject">
   <h1>The Atomics Object</h1>
   
-  <emu-clause id="AtomicsObjectValueProps">
-    <h1>Value Properties of the Atomics Object</h1>
-    <emu-clause id="Atomics.OK">
-      <h1>Atomics.OK</h1>
-      <p>This proposed property has been removed, see <a href="https://github.com/tc39/ecmascript_sharedmem/issues/69">Issue #69</a> for discussion.</p>
-    </emu-clause>
-    <emu-clause id="Atomics.NOTEQUAL">
-      <h1>Atomics.NOTEQUAL</h1>
-      <p>This proposed property has been removed, see <a href="https://github.com/tc39/ecmascript_sharedmem/issues/69">Issue #69</a> for discussion.</p>
-    </emu-clause>
-    <emu-clause id="Atomics.TIMEDOUT">
-      <h1>Atomics.TIMEDOUT</h1>
-      <p>This proposed property has been removed, see <a href="https://github.com/tc39/ecmascript_sharedmem/issues/69">Issue #69</a> for discussion.</p>
-    </emu-clause>
-  </emu-clause>
-
   <emu-clause id="AtomicsObjectFunctionProps.semantics">
     <h1>Runtime semantics</h1>
     
@@ -639,7 +623,7 @@ These call AllocateTypedArray with a specified length:
         irreflexive (acyclic). </p>
 
       <emu-note>
-        <p> If a call to Atomics.futexWait returns `"not-equal"` then
+        <p> If a call to Atomics.wait returns `"not-equal"` then
           there is a happens-before relation between any atomic write
           that wrote the slot that is read by those functions, because
           those functions use an atomic read to read that slot. </p>
@@ -756,19 +740,19 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
     
-    <emu-clause id="WithinTheFutexCriticalSection">
-      <h1>Within the futex critical section ...</h1>
-      <p> In the algorithms below, the algorithm step 'Within the futex critical section' means the following:</p>
+    <emu-clause id="WithinTheWaitWakeCriticalSection">
+      <h1>Within the wait/wake critical section ...</h1>
+      <p> In the algorithms below, the algorithm step 'Within the wait/wake critical section' means the following:</p>
       <ul>
-        <li> There is a single critical section for the futex operations that is shared among all agents in an agent cluster.
-        <li> The phrase 'Within the futex critical section' acquires that section exclusively; any return from the dependent statements releases the section.
+        <li> There is a single critical section for the wait/wake operations that is shared among all agents in an agent cluster.
+        <li> The phrase 'Within the wait/wake critical section' acquires that section exclusively; any return from the dependent statements releases the section.
       </ul>
     </emu-clause>
 
     <emu-note>
       <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The Agents Specification will have
         machinery for formalizing the notion of a "single critial
-        section for the futex operations" in the cluster. </p>
+        section for the wait/wake operations" in the cluster. </p>
     </emu-note>
 
     <emu-clause id="Atomics.AgentSignifier" aoid="AgentSignifier">
@@ -801,7 +785,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Runtime semantics: AddWaiter( W, G, i )</h1>
       <p> When AddWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is in the wait/wake critical section.
         1. Assert: _W_ is not in any global list of waiters
         1. Add _W_ to the end of the global list of all waiters that wait on (_G_, _i_)
       </emu-alg>
@@ -811,7 +795,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Runtime semantics: RemoveWaiter( W, G, i )</h1>
       <p> When RemoveWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is in the wait/wake critical section.
         1. Assert: _W_ is in the global list of all waiters that wait on (_G_, _i_)
         1. Remove _W_ from the global list of all waiters that wait on (_G_, _i_)
       </emu-alg>
@@ -821,7 +805,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Runtime semantics: RemoveWaiters( G, i, c )</h1>
       <p> When RemoveWaiters is called with Shared Data Block ID _G_ and nonnegative integers _i_ and _c_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is in the wait/wake critical section.
         1. Let _L_ be the empty list
         1. Let _S_ be a reference to the global list of all waiters that wait on (_G_, _i_)
         1. While _c_ &gt; 0 and _S_ is not the empty list:
@@ -837,12 +821,12 @@ These call AllocateTypedArray with a specified length:
       <h1>Runtime semantics: Suspend( W, timeout )</h1>
       <p> When Suspend is called with a an agent signifier _W_ and nonnegative number _timeout_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is in the wait/wake critical section.
         1. Assert: The calling agent is on some global list of waiters
         1. Assert: _W_ is equal to AgentSignifier()
         1. Assert: AgentCanSuspend() is equal to true
-        1. Atomically relinquish the futex critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_W_), and not for any other reasons at all.
-        1. Re-acquire the futex critical section.
+        1. Atomically relinquish the wait/wake critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_W_), and not for any other reasons at all.
+        1. Re-acquire the wait/wake critical section.
         1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
         1. Return ~false~
       </emu-alg>
@@ -852,7 +836,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Runtime semantics: WakeWaiter( W )</h1>
       <p> When WakeWaiter is called with an agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the futex critical section.
+        1. Assert: The calling agent is in the wait/wake critical section.
         1. Assert: _W_ is on some global list of waiters
         1. Wake the agent _W_
       </emu-alg>
@@ -890,6 +874,7 @@ These call AllocateTypedArray with a specified length:
           1. Call SetValueInBuffer( _buffer_, _indexedPosition_, _elementType_, _w_ )
         1. Return _r_
       </emu-alg>
+    </emu-clause>
   </emu-clause> <!-- runtime semantics -->
 
   <emu-clause id="AtomicsObjectFunctionProps">
@@ -956,9 +941,9 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="Atomics.futexWait">
-      <h1>Atomics.futexWait( typedArray, index, value, timeout )</h1>
-      <p> Atomics.futexWait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
+    <emu-clause id="Atomics.wait">
+      <h1>Atomics.wait( typedArray, index, value, timeout )</h1>
+      <p> Atomics.wait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, ~true~)
         1. ReturnIfAbrupt(_buffer_)
@@ -974,7 +959,7 @@ These call AllocateTypedArray with a specified length:
         1. If _B_ is ~false~ then throw a ~TypeError~ exception.
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Within the futex critical section do:
+        1. Within the wait/wake critical section do:
           1. Let _w_ be Atomics.load(_typedArray_, _i_)
           1. If _v_ does not equal _w_ then:
             1. Return the string `"not-equal"`.
@@ -986,15 +971,11 @@ These call AllocateTypedArray with a specified length:
         1. Return the string `"timed-out"`.
       </emu-alg>
 
-      <emu-note>
-        <p> The name "futex" comes from Linux, where it means "fast user-space mutex".  Linux has wait/wake system calls with names and functionality similar to what's defined here. The mechanism described here is however not Linux-dependent in any way. </p>
-      </emu-note>
-
     </emu-clause>
 
-    <emu-clause id="Atomics.futexWake">
-      <h1>Atomics.futexWake( typedArray, index, count )</h1>
-      <p> Atomics.futexWake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
+    <emu-clause id="Atomics.wake">
+      <h1>Atomics.wake( typedArray, index, count )</h1>
+      <p> Atomics.wake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ValidateSharedIntegerTypedArray( _typedArray_, ~true~ )
         1. ReturnIfAbrupt( _buffer_ )
@@ -1007,7 +988,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID( _bufferVal_ )
         1. Let _n_ = 0
-        1. Within the futex critical section do:
+        1. Within the wait/wake critical section do:
           1. Let _S_ be RemoveWaiters( _G_, _i_, _c_ )
           1. While _S_ is not the empty list:
             1. Let _W_ be the first agent in _S_
@@ -1016,14 +997,6 @@ These call AllocateTypedArray with a specified length:
             1. Add 1 to _n_
         1. Return _n_.
       </emu-alg>
-    </emu-clause>
-
-    <emu-clause id="Atomics.futexWakeOrRequeue">
-      <h1>Atomics.futexWakeOrRequeue()</h1>
-
-      <p> This proposed function has been removed.  See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/11">Issue #11</a>
-        for discussion. </p>
-
     </emu-clause>
 
     <emu-clause id="Atomics.isLockFree">
