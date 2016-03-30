@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-03-24 </p>
+<p> Revised: 2016-03-30 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -69,6 +69,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-03-30 -- (Issue 93) Fix buggy restriction on byteLength in AllocateSharedArrayBuffer.
   <li> 2016-03-24 -- (Issue 11) Removed Atomics.futexWakeOrRequeue.
   <li> 2016-03-24 -- (Issue 57) Added a note on how wait/wake can be throttled.
   <li> 2016-03-24 -- Removed an orphan note.
@@ -376,7 +377,7 @@ These call AllocateTypedArray with a specified length:
         <emu-alg>
           1. Let _obj_ be OrdinaryCreateFromConstructor(constructor, "%SharedArrayBufferPrototype%", «‍[[SharedArrayBufferData]], [[SharedArrayBufferByteLength]]» ).
           1. ReturnIfAbrupt(_obj_).
-          1. Assert: _byteLength_ is a positive integer.
+          1. Assert: _byteLength_ is a nonnegative integer.
           1. Let block be CreateSharedByteDataBlock(_byteLength_).
           1. ReturnIfAbrupt(_block_).
           1. Set _obj_’s [[SharedArrayBufferData]] internal slot to block.
