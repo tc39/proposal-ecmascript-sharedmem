@@ -14,22 +14,37 @@ description: >
 var sab = new SharedArrayBuffer(4);
 var view = new Int32Array(sab);
 
-// TODO: also test good boundary case indices, see atomics-range.js for an example.
+var bad_indices = [
+    (view) => -1,
+    (view) => view.length,
+    (view) => view.length*2,
+    (view) => undefined,
+    (view) => '3.5',
+    (view) => 3.5,
+    (view) => ({ password: "qumquat" }),
+    (view) => ({ valueOf: () => 125 }),
+    (view) => ({ toString: () => '125', valueOf: false }) // non-callable valueOf triggers invocation of toString
+];
 
-var indices = [ (view) => -1,
-		(view) => view.length,
-		(view) => view.length*2,
-		(view) => undefined,
-		(view) => '-0',
-		(view) => '3.5',
-		(view) => 3.5,
-		(view) => { password: "qumquat" } ];
-
-for ( var iidx=0 ; iidx < indices.length ; iidx++ ) {
-    var Idx = indices[iidx](view);
+for ( var iidx=0 ; iidx < bad_indices.length ; iidx++ ) {
+    var Idx = bad_indices[iidx](view);
     assert.throws(RangeError, () => Atomics.wait(view, Idx, 10));
     assert.throws(RangeError, () => Atomics.wake(view, Idx));
 }
+
+var good_indices = [ (view) => 0/-1, // -0
+		     (view) => '-0',
+		     (view) => view.length - 1,
+		     (view) => ({ valueOf: () => 0 }),
+		     (view) => ({ toString: () => '0', valueOf: false }) // non-callable valueOf triggers invocation of toString
+		   ];
+
+for ( var iidx=0 ; iidx < good_indices.length ; iidx++ ) {
+    var Idx = good_indices[iidx](view);
+    //Atomics.wait(view, Idx, 10); // Will not block, but may throw on the main thread
+    Atomics.wake(view, Idx);	 // Wakes none
+}
+
 
 // BEGIN EPILOGUE
 finishTest("futex-range");

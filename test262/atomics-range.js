@@ -22,11 +22,11 @@ var bad_indices = [ (view) => -1,
 		    (view) => Number.NaN,
 		    (view) => Number.POSITIVE_INFINITY,
 		    (view) => Number.NEGATIVE_INFINITY,
-		    (view) => '-0',
 		    (view) => '3.5',
 		    (view) => 3.5,
 		    (view) => { password: "qumquat" },
-		    // TODO: a toString method that returns an out-of-range value
+		    (view) => ({ valueOf: () => 125 }),
+		    (view) => ({ toString: () => '125', valueOf: false }) // non-callable valueOf triggers invocation of toString
 		  ];
 
 for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
@@ -48,11 +48,11 @@ for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
 }
 
 var good_indices = [ (view) => 0/-1, // -0
+		     (view) => '-0',
 		     (view) => view.length - 1,
-		     // TODO: Does not work in Firefox 46
-		     //(view) => { toString: () => '0' }
+		     (view) => ({ valueOf: () => 0 }),
+		     (view) => ({ toString: () => '0', valueOf: false }) // non-callable valueOf triggers invocation of toString
 		   ];
-
 
 for ( var vidx=0 ; vidx < views.length ; vidx++ ) {
     var View = views[vidx];

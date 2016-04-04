@@ -33,7 +33,7 @@ var values = [null,
 	      new Set(),
 	      new WeakMap(),
 	      new WeakSet(),
-	      new Promise(() => "done"),
+	      this.Promise ? new Promise(() => "done") : undefined,
 	      Symbol("halleluja"),
 	      // TODO: Proxy?
 	      Object,
