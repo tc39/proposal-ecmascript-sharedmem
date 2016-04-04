@@ -13,7 +13,7 @@ description: >
 
 var sizes   = [    1,     2,     3,     4,     5,     6,     7,  8,
                    9,    10,    11,    12];
-var answers = [   {},    {}, false,    {}, false, false, false, false,
+var answers = [   {},    {}, false,  true, false, false, false, false,
 	       false, false, false, false];
 
 function testIsLockFree() {
@@ -37,7 +37,7 @@ function testIsLockFree() {
     assert.sameValue(Atomics.isLockFree(1), saved[1]);
     assert.sameValue(Atomics.isLockFree(2), saved[2]);
     assert.sameValue(Atomics.isLockFree(3), false);
-    assert.sameValue(Atomics.isLockFree(4), saved[4]);
+    assert.sameValue(Atomics.isLockFree(4), true);
     assert.sameValue(Atomics.isLockFree(5), false);
     assert.sameValue(Atomics.isLockFree(6), false);
     assert.sameValue(Atomics.isLockFree(7), false);
