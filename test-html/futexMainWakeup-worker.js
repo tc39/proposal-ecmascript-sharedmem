@@ -10,7 +10,7 @@ onmessage = function (ev) {
     case "run":
 	setTimeout(function () {
 	    postMessage("Worker: Waking it up now");
-	    Atomics.futexWake(mem, 0, 1)
+	    Atomics.wake(mem, 0, 1)
 	}, ev.data[1]);
 	break;
     }

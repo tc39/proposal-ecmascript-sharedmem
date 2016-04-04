@@ -7,7 +7,7 @@
 
 <body>
 
-<p> Tests futexWait, futexWake, and timeout functionality. </p>
+<p> Tests Atomics.wait, Atomics.wake, and timeout functionality. </p>
 
 <p> The tests run when the page is loaded.  The output from these
 tests will appear below.  If everything goes OK it should end with the
@@ -92,7 +92,7 @@ tests.push({
     },
     test:
     function (x) {
-	return Array.isArray(x) && x[0] == "timedout" && x[1] == "stage1";
+	return Array.isArray(x) && x[0] == "timed-out" && x[1] == "stage1";
     },
     t: 1000
 });
@@ -107,7 +107,7 @@ tests.push({
     run:
     function () {
 	timeout = setTimeout(function () {
-            Atomics.futexWake(mem, WAITLOC, 1);
+            Atomics.wake(mem, WAITLOC, 1);
 	    timeout = setTimeout(function () {
 		msg("FAIL: Stage 2: - no callback received");
             }, 20000);
@@ -116,7 +116,7 @@ tests.push({
     },
     test:
     function (x) {
-	return (Array.isArray(x) && x[0] == "woken" && x[1] == "stage2");
+	return (Array.isArray(x) && x[0] == "ok" && x[1] == "stage2");
     },
     t: 3000
 });
@@ -138,7 +138,7 @@ tests.push({
     test:
     function (x) {
         mem[WAITLOC] = 0;
-        return (Array.isArray(x) && x[0] == "notequal" && x[1] == "stage3");
+        return (Array.isArray(x) && x[0] == "not-equal" && x[1] == "stage3");
     },
     t: 0
 });
@@ -154,15 +154,15 @@ tests.push({
 	timeout = setTimeout(function () {
             msg("FAIL: Stage 4: - no callback received");
 	}, 3000);
-	Atomics.futexWake(mem, WAITLOC, 1);
-	Atomics.futexWake(mem, WAITLOC, 1);
-	Atomics.futexWake(mem, WAITLOC, 1);
-	Atomics.futexWake(mem, WAITLOC, 1);
+	Atomics.wake(mem, WAITLOC, 1);
+	Atomics.wake(mem, WAITLOC, 1);
+	Atomics.wake(mem, WAITLOC, 1);
+	Atomics.wake(mem, WAITLOC, 1);
 	w[0].postMessage(["timeout", 1000, "stage4"]);
     },
     test:
     function (x) {
-        return (Array.isArray(x) && x[0] == "timedout" && x[1] == "stage4");
+        return (Array.isArray(x) && x[0] == "timed-out" && x[1] == "stage4");
     },
     t: 1000
 });
@@ -176,12 +176,12 @@ tests.push({
 tests.push({
     run:
     function () {
-	timeout = setTimeout(function () { Atomics.futexWake(mem, WAITLOC, 0); }, 500);
+	timeout = setTimeout(function () { Atomics.wake(mem, WAITLOC, 0); }, 500);
 	w[0].postMessage(["timeout", 3000, "stage5"]);
     },
     test:
     function (x) {
-        return (Array.isArray(x) && x[0] == "timedout" && x[1] == "stage5");
+        return (Array.isArray(x) && x[0] == "timed-out" && x[1] == "stage5");
     },
     t: 3000
 });
@@ -197,7 +197,7 @@ var s6_woken = false;
 tests.push({
     run:
     function () {
-	timeout = setTimeout(function () { Atomics.futexWake(mem, WAITLOC, 1); }, 500);
+	timeout = setTimeout(function () { Atomics.wake(mem, WAITLOC, 1); }, 500);
 	w[0].postMessage(["timeout", 3000, "stage6"]);
 	w[1].postMessage(["timeout", 3000, "stage6"]);
     },
@@ -207,7 +207,7 @@ tests.push({
     function (x) {
         if (!Array.isArray(x))
 	    return false;
-	if (x[0] == "timedout") {
+	if (x[0] == "timed-out") {
 	    if (s6_timedout)
 		return false;
 	    s6_timedout = true;

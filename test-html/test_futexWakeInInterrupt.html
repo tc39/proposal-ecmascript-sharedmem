@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <title>Tests wakeup on futexWait stuck in an interrupt callback</title>
+  <title>Tests wakeup on Atomics.wait stuck in an interrupt callback</title>
 </head>
 
 <body>
@@ -30,7 +30,7 @@ var w;
 
 function runTest() {
     if (!canBlockOnThisThread) {
-        msg("NO TEST: Atomics.futexWait is disabled (by the browser) on the main thread");
+        msg("NO TEST: Atomics.wait is disabled (by the browser) on the main thread");
         return;
     }
 
@@ -42,7 +42,7 @@ function runTest() {
     }
 
     var before = Date.now();
-    Atomics.futexWait(mem, 0, 0, 100000); // Wait 100 seconds
+    Atomics.wait(mem, 0, 0, 100000); // Wait 100 seconds
     var after = Date.now();
     msg("Returned from wait after " + (after - before) + "ms");
 
