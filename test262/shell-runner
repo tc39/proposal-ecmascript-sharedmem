@@ -1,0 +1,29 @@
+#!/bin/bash
+for i in "shared-array-buffer-props.js" \
+         "shared-array-buffer-instance-props.js" \
+         "shared-array-buffer-conversion.js" \
+         "typedarray-props.js" \
+         "typedarray-props-range.js" \
+         "dataview-props.js" \
+         "atomics-on-good-arrays.js" \
+         "atomics-on-nonshared-int-arrays.js" \
+         "atomics-on-shared-nonint-arrays.js" \
+         "atomics-on-other-stuff.js" \
+         "atomics-range.js" \
+         "futex-on-shared-nonint32-arrays.js" \
+         "futex-on-nonshared-int-arrays.js" \
+         "futex-on-shared-nonint-arrays.js" \
+         "futex-on-other-stuff.js" \
+         "futex-range.js" \
+         "futex-misc.js" \
+         "futex-wait-return.js" \
+         "is-lock-free-good.js" \
+         "is-lock-free-corner-cases.js"
+do
+    echo ""
+    echo "================================================="
+    echo $i
+    # This is correct for the SpiderMonkey shell, contributions for
+    # other shells are welcome.
+    $JSSHELL -f harness.js -f $i
+done
