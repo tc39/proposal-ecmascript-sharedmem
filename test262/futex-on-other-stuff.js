@@ -44,9 +44,8 @@ var values = [null,
 
 for ( var i=0 ; i < values.length ; i++ ) {
     var view = values[i];
-    assert.throws(TypeError, (() => Atomics.futexWait(view, 0, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWake(view, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWakeOrRequeue(view, 0, 0, 1, 0)));
+    assert.throws(TypeError, (() => Atomics.wait(view, 0, 0)));
+    assert.throws(TypeError, (() => Atomics.wake(view, 0)));
 }
 
 // BEGIN EPILOGUE

@@ -17,11 +17,11 @@ var view = new Int32Array(sab);
 // Testing the actual functioning of these requires workers, see
 // ../test-html/ for more test cases.
 
-// Legal corner cases for futexWake.
+// Legal corner cases for Atomics.wake().
 
-assert.sameValue(Atomics.futexWake(view, 0, -3), 0);
-assert.sameValue(Atomics.futexWake(view, 0, Number.POSITIVE_INFINITY), 0);
-assert.sameValue(Atomics.futexWake(view, 0), 0);
+assert.sameValue(Atomics.wake(view, 0, -3), 0);
+assert.sameValue(Atomics.wake(view, 0, Number.POSITIVE_INFINITY), 0);
+assert.sameValue(Atomics.wake(view, 0), 0);
 
 // BEGIN EPILOGUE
 finishTest("futex-misc");

@@ -27,9 +27,8 @@ for ( var View of other_views ) {
     assert.throws(TypeError, (() => Atomics.and(view, 0, 0)));
     assert.throws(TypeError, (() => Atomics.or(view, 0, 0)));
     assert.throws(TypeError, (() => Atomics.xor(view, 0, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWait(view, 0, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWake(view, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWakeOrRequeue(view, 0, 0, 1, 0)));
+    assert.throws(TypeError, (() => Atomics.wait(view, 0, 0)));
+    assert.throws(TypeError, (() => Atomics.wake(view, 0)));
 }
 
 // BEGIN EPILOGUE

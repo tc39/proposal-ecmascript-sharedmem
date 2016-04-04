@@ -18,9 +18,8 @@ var other_views = [Uint8ClampedArray, Float32Array, Float64Array];
 for ( var View of other_views ) {
     var view = new View(sab);
 
-    assert.throws(TypeError, (() => Atomics.futexWait(view, 0, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWake(view, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWakeOrRequeue(view, 0, 0, 1, 0)));
+    assert.throws(TypeError, (() => Atomics.wait(view, 0, 0)));
+    assert.throws(TypeError, (() => Atomics.wake(view, 0)));
 }
 
 // BEGIN EPILOGUE

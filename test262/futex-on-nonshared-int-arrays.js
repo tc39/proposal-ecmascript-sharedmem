@@ -18,9 +18,8 @@ var int_views = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uin
 for ( var View of int_views ) {
     var view = new View(ab);
 
-    assert.throws(TypeError, (() => Atomics.futexWait(view, 0, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWake(view, 0)));
-    assert.throws(TypeError, (() => Atomics.futexWakeOrRequeue(view, 0, 0, 1, 0)));
+    assert.throws(TypeError, (() => Atomics.wait(view, 0, 0)));
+    assert.throws(TypeError, (() => Atomics.wake(view, 0)));
 }
 
 // BEGIN EPILOGUE

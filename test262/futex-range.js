@@ -27,10 +27,8 @@ var indices = [ (view) => -1,
 
 for ( var iidx=0 ; iidx < indices.length ; iidx++ ) {
     var Idx = indices[iidx](view);
-    assert.throws(RangeError, () => Atomics.futexWait(view, Idx, 10));
-    assert.throws(RangeError, () => Atomics.futexWake(view, Idx));
-    assert.throws(RangeError, () => Atomics.futexWakeOrRequeue(view, Idx, 5, 0, 0));
-    assert.throws(RangeError, () => Atomics.futexWakeOrRequeue(view, 0, 5, Idx, 0));
+    assert.throws(RangeError, () => Atomics.wait(view, Idx, 10));
+    assert.throws(RangeError, () => Atomics.wake(view, Idx));
 }
 
 // BEGIN EPILOGUE
