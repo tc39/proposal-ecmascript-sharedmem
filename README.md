@@ -7,6 +7,7 @@ This is a specification for Shared Memory and Atomics for ECMAScript, a proposal
 * [Formatted specification](http://tc39.github.io/ecmascript_sharedmem/shmem.html)
 * [Simple tutorial introduction](TUTORIAL.md)
 * [Demo programs and other examples](DEMOS.md)
+* [Frequently asked questions](FAQ.md)
 * [High-level design issues, cross-cutting concerns, security concerns, etc](DISCUSSION.md)
 * Slide decks for presentations given to Ecma TC39:
   * [September 2015](https://github.com/tc39/ecmascript_sharedmem/blob/master/tc39/presentation-sept-2015.odp)
