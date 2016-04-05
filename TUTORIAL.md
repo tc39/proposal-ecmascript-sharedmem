@@ -170,20 +170,20 @@ xor(array, index, value)                      | bitwise-xor value into array[ind
 
 In the examples above one agent used a loop to wait for a value to be changed by the other agent; the change is a signal that the agent can stop waiting and can go ahead with whatever it needs to do next.
 
-Such *spin loops* are a poor use of computer time unless the wait is very brief; instead, a waiting agent can put itself to sleep, and can instead be woken up explicitly by the other agent.  The Atomics object provides a primitive mechanism for this in the two methods ```futexWait``` and ```futexWake```.  (The term "futex" comes from Linux, where there's a similar sleep-and-wakeup facility.)
+Such *spin loops* are a poor use of computer time unless the wait is very brief; instead, a waiting agent can put itself to sleep, and can instead be woken up explicitly by the other agent.  The Atomics object provides a primitive mechanism for this in the two methods `wait` and `wake`.
 
 In our example, the writing agent now does this:
 
 ```js
 console.log(ia[37]);  // Prints 163
 Atomics.store(ia, 37, 123456);
-Atomics.futexWake(ia, 37, 1);
+Atomics.wake(ia, 37, 1);
 ```
 
 and the reading agent does this:
 
 ```js
-Atomics.futexWait(ia, 37, 163);
+Atomics.wait(ia, 37, 163);
 console.log(ia[37]);  // Prints 123456
 ```
 
@@ -191,7 +191,7 @@ The way this works is that once it has performed a write, the writer requests to
 
 ## Abstractions
 
-In practice some of the shared memory facilities, especially futexWait and futexWake, can be hard to use correctly and efficiently.  It is therefore useful to build abstractions (in JavaScript) around these to simplify their use.  For example, among the demos you will find traditional mutexes and condition variables; barriers; and so-called "synchronic" objects that are containers for simple atomic values and which have a built-in (and efficient) wait-for-update functionality.
+In practice some of the shared memory facilities, especially `wait` and `wake`, can be hard to use correctly and efficiently.  It is therefore useful to build abstractions (in JavaScript) around these to simplify their use.  For example, among the demos you will find traditional mutexes and condition variables; barriers; and so-called "synchronic" objects that are containers for simple atomic values and which have a built-in (and efficient) wait-for-update functionality.
 
 ## Subtleties and practical advice
 
@@ -199,11 +199,11 @@ In practice some of the shared memory facilities, especially futexWait and futex
 
 ### Blocking on the browser's main thread
 
-There is nothing inherently problematic about futexWaiting in the browser's main thread - a futexWait has the same meaning as a loop that waits for a wakeup flag to be set.  However, unless there's a guarantee that the wait will be brief it's often better to avoid such a wait, and instead have a "master worker" that acts on the main thread's behalf and communicates with the main thread using message passing.  The "master worker" can wait indefinitely without impacting the responsiveness of the browser.
+There is nothing inherently problematic about waiting in the browser's main thread - a `wait` has the same meaning as a loop that waits for a wakeup flag to be set.  However, unless there's a guarantee that the wait will be brief it's often better to avoid such a wait, and instead have a "master worker" that acts on the main thread's behalf and communicates with the main thread using message passing.  The "master worker" can wait indefinitely without impacting the responsiveness of the browser.
 
 A variation on that pattern is a control structure that doesn't need a master worker but where the workers coordinate among themselves about sending a message to the master when some condition is met.  The "asymmetric barrier" in the demo section is such a control structure.
 
-The specification allows the browser to deny `futexWait` on the main thread, and it is expected that most browsers will eventually do so.  A denied `futexWait` throws an exception.
+The specification allows the browser to deny `wait` on the main thread, and it is expected that most browsers will eventually do so.  A denied `wait` throws an exception.
 
 ### Don't mix atomic and non-atomic accesses
 
@@ -217,8 +217,8 @@ How expensive is a SharedArrayBuffer?  In the current Firefox implementation it 
 
 Firefox and Chrome both implement the proposed API.
 
-* In Firefox the API is enabled by default in Nightly, and starting with Firefox 46 it can be enabled in Aurora, Developer Edition, Beta, and Release by setting `javascript.options.shared_memory` to true in `about:config`.  Firefox denies `futexWait` on the main thread.
+* In Firefox the API is enabled by default in Nightly, and starting with Firefox 46 it can be enabled in Aurora, Developer Edition, Beta, and Release by setting `javascript.options.shared_memory` to true in `about:config`.  Firefox denies `wait` on the main thread.
 * In Chrome the API is off by default and can be enabled by command line options (to be documented).
 
-In Firefox there is a per-domain limit on the number of workers that defaults to 20.  Once the limit is exceeded new workers in the domain will be create but will remain un-started.  A program that futexWaits on an un-started worker will usually deadlock.  (Arguably the limitation is a violation of the WebWorkers spec, see [this WHATWG bug that aims to clarify that](https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039).)
+In Firefox there is a per-domain limit on the number of workers that defaults to 20.  Once the limit is exceeded new workers in the domain will be create but will remain un-started.  A program that `wait`s on an un-started worker will usually deadlock.  (Arguably the limitation is a violation of the WebWorkers spec, see [this WHATWG bug that aims to clarify that](https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039).)
 
