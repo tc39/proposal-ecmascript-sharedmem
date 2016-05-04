@@ -71,7 +71,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-05-04 -- (Issue 94) Clarified slightly the meaning of lock-free.
+  <li> 2016-05-04 -- (Issue 94, Issue 96) Clarified slightly the meaning of lock-free.
   
   </li><li> 2016-04-06 -- Moved Agent Clusters and shared memory specific agent properties back into this spec; the agents spec is being split into  <a href="https://github.com/tc39/ecma262/pull/522">a PR</a> and ideas specific to the shared memory proposal.
   
@@ -275,6 +275,12 @@ comments.</p>
         lock-free.  Lock-free does not imply wait-free: there is no
         upper bound on how many machine steps may be required to
         complete a lock-free atomic operation.  </p>
+
+      <p>That an atomic access of size  <em>n</em> is lock-free does
+        not imply anything about the (perceived) atomicity of
+        non-atomic accesses of size  <em>n</em>, specifically,
+        non-atomic accesses may still be performed as a sequence of
+        several separate memory accesses.  </p>
 
     </emu-note>
 
