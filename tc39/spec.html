@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-05-04 </p>
+<p> Revised: 2016-05-09 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -68,6 +68,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-05-04 -- (Issue 32) Remove SharedArrayBuffer.isView, it is redundant.
   <li> 2016-05-04 -- (Issue 94, Issue 96) Clarified slightly the meaning of lock-free.
   <li> 2016-04-06 -- Moved Agent Clusters and shared memory specific agent properties back into this spec; the agents spec is being split into <a href="https://github.com/tc39/ecma262/pull/522">a PR</a> and ideas specific to the shared memory proposal.
   <li> 2016-03-30 -- (Issue 95) Renamed Atomics.futexWait as Atomics.wait and Atomics.futexWake as Atomics.wake. No functional change.
@@ -593,19 +594,6 @@ These call AllocateTypedArray with a specified length:
 
       <p>Besides its ~length~ property (whose value is 1), the SharedArrayBuffer constructor has the following properties:</p>
       
-      <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.isView">
-        <h1>SharedArrayBuffer.isView( arg )</h1>
-        <p>The isView function takes one argument arg, and performs the following steps are taken:</p>
-        <emu-alg>
-          1. If Type(_arg_) is not ~Object~, return ~false~.
-          1. If _arg_ has a [[ViewedArrayBuffer]] internal slot, return ~true~.
-          1. Return ~false~.
-        </emu-alg>
-        <emu-note>
-          <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/32">Issue 32</a>)  This function is identical to ArrayBuffer.isView, since TypedArrays use the [[ViewedArrayBuffer]] internal slot to hold both unshared and shared buffers.  There is an opportunity to do something more interesting, namely, to make SharedArrayBuffer.isView() return ~true~ only if its argument is viewing a SharedArrayBuffer, and to make ArrayBuffer.isView() return ~false~ if its argument is viewing a SharedArrayBuffer.</p>
-        </emu-note>
-      </emu-clause>
-
       <emu-clause id="StructuredData.SharedArrayBuffer.constructor.properties.prototype">
         <h1>SharedArrayBuffer.prototype</h1>
         <p> The initial value of SharedArrayBuffer.prototype is the intrinsic object %SharedArrayBufferPrototype% (q.v.).</P>
