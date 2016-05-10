@@ -21,4 +21,5 @@ when the document was exported for archiving.  Please file PRs against this file
 * Mark Batty
 * Nick Bray
 * Olivier Giroux
+* PeteX
 * Sean Stangl
