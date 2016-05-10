@@ -42,6 +42,12 @@ We believe however that the low-level facility is good for building reasonably s
 
 The only known security issue with this feature is that it allows the construction of high-resolution timers.  Such timers can be used to construct some types of side-channel attacks.  See [the issues](https://github.com/tc39/ecmascript_sharedmem/issues) for a deeper discussion; more information will be coming by and by.
 
+## Why not just asm.js or wasm?
+
+This is an issue that is separate from whether the feature has utility to JS programs: occasionally, the question is raised whether the shared memory cannot be hidden inside asm.js or wasm so that JS is not exposed to the complexity.
+
+Briefly, neither asm.js or wasm exist in a vacuum: they will need to interact with JavaScript, and JavaScript will need to do some of the work on behalf of asm.js and wasm.  In practice, it will be very awkward for the memory used by asm.js and wasm not to be available to JS.  This means that JS will be exposed to something like SharedArrayBuffer, at least.  But for JS to have access to shared memory without having some kind of memory model that is compatible with asm.js and wasm is asking for trouble.  Specifically, this will look a lot like the old "threads as a library" situation where the host language's compiler (the JS jit) will not have a notion of how it may optimize certain memory accesses in the presence of shared memory, and mild chaos ensues.
+
 ## Select rationale
 
 The original proposal (in the historical/ subdirectory) contains detailed rationale points, a run-down of machine characteristics, and implementation advice.  The following are the most important points.
