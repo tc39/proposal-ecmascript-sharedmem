@@ -13,7 +13,7 @@ var canBlockOnThisThread = (function () {
     var mem = new Int32Array(new SharedArrayBuffer(4));
     var didThrow = false;
     try {
-	Atomics.futexWait(mem, 0, 0, 0);
+	Atomics.wait(mem, 0, 0, 0);
     }
     catch (e) {
 	didThrow = true;

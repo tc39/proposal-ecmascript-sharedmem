@@ -15,18 +15,14 @@ onmessage =
 		var [_, ms, result] = ev.data;
 		postMessage(["msg", "Going into " + ms + "ms wait in the worker"]);
 		var t0 = Date.now();
-		var r = Atomics.futexWait(mem, WAITLOC, 0, ms);
+		var r = Atomics.wait(mem, WAITLOC, 0, ms);
 		postMessage(["msg", "Wait returned " + r]);
 		var t1 = Date.now();
 		switch (r) {
-		case Atomics.TIMEDOUT:
-		    postMessage(["timedout", result, t1-t0]);
-		    break;
-		case Atomics.NOTEQUAL:
-		    postMessage(["notequal", result, t1-t0]);
-		    break;
-		case Atomics.OK:
-		    postMessage(["woken", result, t1-t0]);
+		case "timed-out":
+		case "not-equal":
+		case "ok":
+		    postMessage([r, result, t1-t0]);
 		    break;
 		default:
 		    postMessage(["failure", [result, r], t1-t0]);

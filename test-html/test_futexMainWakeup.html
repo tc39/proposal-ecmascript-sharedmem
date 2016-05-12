@@ -28,14 +28,14 @@ worker.onmessage = function (ev) {
 }
 function runTest() {
     if (!canBlockOnThisThread) {
-        msg("NO TEST: Atomics.futexWait is disabled (by the browser) on the main thread");
+        msg("NO TEST: Atomics.wait is disabled (by the browser) on the main thread");
         return;
     }
 
     var time = 1000;
     worker.postMessage(["run", time]);
     var before = Date.now();
-    Atomics.futexWait(mem, 0, 0, Number.POSITIVE_INFINITY);
+    Atomics.wait(mem, 0, 0, Number.POSITIVE_INFINITY);
     var after = Date.now();
     msg("Returned from wait after " + (after - before) + "ms, should be about " + time);
     msg("DONE");

@@ -24,7 +24,7 @@ Mutex.prototype.lock =
 	if ((c = Atomics.compareExchange(sab, index, 0, 1)) != 0) {
 	    do {
 		if (c == 2 || Atomics.compareExchange(sab, index, 1, 2) != 0)
-		    Atomics.futexWait(sab, index, 2, Number.POSITIVE_INFINITY);
+		    Atomics.wait(sab, index, 2, Number.POSITIVE_INFINITY);
 	    } while ((c = Atomics.compareExchange(sab, index, 0, 2)) != 0);
 	}
     };
@@ -37,6 +37,6 @@ Mutex.prototype.unlock =
 	// Wake up a waiter if there are any
 	if (v0 != 1) {
 	    Atomics.store(sab, index, 0);
-	    Atomics.futexWake(sab, index, 1);
+	    Atomics.wake(sab, index, 1);
 	}
     };

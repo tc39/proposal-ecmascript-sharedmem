@@ -5,6 +5,6 @@ onmessage = function (ev) {
     var mem = new Int32Array(sab);
 
     setTimeout(function () {
-	Atomics.futexWake(mem, 0, 1);
+	Atomics.wake(mem, 0, 1);
     }, 20000);
 }
