@@ -1,0 +1,95 @@
+<!-- A browser-based test runner for the tests in this directory -->
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title> SharedArrayBuffer and Atomics </title>
+  </head>
+  <body>
+    <!-- "assert" object and some hooks -->
+    <script src="harness.js"></script>
+
+    <pre><div id='scrool'></div></pre>
+
+    <!-- Output to the document -->
+    <script>
+      function msg(s) {
+	  var d = document.createElement('div');
+          if (s.match(/^ERROR/))
+             d.setAttribute("style", "color: red");
+	  d.appendChild(document.createTextNode(s));
+	  document.getElementById("scrool").appendChild(d);
+      }
+    </script>
+
+    <!-- Override definitions in harness.js -->
+    <script>
+      var timeout = null;
+      var classification = "";
+      var errors = 0;
+
+      function beginTest(test) {
+          clearCount();
+          classification = "";
+	  msg("");
+	  msg("Starting " + test);
+          timeout = setTimeout(function () { errors++; msg("ERROR: TIMEOUT: " + classification + test) }, 1000);
+      }
+
+      function classifyTest(s) {
+	  classification = s + " ";
+      }
+
+      function finishTest(test) {
+          clearTimeout(timeout);
+          timeout = null;
+	  msg("Test completed: " + test + ", " + getCount() + " tests");
+      }
+
+      fail =
+      (function (oldfail) {
+          return function (s) {
+              errors++;
+              clearTimeout(timeout);
+              timeout = null;
+              oldfail("ERROR: " + classification + s);
+          }
+      })(fail);
+    </script>
+
+    <!-- And run.  Add a script for each test file.  -->
+
+    <script src="shared-array-buffer-props.js"></script>
+    <script src="shared-array-buffer-instance-props.js"></script>
+    <script src="shared-array-buffer-conversion.js"></script>
+
+    <script src="typedarray-props.js"></script>
+    <script src="typedarray-props-range.js"></script>
+
+    <script src="dataview-props.js"></script>
+
+    <script src="atomics-on-good-arrays.js"></script>
+    <script src="atomics-on-nonshared-int-arrays.js"></script>
+    <script src="atomics-on-shared-nonint-arrays.js"></script>
+    <script src="atomics-on-other-stuff.js"></script>
+    <script src="atomics-range.js"></script>
+
+    <script src="futex-on-shared-nonint32-arrays.js"></script>
+    <script src="futex-on-nonshared-int-arrays.js"></script>
+    <script src="futex-on-shared-nonint-arrays.js"></script>
+    <script src="futex-on-other-stuff.js"></script>
+    <script src="futex-range.js"></script>
+    <script src="futex-misc.js"></script>
+    <script src="futex-wait-return.js"></script>
+
+    <script src="is-lock-free-good.js"></script>
+    <script src="is-lock-free-corner-cases.js"></script>
+
+    <script>
+      if (errors) {
+          msg("");
+          msg("ERROR: " + errors + " tests failed");
+      }
+    </script>
+  </body>
+</html>
