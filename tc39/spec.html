@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-05-09 </p>
+<p> Revised: 2016-05-12 </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -68,6 +68,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-05-12 -- (Issue 26) Editorial: Introduce some definition nodes to avoid incorrect cross references.
   <li> 2016-05-04 -- (Issue 32) Remove SharedArrayBuffer.isView, it is redundant.
   <li> 2016-05-04 -- (Issue 94, Issue 96) Clarified slightly the meaning of lock-free.
   <li> 2016-04-06 -- Moved Agent Clusters and shared memory specific agent properties back into this spec; the agents spec is being split into <a href="https://github.com/tc39/ecma262/pull/522">a PR</a> and ideas specific to the shared memory proposal.
@@ -145,7 +146,7 @@ comments.</p>
     <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
       <h1>Data blocks (ES6 6.2.6)</h1>
       <p> Insert the following paragraph after the third: </p>
-      <p> A data block that resides in memory that can be referenced from multiple agents is designated a Shared Data Block. </p>
+      <p> A data block that resides in memory that can be referenced from multiple agents is designated a <dfn>Shared Data Block</dfn>. </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
         <h1>CopyDataBlockBytes( toBlock, toIndex, fromBlock, fromIndex, count ) (ES6 6.2.6.2)</h1>
@@ -174,7 +175,7 @@ comments.</p>
           1. Return _G_.
         </emu-alg>
         <emu-note>
-          <p>The Shared Data Block ID is used by the wait/wake mechanism and names _block_ independently of any virtual addresses it may be mapped to in any particular agent.</p>
+          <p>The <dfn>Shared Data Block ID</dfn> is used by the wait/wake mechanism and names _block_ independently of any virtual addresses it may be mapped to in any particular agent.</p>
         </emu-note>
       </emu-clause>
     </emu-clause>
@@ -195,7 +196,7 @@ comments.</p>
   <emu-clause id="ExecutableCodeAndContexts.AgentCluster">
     <h1>Agents (AMENDMENTS)</h1>
 
-    <p> Additional properties on the Agent Record (see <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>):</p>
+    <p> Additional properties on the <dfn>Agent Record</dfn> (see <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>):</p>
 
     <emu-table id="table-999" caption="Agent Record Fields">
       <table>
