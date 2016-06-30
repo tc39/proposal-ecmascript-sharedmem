@@ -10,7 +10,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-05-12 </p>
+<p> Revised: 2016-06-30 </p>
+<p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29). </p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -68,6 +69,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-06-30 -- Modified algorithms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.
   <li> 2016-05-12 -- (Issue 26) Editorial: Introduce some definition nodes to avoid incorrect cross references.
   <li> 2016-05-04 -- (Issue 32) Remove SharedArrayBuffer.isView, it is redundant.
   <li> 2016-05-04 -- (Issue 94, Issue 96) Clarified slightly the meaning of lock-free.
@@ -146,14 +148,17 @@ comments.</p>
     <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
       <h1>Data blocks (ES6 6.2.6)</h1>
       <p> Insert the following paragraph after the third: </p>
+
       <p> A data block that resides in memory that can be referenced from multiple agents is designated a <dfn>Shared Data Block</dfn>. </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
-        <h1>CopyDataBlockBytes( toBlock, toIndex, fromBlock, fromIndex, count ) (ES6 6.2.6.2)</h1>
-        <p>Modify this algorithm as follows:</p>
-        <ul>
-          <li> In step 1, allow also a Shared Data Block.
-        </ul>
+        <h1>CopyDataBlockBytes (_toBlock_, _toIndex_, _fromBlock_, _fromIndex_, _count_) (ES6 6.2.6.2)</h1>
+        <p> This algorithm is modified as follows:</p>
+        <p>When the abstract operation CopyDataBlockBytes is called, the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _fromBlock_ and _toBlock_ are distinct Data Block <ins>or Shared Data Block</ins> values.
+          1. ...
+        </emu-alg>
       </emu-clause>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">
@@ -196,15 +201,21 @@ comments.</p>
   <emu-clause id="ExecutableCodeAndContexts.AgentCluster">
     <h1>Agents (AMENDMENTS)</h1>
 
-    <p> Additional properties on the <dfn>Agent Record</dfn> (see <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>):</p>
+    <p> Add the following properties to the <dfn>Agent Record</dfn> which is provided by <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>:</p>
 
-    <emu-table id="table-999" caption="Agent Record Fields">
+    <emu-table id="table-agent-record" caption="Agent Record Fields">
       <table>
         <tbody>
           <tr>
-            <th> Field name </th>
-            <th> Value </th>
-            <th> Meaning </th>
+            <th>
+	      Field name
+	    </th>
+            <th>
+	      Value
+	    </th>
+            <th>
+	      Meaning
+	    </th>
           </tr>
           <tr>
             <td> [[Signifier]] </td>
@@ -247,7 +258,6 @@ comments.</p>
         non-atomic accesses of size <em>n</em>, specifically,
         non-atomic accesses may still be performed as a sequence of
         several separate memory accesses. </p>
-
     </emu-note>
 
   </emu-clause>
@@ -402,12 +412,6 @@ These call AllocateTypedArray with a specified length:
   <h1>Indexed Collections (ES6 22)</h1>
   <emu-clause id="IndexedCollections.TypedArray">
     <h1>TypedArray Objects (ES6 22.2)</h1>
-    <emu-note>
-      <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/29">Issue 29</a>)  This specification extends the TypedArray specification to allow TypedArrays to view SharedArrayBuffers.  There is a question whether existing TypedArray methods that create a new TypedArray on top of a new ArrayBuffer (%TypedArray%.prototype.filter, %TypedArray%.prototype.map, %TypedArray%.prototype.slice, %TypedArray%.prototype.subarray) should continue to create an ArrayBuffer even if the input buffer is a SharedArrayBuffer, or whether they should instead create a SharedArrayBuffer in that case.</p>
-      <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/30">Issue 30</a>) Should TypedArray constructors be extended to allow them to allocate shared memory?</p>
-      <p>(<a href="https://github.com/tc39/ecmascript_sharedmem/issues/31">Issue 31</a>) Should TypedArray static methods (%TypedArray%.of, %TypedArray%.from) be extended to allow them to allocate shared memory?</p>
-      <p>For the time being, I have opted not to change any of those functions: shared memory can only be created by explicitly invoking the constructor of SharedArrayBuffer (or the constructors of any user-defined subclasses of SharedArrayBuffer).</p>
-    </emu-note>
 
     <emu-clause id="IndexedCollections.TypedArray.intrinsic">
       <h1>The %TypedArray% intrinsic object (ES6 22.2.1)</h1>
@@ -415,19 +419,28 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
         <h1>%TypedArray%( object ) (ES6 22.2.1.4)</h1>
         <p>This algorithm is modified as follows:</p>
-        <ul>
-          <li> Add a restriction on the applicability of this constructor: it does not apply if the object has a [[SharedArrayBufferData]] internal slot.
-        </ul>
+        <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object does not have either a [[TypedArrayName]] <del>or</del> <ins>,</ins> an [[ArrayBufferData]]<ins>, or a [[SharedArrayBufferData]]</ins> internal slot.</p>
+        <p> ... </p>
       </emu-clause>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
         <h1>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</h1>
         <p>This algorithm is modified as follows:</p>
-        <ul>
-          <li>In the first paragraph, allow also an object that has a [[SharedArrayBufferData]] internal slot.
-          <li>In step 1, allow also an object that has a [[SharedArrayBufferData]] internal slot.
-          <li>In step 12, if IsSharedMemory(_buffer_) then let _bufferByteLength_ be the value of _buffer_'s [[SharedArrayBufferByteLength]] internal slot.
-        </ul>
+        <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object has an [[ArrayBufferData]] <ins>or [[SharedArrayBufferData]]</ins> internal slot.</p>
+        <p>_TypedArray_ called with at least one argument _buffer_ performs the following steps:</p>
+        <emu-alg>
+          1. Assert: Type(_buffer_) is Object and _buffer_ has an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]</ins> internal slot.
+          1. If NewTarget is *undefined*, throw a *TypeError* exception.
+          1. Let _constructorName_ be the String value of the Constructor Name value specified in <emu-xref href="#table-49"></emu-xref> for this <var>TypedArray</var> constructor.
+          1. Let _O_ be ? AllocateTypedArray(_constructorName_, NewTarget, <code>"%<var>TypedArray</var>Prototype%"</code>).
+          1. Let _constructorName_ be the String value of _O_.[[TypedArrayName]].
+          1. Let _elementSize_ be the Number value of the Element Size value in <emu-xref href="#table-49"></emu-xref> for _constructorName_.
+          1. Let _offset_ be ? ToIndex(_byteOffset_).
+          1. If _offset_ modulo _elementSize_ &ne; 0, throw a *RangeError* exception.
+          1. If IsDetachedBuffer(_buffer_) is *true*, throw a *TypeError* exception.
+          1. <del>Let</del> <ins> If IsSharedMemory(_buffer_) then let _bufferByteLength_ be _buffer_.[[SharedArrayBufferByteLength]], otherwise let</ins> _bufferByteLength_ be _buffer_.[[ArrayBufferByteLength]].
+          1. ...
+        </emu-alg>
       </emu-clause>
 
     </emu-clause> <!-- intrinsic object -->
@@ -438,17 +451,39 @@ These call AllocateTypedArray with a specified length:
         <h1> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES6 22.2.3.22)</h1>
         <emu-clause id="IndexedCollections.TypedArray.prototype.setFromTypedArray">
           <h1>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES6 22.2.3.22.2)</h1>
-          <p> Before step 24, insert the following algorithm:</p>
+          <p>This algorithm is modified as follows:</p>
+          <p>Sets multiple values in this _TypedArray_, reading the values from the _typedArray_ argument object. The optional _offset_ value indicates the first element index in this _TypedArray_ where values are written. If omitted, it is assumed to be 0.</p>
           <emu-alg>
-            1. If IsSharedMemory(_srcBuffer_) is ~true~ and IsSharedMemory(_targetBuffer_) is ~true~ then:
-              1. Let _srcBlock_ be _srcBuffer_'s [[SharedArrayBufferData]] internal slot
-              1. Let _targetBlock_ be _targetBuffer_'s [[SharedArrayBufferData]] internal slot
-              1. Let _srcId_ be SharedDataBlockID(_srcBlock_)
-              1. Let _targetId_ be SharedDataBlockID(_targetBlock_)
-              1. If _srcId_ = _targetId_ then let _doClone_ be ~true~, else let _doClone_ be ~false~
-            1. Else, let _doClone_ be ~false~
+            1. Assert: _typedArray_ has a [[TypedArrayName]] internal slot. If it does not, the definition in <emu-xref href="#sec-%typedarray%.prototype.set-array-offset"></emu-xref> applies.
+            1. Let _target_ be the *this* value.
+            1. If Type(_target_) is not Object, throw a *TypeError* exception.
+            1. If _target_ does not have a [[TypedArrayName]] internal slot, throw a *TypeError* exception.
+            1. Assert: _target_ has a [[ViewedArrayBuffer]] internal slot.
+            1. Let _targetOffset_ be ? ToInteger(_offset_).
+            1. If _targetOffset_ &lt; 0, throw a *RangeError* exception.
+            1. Let _targetBuffer_ be _target_.[[ViewedArrayBuffer]].
+            1. If IsDetachedBuffer(_targetBuffer_) is *true*, throw a *TypeError* exception.
+            1. Let _targetLength_ be _target_.[[ArrayLength]].
+            1. Let _srcBuffer_ be _typedArray_.[[ViewedArrayBuffer]].
+            1. If IsDetachedBuffer(_srcBuffer_) is *true*, throw a *TypeError* exception.
+            1. Let _targetName_ be the String value of _target_.[[TypedArrayName]].
+            1. Let _targetType_ be the String value of the Element Type value in <emu-xref href="#table-49"></emu-xref> for _targetName_.
+            1. Let _targetElementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for _targetName_.
+            1. Let _targetByteOffset_ be _target_.[[ByteOffset]].
+            1. Let _srcName_ be the String value of _typedArray_.[[TypedArrayName]].
+            1. Let _srcType_ be the String value of the Element Type value in <emu-xref href="#table-49"></emu-xref> for _srcName_.
+            1. Let _srcElementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for _srcName_.
+            1. Let _srcLength_ be _typedArray_.[[ArrayLength]].
+            1. Let _srcByteOffset_ be _typedArray_.[[ByteOffset]].
+            1. If _srcLength_ + _targetOffset_ &gt; _targetLength_, throw a *RangeError* exception.
+            1. <ins>If Type(_x_) is SharedArrayBuffer, then let _same_ = SharedDataBlockID(_x_.[[SharedArrayBufferData]]) == SharedDataBlockID(_y_.[[SharedArrayBufferData]]); otherwise let _same_ = SameValue(_srcBuffer_, _targetBuffer_). </ins>
+            1. <del>If SameValue(_srcBuffer_, _targetBuffer_)</del> <ins>_same_</ins> is *true*, then
+              1. Let _srcBuffer_ be ? CloneArrayBuffer(_srcBuffer_, _srcByteOffset_, _srcLength_, %ArrayBuffer%).
+              1. NOTE: %ArrayBuffer% is used to clone _srcBuffer_ because is it known to not have any observable side-effects.
+              1. Let _srcByteIndex_ be 0.
+            1. Else, let _srcByteIndex_ be _srcByteOffset_.
+            1. ...
           </emu-alg>
-          <p> Then, in step 24, also choose to clone srcBuffer if _doClone_ is ~true~. </p>
         </emu-clause>
       </emu-clause>
     </emu-clause>
@@ -466,32 +501,43 @@ These call AllocateTypedArray with a specified length:
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.IsDetachedBuffer" aoid="IsDetachedBuffer">
         <h1>IsDetachedBuffer( arrayBuffer ) (ES6 24.1.1.2)</h1>
-        <p> This algorithm is rewritten as follows: </p>
+        <p> This algorithm is modified as follows: </p>
         <emu-alg>
-          1. Assert: Type(_arrayBuffer_) is Object and it has an [[ArrayBufferData]] internal slot or a [[SharedArrayBufferData]] internal slot.
-          1. If _arrayBuffer_ has an [[ArrayBufferData]] internal slot and _arrayBuffer_’s [[ArrayBufferData]] internal slot is null, return ~true~.
-          1. Return ~false~.
+          1. Assert: Type(_arrayBuffer_) is Object and it has an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]<ins> internal slot.
+          1. If <ins>_arrayBuffer_ has an [[ArrayBufferData]] internal slot and</ins> _arrayBuffer_.[[ArrayBufferData]] is *null*, return *true*.
+          1. Return *false*.
         </emu-alg>
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.CloneArrayBuffer" aoid="CloneArrayBuffer">
         <h1>CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES6 24.1.1.4)</h1>
         <p>This algorithm is modified as follows:</p>
-        <ul>
-          <li> In the introductory paragraph, note that this function can take a SharedArrayBuffer as well.
-          <li> In step 1, allow for a [[SharedArrayBufferData]] internal slot.
-          <li> In step 4, if IsSharedMemory(_srcBuffer_) then let _srcLength_ be the value of _srcBuffer_'s [[SharedArrayBufferByteLength]] internal slot.
-          <li> In step 7, if IsSharedMemory(_srcBuffer_) then let _srcBlock_ be the value of _srcBuffer_’s [[SharedArrayBufferData]] internal slot.
-        </ul>
+        <p> The abstract operation CloneArrayBuffer takes four parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _srcBuffer_, an integer offset _srcByteOffset_, an integer length _srcLength_, and optionally a constructor function _cloneConstructor_. It creates a new ArrayBuffer whose data is a copy of _srcBuffer_'s data over the range starting at _srcByteOffset_ and continuing for _srcLength_ bytes. This operation performs the following steps:</p>
+        <emu-alg>
+          1. Assert: Type(_srcBuffer_) is Object and it has an [[ArrayBufferData]] <ins>or [[SharedArrayBufferData]]</ins> internal slot.
+          1. If _cloneConstructor_ is not present, then
+            1. Let _cloneConstructor_ be ? SpeciesConstructor(_srcBuffer_, %ArrayBuffer%).
+            1. If IsDetachedBuffer(_srcBuffer_) is *true*, throw a *TypeError* exception.
+          1. Else, Assert: IsConstructor(_cloneConstructor_) is *true*.
+          1. <del>Let</del> <ins>If IsSharedMemory(_srcBuffer_) then let _srcBlock_ be _srcBuffer_.[[SharedArrayBufferData]], else let</ins> _srcBlock_ be _srcBuffer_.[[ArrayBufferData]].
+          1. ...
+        </emu-alg>
       </emu-clause>
       
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
         <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</h1>
         <p> This algorithm is modified as follows:</p>
-        <ul>
-          <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
-          <li> In step 4, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
-        </ul>
+        <p> The abstract operation GetValueFromBuffer takes four parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <emu-alg>
+          1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
+          1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
+          1. Assert: _byteIndex_ is an integer value &ge; 0.
+          1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
+          1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
+          1. Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].
+          1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the SetValueInBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
+          1. ...
+        </emu-alg>
 
         <emu-note>
           <p> If IsSharedMemory( _arrayBuffer_ ) is ~true~ then two consecutive calls to GetValueFromBuffer with the same arguments in the same agent may or may not return the same value even if there is no write to the buffer in that agent between the read calls: another agent may have written to the buffer. </p>
@@ -502,10 +548,17 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
         <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</h1>
         <p> This algorithm is modified as follows:</p>
-        <ul>
-          <li> The parameter _arrayBuffer_ can be an ArrayBuffer or SharedArrayBuffer.
-          <li> In step 5, if IsSharedMemory( _arrayBuffer_ ) is ~true~ then use the value of _arrayBuffer_'s [[SharedArrayBufferData]] internal slot.
-        </ul>
+        <p> The abstract operation SetValueInBuffer takes five parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <emu-alg>
+          1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
+          1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
+          1. Assert: _byteIndex_ is an integer value &ge; 0.
+          1. Assert: Type(_value_) is Number.
+          1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
+          1. Assert: _block_ is not *undefined*.
+          1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the GetValueFromBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
+          1. ...
+        </emu-alg>
 
         <emu-note>
           <p> When SetValueInBuffer is called to set bytes in shared memory the implementation may set several bytes at a time (and that is the normal case), but it may not use read-modify-write on a larger datum, as that might introduce data races where the source program has none.  Data races are discussed in the section on the Atomics object. </p>
@@ -522,10 +575,16 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="StructuredData.DataView.constructor.detail">
         <h1>DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</h1>
         <p> This algorithm is modified as follows: </p>
-        <ul>
-          <li> In step 3, allow also a [[SharedArrayBufferData]] internal slot.
-          <li> In step 9, if IsSharedMemory(_buffer_) then let _bufferByteLength_ be the value of _buffer_'s [[SharedArrayBufferByteLength]] internal slot.
-        </ul>
+        <p>When the `DataView` is called with at least one argument _buffer_, the following steps are taken:</p>
+        <emu-alg>
+          1. If NewTarget is *undefined*, throw a *TypeError* exception.
+          1. If Type(_buffer_) is not Object, throw a *TypeError* exception.
+          1. If _buffer_ does not have an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]</ins> internal slot, throw a *TypeError* exception.
+          1. Let _offset_ be ? ToIndex(_byteOffset_).
+          1. If IsDetachedBuffer(_buffer_) is *true*, throw a *TypeError* exception.
+          1. <del>Let</del> <ins>If IsSharedMemory(_buffer_) then let _bufferByteLength_ be _buffer_.[[SharedArrayBufferByteLength]], else let</ins> _bufferByteLength_ be _buffer_.[[ArrayBufferByteLength]].
+          1. ...
+        </emu-alg>
       </emu-clause>
     </emu-clause>
   </emu-clause> <!-- DataView -->
