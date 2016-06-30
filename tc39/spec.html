@@ -11,7 +11,7 @@
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
 <p> Revised: 2016-06-30 </p>
-<p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29). </p>
+<p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications (here denoted "ES7") is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29).  ES7 (ES2016) section numbering differs from ES6 only for TypedArrays (section 22.2).</p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -69,90 +69,48 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-06-30 -- Modified algorithms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.
-  <li> 2016-05-12 -- (Issue 26) Editorial: Introduce some definition nodes to avoid incorrect cross references.
-  <li> 2016-05-04 -- (Issue 32) Remove SharedArrayBuffer.isView, it is redundant.
-  <li> 2016-05-04 -- (Issue 94, Issue 96) Clarified slightly the meaning of lock-free.
-  <li> 2016-04-06 -- Moved Agent Clusters and shared memory specific agent properties back into this spec; the agents spec is being split into <a href="https://github.com/tc39/ecma262/pull/522">a PR</a> and ideas specific to the shared memory proposal.
-  <li> 2016-03-30 -- (Issue 95) Renamed Atomics.futexWait as Atomics.wait and Atomics.futexWake as Atomics.wake. No functional change.
-  <li> 2016-03-30 -- (Issue 90) Factor AtomicFetchOp out as a semantic algorithm, and reference it formally where appropriate. No functional change.
-  <li> 2016-03-30 -- (Issue 69) Remove Atomics.OK, Atomics.TIMEDOUT, Atomics.NOTEQUAL.  Return strings from Atomics.futexWait.
-  <li> 2016-03-30 -- (Issue 93) Fix buggy restriction on byteLength in AllocateSharedArrayBuffer.
-  <li> 2016-03-24 -- (Issue 11) Removed Atomics.futexWakeOrRequeue.
-  <li> 2016-03-24 -- (Issue 57) Added a note on how wait/wake can be throttled.
-  <li> 2016-03-24 -- Removed an orphan note.
-  <li> 2016-03-24 -- (Issue 46) Atomics.isLockFree(4) is guaranteed to return true.
-  <li> 2016-03-24 -- (Issue 12) Removed references to the proposed "synchronic" spec, it was withdrawn.
-  <li> 2016-03-18 -- (Issue 22, 51, 71) Flesh out the memory model.
-  <li> 2016-03-16 -- (Issue 47) Clarified the meaning of "data access" in the memory model, removed irrelevant parameters to the memory model.
-  <li> 2016-03-16 -- (Issue 81) Rewrote prose to reference the Agents spec where appropriate.
-  <li> 2016-03-03 -- (Issue 78) Change ValidateAtomicAccess to behave as the DataView and SIMD specs, atomic ops are related to those method suites.
-  <li> 2016-03-03 -- (Issue 72) The _value_ argument of the atomics ops that take a value are converted by ToInteger, not ToNumber.
-  <li> 2016-03-03 -- (Issue 63) The _count_ argument of futexWake and futexWakeOrRequeue defaults to +Infinity, not 0.
-  <li> 2016-03-03 -- (Issue 79, Issue 80) Replaced most of the section on web browser embedding with references to agents spec and structured cloning spec.
-  <li> 2016-02-26 -- Editorial work in preparation for first review.
-  <li> 2016-02-10 -- (Issue 62) Rewrote ValidateAtomicAccess so as to process index values in the same way as ES6.
-  <li> 2016-02-10 -- (Issue 58) Clarified with a NOTE that no additional rule is needed to establish a happens-before relationship from an atomic write to a futexWait or futexWakeOrRequeue that returns NOTEQUAL.
-  <li> 2016-02-10 -- (Issue 60) ValidateSharedIntegerTypedArray needs to check for a TypedArrayName slot.  
-  <li> 2016-01-23 -- Removed a reference to the note that was removed yesterday.
-  <li> 2016-01-22 -- (Issue 43) Clarified language.  Removed part of a note that attempted to explain an illegal optimization but got it wrong; will be re-introduced later.
-  <li> 2016-01-22 -- (Issue 41) Corrected a bug in yesterday's fix.
-  <li> 2016-01-22 -- Noted that the API is available in Firefox and Chrome.
-    Removed mention of any work on relaxed ("unordered") atomics as that is premature.
-    Removed mention of specific safe languages that might target this facility.
-    Editorial and clarity changes.
-  <li> 2016-01-21 -- (Issue 41) Correct the RemoveWaiters algorithm to take less than the full list.
-  <li> 2015-12-28 -- (Issue 36) Allow futexWait to throw an exception if blocking is not allowed on a thread, search for "AgentCanSuspend".
-  <li> 2015-09-23 -- Spec draft notes are all linked to Issues in the bug tracker.
-  <li> 2015-09-18 -- Corrected the definition of atomic access viability.
-  <li> 2015-09-17 -- Restated the memory model (again) after discussions.
-  <li> 2015-09-15 -- (Issue 24) Spell out constraints on optimization.
-  <li> 2015-09-01 -- (Issue 21) isLockFree returns false if its argument is not the byte size of some *integer* array.
-  <li> 2015-08-21 -- Expanded the discussion of Service Workers and Shared Workers.
-  <li> 2015-08-18 -- Reformat, update to ecmarkup 1.7.
-  <li> 2015-08-06 -- Added sections on forward progress and clarifications and changes to worker semantics.
-  <li> 2015-07-09 -- Ongoing cleanup and minor bug fixing.  Restated the memory model.
-  <li> 2015-07-08 -- Initial translation from the original proposal.
+  <li> 2016-06-30 -- Modified algorithms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.  Updated section references to reference that revision.
+  <li> (Older changelog removed)
 </ul>
 
 </emu-intro>
 
 <emu-clause id="Overview">
-  <h1>Overview (ES6 4)</h1>
+  <h1>Overview (ES7 4)</h1>
   <emu-clause id="Overview.Overview">
-    <h1>ECMAScript Overview (ES6 4.2)</h1>
+    <h1>ECMAScript Overview (ES7 4.2)</h1>
     <p>In the third paragraph, include <b>SharedArrayBuffer</b> after <b>ArrayBuffer</b>.</p>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="DataTypesValues">
-  <h1>ECMAScript Data Types and Values (ES6 6)</h1>
+  <h1>ECMAScript Data Types and Values (ES7 6)</h1>
   
   <emu-clause id="DataTypesValues.LanguageTypes">
-    <h1>ECMAScript Language Types (ES6 6.1)</h1>
+    <h1>ECMAScript Language Types (ES7 6.1)</h1>
     <emu-clause id="DataTypesValues.LanguageTypes.Number">
-      <h1>The Number Type (ES6 6.1.6)</h1>
+      <h1>The Number Type (ES7 6.1.6)</h1>
       <p>In the NOTE, include <b>SharedArrayBuffer</b> along with <b>ArrayBuffer</b>.</p>
     </emu-clause>
     <emu-clause id="DataTypesValues.LanguageTypes.Object">
-      <h1>The Object Type (ES6 6.1.7)</h1>
+      <h1>The Object Type (ES7 6.1.7)</h1>
       <emu-clause id="DataTypesValues.LanguageTypes.Object.Intrinsic">
-        <h1>Well-Known Intrinsic Objects (ES6 6.1.7.4)</h1>
+        <h1>Well-Known Intrinsic Objects (ES7 6.1.7.4)</h1>
         <p>In table 7, include rows for %SharedArrayBuffer% and %SharedArrayBufferPrototype% in the manner of the rows for ArrayBuffer.</p>
       </emu-clause>
     </emu-clause>
   </emu-clause>
   
   <emu-clause id="DataTypesValues.SpecTypes">
-    <h1>ECMAScript Specification Types (ES6 6.2)</h1>
+    <h1>ECMAScript Specification Types (ES7 6.2)</h1>
     <emu-clause id="DataTypesValues.SpecTypes.DataBlocks">
-      <h1>Data blocks (ES6 6.2.6)</h1>
+      <h1>Data blocks (ES7 6.2.6)</h1>
       <p> Insert the following paragraph after the third: </p>
 
       <p> A data block that resides in memory that can be referenced from multiple agents is designated a <dfn>Shared Data Block</dfn>. </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
-        <h1>CopyDataBlockBytes (_toBlock_, _toIndex_, _fromBlock_, _fromIndex_, _count_) (ES6 6.2.6.2)</h1>
+        <h1>CopyDataBlockBytes (_toBlock_, _toIndex_, _fromBlock_, _fromIndex_, _count_) (ES7 6.2.6.2)</h1>
         <p> This algorithm is modified as follows:</p>
         <p>When the abstract operation CopyDataBlockBytes is called, the following steps are taken:</p>
         <emu-alg>
@@ -188,10 +146,10 @@ comments.</p>
 </emu-clause>
 
 <emu-clause id="ExecutableCodeAndContexts">
-  <h1>Executable Code and Execution Contexts (ES6 8)</h1>
+  <h1>Executable Code and Execution Contexts (ES7 8)</h1>
   <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues">
 
-    <h1>Jobs and Job Queues (ES6 8.4)</h1>
+    <h1>Jobs and Job Queues (ES7 8.4)</h1>
     <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
       <h1>Forward Progress Guarantees</h1>
       <p> The forward progress guarantee is provided by <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>. </p>
@@ -380,9 +338,9 @@ comments.</p>
 </emu-clause>
 
 <emu-clause id="GlobalObject">
-  <h1>The Global Object (ES6 18)</h1>
+  <h1>The Global Object (ES7 18)</h1>
   <emu-clause id="GlobalObject.ConstructorProps">
-    <h1>Constructor Properties of the Global Object (ES6 18.3)</h1>
+    <h1>Constructor Properties of the Global Object (ES7 18.3)</h1>
     <emu-clause id="GlobalObject.ConstructorProps.SharedArrayBuffer">
       <h1>SharedArrayBuffer</h1>
       <p> Add a new subsection for SharedArrayBuffer, pointing to the appropriate new section (below).</p>
@@ -409,22 +367,22 @@ These call AllocateTypedArray with a specified length:
   -->
 
 <emu-clause id="IndexedCollections">
-  <h1>Indexed Collections (ES6 22)</h1>
+  <h1>Indexed Collections (ES7 22)</h1>
   <emu-clause id="IndexedCollections.TypedArray">
-    <h1>TypedArray Objects (ES6 22.2)</h1>
+    <h1>TypedArray Objects (ES7 22.2)</h1>
 
     <emu-clause id="IndexedCollections.TypedArray.intrinsic">
-      <h1>The %TypedArray% intrinsic object (ES6 22.2.1)</h1>
+      <h1>The %TypedArray% intrinsic object (ES7 22.2.1)</h1>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
-        <h1>%TypedArray%( object ) (ES6 22.2.1.4)</h1>
+        <h1>%TypedArray%( object ) (ES7 22.2.4.4)</h1>
         <p>This algorithm is modified as follows:</p>
         <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object does not have either a [[TypedArrayName]] <del>or</del> <ins>,</ins> an [[ArrayBufferData]]<ins>, or a [[SharedArrayBufferData]]</ins> internal slot.</p>
         <p> ... </p>
       </emu-clause>
 
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
-        <h1>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES6 22.2.1.5)</h1>
+        <h1>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES7 22.2.4.5)</h1>
         <p>This algorithm is modified as follows:</p>
         <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object has an [[ArrayBufferData]] <ins>or [[SharedArrayBufferData]]</ins> internal slot.</p>
         <p>_TypedArray_ called with at least one argument _buffer_ performs the following steps:</p>
@@ -446,11 +404,11 @@ These call AllocateTypedArray with a specified length:
     </emu-clause> <!-- intrinsic object -->
 
     <emu-clause id="IndexedCollections.TypedArray.prototype">
-      <h1>Properties of the %TypedArrayPrototype% object (ES6 22.2.3)</h1>
+      <h1>Properties of the %TypedArrayPrototype% object (ES7 22.2.3)</h1>
       <emu-clause id="IndexedCollections.TypedArray.prototype.set">
-        <h1> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES6 22.2.3.22)</h1>
+        <h1> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES7 22.2.3.23)</h1>
         <emu-clause id="IndexedCollections.TypedArray.prototype.setFromTypedArray">
-          <h1>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES6 22.2.3.22.2)</h1>
+          <h1>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES7 22.2.3.23.2)</h1>
           <p>This algorithm is modified as follows:</p>
           <p>Sets multiple values in this _TypedArray_, reading the values from the _typedArray_ argument object. The optional _offset_ value indicates the first element index in this _TypedArray_ where values are written. If omitted, it is assumed to be 0.</p>
           <emu-alg>
@@ -491,16 +449,16 @@ These call AllocateTypedArray with a specified length:
 </emu-clause>
 
 <emu-clause id="StructuredData">
-  <h1>Structured Data (ES6 24)</h1>
+  <h1>Structured Data (ES7 24)</h1>
 
   <emu-clause id="StructuredData.ArrayBuffer">
-    <h1>ArrayBuffer Objects (ES6 24.1)</h1>
+    <h1>ArrayBuffer Objects (ES7 24.1)</h1>
 
     <emu-clause id="StructuredData.ArrayBuffer.abstract">
-      <h1>Abstract Operations for ArrayBuffer (ES6 24.1.1)</h1>
+      <h1>Abstract Operations for ArrayBuffer (ES7 24.1.1)</h1>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.IsDetachedBuffer" aoid="IsDetachedBuffer">
-        <h1>IsDetachedBuffer( arrayBuffer ) (ES6 24.1.1.2)</h1>
+        <h1>IsDetachedBuffer( arrayBuffer ) (ES7 24.1.1.2)</h1>
         <p> This algorithm is modified as follows: </p>
         <emu-alg>
           1. Assert: Type(_arrayBuffer_) is Object and it has an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]<ins> internal slot.
@@ -510,7 +468,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.CloneArrayBuffer" aoid="CloneArrayBuffer">
-        <h1>CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES6 24.1.1.4)</h1>
+        <h1>CloneArrayBuffer( srcBuffer, srcByteOffset [, cloneConstructor] ) (ES7 24.1.1.4)</h1>
         <p>This algorithm is modified as follows:</p>
         <p> The abstract operation CloneArrayBuffer takes four parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _srcBuffer_, an integer offset _srcByteOffset_, an integer length _srcLength_, and optionally a constructor function _cloneConstructor_. It creates a new ArrayBuffer whose data is a copy of _srcBuffer_'s data over the range starting at _srcByteOffset_ and continuing for _srcLength_ bytes. This operation performs the following steps:</p>
         <emu-alg>
@@ -525,7 +483,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
       
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
-        <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES6 24.1.1.5)</h1>
+        <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES7 24.1.1.5)</h1>
         <p> This algorithm is modified as follows:</p>
         <p> The abstract operation GetValueFromBuffer takes four parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
         <emu-alg>
@@ -546,7 +504,7 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
-        <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES6 24.1.1.6)</h1>
+        <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES7 24.1.1.6)</h1>
         <p> This algorithm is modified as follows:</p>
         <p> The abstract operation SetValueInBuffer takes five parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
         <emu-alg>
@@ -569,11 +527,11 @@ These call AllocateTypedArray with a specified length:
   </emu-clause> <!-- ArrayBuffer -->
 
   <emu-clause id="StructuredData.DataView">
-    <h1>DataView Objects (ES6 24.2)</h1>
+    <h1>DataView Objects (ES7 24.2)</h1>
     <emu-clause id="StructuredData.DataView.constructor">
-      <h1>The DataView Constructor (ES6 24.2.2)</h1>
+      <h1>The DataView Constructor (ES7 24.2.2)</h1>
       <emu-clause id="StructuredData.DataView.constructor.detail">
-        <h1>DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES6 24.2.2.1)</h1>
+        <h1>DataView( buffer [ , byteOffset [ , byteLength ] ] ) (ES7 24.2.2.1)</h1>
         <p> This algorithm is modified as follows: </p>
         <p>When the `DataView` is called with at least one argument _buffer_, the following steps are taken:</p>
         <emu-alg>
