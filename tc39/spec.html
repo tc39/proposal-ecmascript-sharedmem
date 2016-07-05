@@ -99,7 +99,7 @@ comments.</p>
       <h1>The Object Type (ES7 6.1.7)</h1>
       <emu-clause id="DataTypesValues.LanguageTypes.Object.Intrinsic">
         <h1>Well-Known Intrinsic Objects (ES7 6.1.7.4)</h1>
-        <p>In table 7, include rows for %SharedArrayBuffer% and %SharedArrayBufferPrototype% in the manner of the rows for ArrayBuffer.</p>
+        <p>In table 7, include rows for %Atomics%, %SharedArrayBuffer%, and %SharedArrayBufferPrototype% in the manner of the row for ArrayBuffer.</p>
       </emu-clause>
     </emu-clause>
   </emu-clause>
@@ -701,6 +701,11 @@ These call AllocateTypedArray with a specified length:
 <emu-clause id="AtomicsObject">
   <h1>The Atomics Object</h1>
   
+  <p>The Atomics object is the <dfn>%Atomics%</dfn> intrinsic object and the initial value of the `Atomics` property of the global object. The Atomics object is a single ordinary object.</p>
+  <p> The Atomics object provides functions that operate indivisibly (atomically) on shared memory array cells as well as functions that let agents wait for and dispatch primitive events.  When used properly, these functions execute in a well-understood order even when executing concurrently on concurrent agents running on parallel CPUs.  The allowable outcomes of concurrent execution are determined by the <dfn>memory model</dfn>, defined below. </p>
+  <p>The value of the [[Prototype]] internal slot of the Atomics object is the intrinsic object %ObjectPrototype%.</p>
+  <p>The Atomics object is not a function object. It does not have a [[Construct]] internal method; it is not possible to use the Atomics object as a constructor with the `new` operator. The Atomics object also does not have a [[Call]] internal method; it is not possible to invoke the Atomics object as a function.</p>
+
   <emu-clause id="AtomicsObjectFunctionProps.semantics">
     <h1>Runtime semantics</h1>
     
@@ -1120,75 +1125,6 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="Atomics.wait">
-      <h1>Atomics.wait( typedArray, index, value, timeout )</h1>
-      <p> Atomics.wait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
-      <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, *true*)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
-        1. ReturnIfAbrupt(_i_)
-        1. Let _v_ be the result of ToInt32(_value_).
-        1. ReturnIfAbrupt(_v_)
-        1. If _timeout_ is not provided or is *undefined* then let _t_ be *+&infin;*.  Otherwise:
-          1. Let _q_ be the result of ToNumber(_timeout_)
-          1. ReturnIfAbrupt(_q_)
-          1. If _q_ is *NaN* then let _t_ be *+&infin;*, otherwise let _t_ be max(0, _q_).
-        1. Let _B_ be AgentCanSuspend()
-        1. If _B_ is *false* then throw a *TypeError* exception.
-        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
-        1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
-        1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
-        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
-        1. Call EnterCriticalSection(_WL_)
-        1. Let _w_ be Atomics.load(_typedArray_, _i_)
-        1. If _v_ does not equal _w_ then:
-          1. Call LeaveCriticalSection(_WL_)
-          1. Return the string `"not-equal"`.
-        1. Let _W_ be AgentSignifier().
-        1. Call AddWaiter(_WL_, _W_)
-        1. Let awoken = Suspend(_WL_, _W_, _t_)
-        1. Call RemoveWaiter(_WL_, _W_)
-        1. Call LeaveCriticalSection(_WL_)
-        1. If awoken is *true* then return the string `"ok"`.
-        1. Return the string `"timed-out"`.
-      </emu-alg>
-
-    </emu-clause>
-
-    <emu-clause id="Atomics.wake">
-      <h1>Atomics.wake( typedArray, index, count )</h1>
-      <p> Atomics.wake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
-      <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray( _typedArray_, *true* )
-        1. ReturnIfAbrupt( _buffer_ )
-        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
-        1. ReturnIfAbrupt( _i_ )
-        1. If _count_ is not provided or is *undefined* then let _c_ be *+&infin;*.  Otherwise:
-          1. Let _tmp_ be ToInteger( _count_ )
-          1. ReturnIfAbrupt( _tmp_ )
-          1. Let _c_ be max( *+0*, _tmp_ ).
-        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
-        1. Let _G_ be SharedDataBlockID( _bufferVal_ )
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
-        1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
-        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
-        1. Let _n_ = 0
-        1. Call EnterCriticalSection(_WL_):
-        1. Let _S_ be RemoveWaiters( _WL_, _c_ )
-        1. While _S_ is not the empty list:
-          1. Let _W_ be the first agent in _S_
-          1. Remove _W_ from the front of _S_
-          1. Call WakeWaiter( _WL_, _W_ )
-          1. Add 1 to _n_
-        1. Call LeaveCriticalSection(_WL_)
-        1. Return _n_.
-      </emu-alg>
-    </emu-clause>
-
     <emu-clause id="Atomics.isLockFree">
       <h1>Atomics.isLockFree( size )</h1>
 
@@ -1284,6 +1220,75 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
     
+    <emu-clause id="Atomics.wait">
+      <h1>Atomics.wait( typedArray, index, value, timeout )</h1>
+      <p> Atomics.wait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
+      <emu-alg>
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, *true*)
+        1. ReturnIfAbrupt(_buffer_)
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
+        1. ReturnIfAbrupt(_i_)
+        1. Let _v_ be the result of ToInt32(_value_).
+        1. ReturnIfAbrupt(_v_)
+        1. If _timeout_ is not provided or is *undefined* then let _t_ be *+&infin;*.  Otherwise:
+          1. Let _q_ be the result of ToNumber(_timeout_)
+          1. ReturnIfAbrupt(_q_)
+          1. If _q_ is *NaN* then let _t_ be *+&infin;*, otherwise let _t_ be max(0, _q_).
+        1. Let _B_ be AgentCanSuspend()
+        1. If _B_ is *false* then throw a *TypeError* exception.
+        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
+        1. Let _G_ be SharedDataBlockID(_bufferVal_)
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
+        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
+        1. Call EnterCriticalSection(_WL_)
+        1. Let _w_ be Atomics.load(_typedArray_, _i_)
+        1. If _v_ does not equal _w_ then:
+          1. Call LeaveCriticalSection(_WL_)
+          1. Return the string `"not-equal"`.
+        1. Let _W_ be AgentSignifier().
+        1. Call AddWaiter(_WL_, _W_)
+        1. Let awoken = Suspend(_WL_, _W_, _t_)
+        1. Call RemoveWaiter(_WL_, _W_)
+        1. Call LeaveCriticalSection(_WL_)
+        1. If awoken is *true* then return the string `"ok"`.
+        1. Return the string `"timed-out"`.
+      </emu-alg>
+
+    </emu-clause>
+
+    <emu-clause id="Atomics.wake">
+      <h1>Atomics.wake( typedArray, index, count )</h1>
+      <p> Atomics.wake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
+      <emu-alg>
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray( _typedArray_, *true* )
+        1. ReturnIfAbrupt( _buffer_ )
+        1. Let _i_ be ValidateAtomicAccess( _typedArray_, _index_ )
+        1. ReturnIfAbrupt( _i_ )
+        1. If _count_ is not provided or is *undefined* then let _c_ be *+&infin;*.  Otherwise:
+          1. Let _tmp_ be ToInteger( _count_ )
+          1. ReturnIfAbrupt( _tmp_ )
+          1. Let _c_ be max( *+0*, _tmp_ ).
+        1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
+        1. Let _G_ be SharedDataBlockID( _bufferVal_ )
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
+        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
+        1. Let _n_ = 0
+        1. Call EnterCriticalSection(_WL_):
+        1. Let _S_ be RemoveWaiters( _WL_, _c_ )
+        1. While _S_ is not the empty list:
+          1. Let _W_ be the first agent in _S_
+          1. Remove _W_ from the front of _S_
+          1. Call WakeWaiter( _WL_, _W_ )
+          1. Add 1 to _n_
+        1. Call LeaveCriticalSection(_WL_)
+        1. Return _n_.
+      </emu-alg>
+    </emu-clause>
+
     <emu-clause id="Atomics.xor">
       <h1>Atomics.xor( typedArray, index, value )</h1>
       <p> Let `xor` denote a semantic function of two number arguments that returns the bitwise "xor" of the arguments. </p>
