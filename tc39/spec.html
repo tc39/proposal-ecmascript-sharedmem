@@ -428,7 +428,7 @@ These call AllocateTypedArray with a specified length:
           1. Assert: Type(_buffer_) is Object and _buffer_ has an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]</ins> internal slot.
           1. If NewTarget is *undefined*, throw a *TypeError* exception.
           1. Let _constructorName_ be the String value of the Constructor Name value specified in <emu-xref href="#table-49"></emu-xref> for this <var>TypedArray</var> constructor.
-          1. Let _O_ be ? AllocateTypedArray(_constructorName_, NewTarget, <code>"%<var>TypedArray</var>Prototype%"</code>).
+          1. Let _O_ be ? AllocateTypedArray(_constructorName_, NewTarget, <code>"%TypedArrayPrototype%"</code>).
           1. Let _constructorName_ be the String value of _O_.[[TypedArrayName]].
           1. Let _elementSize_ be the Number value of the Element Size value in <emu-xref href="#table-49"></emu-xref> for _constructorName_.
           1. Let _offset_ be ? ToIndex(_byteOffset_).
@@ -789,8 +789,8 @@ These call AllocateTypedArray with a specified length:
       <emu-note>
         <p> If a call to Atomics.wait returns `"not-equal"` then
           there is a happens-before relation between any atomic write
-          that wrote the slot that is read by those functions, because
-          those functions use an atomic read to read that slot. </p>
+          that wrote the slot that is read by that function, because
+          that function uses an atomic read to read that slot. </p>
       </emu-note>
 
       <p> A data access read R only sees a write W that happens before
