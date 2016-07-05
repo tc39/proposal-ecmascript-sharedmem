@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-06-30 </p>
-<p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications (here denoted "ES7") is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29).  ES7 (ES2016) section numbering differs from ES6 only for TypedArrays (section 22.2).</p>
+<p> Revised: 2016-07-05 </p>
+<p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications (here denoted "ES7") is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29).  At the moment, ES7 (ES2016) section numbering differs from ES6 (ES2015) only for TypedArrays (section 22.2).</p>
 
 <emu-intro id="intro">
 <h1>Introduction</h1>
@@ -44,8 +44,8 @@ abstractions that are useful in specific domains. </p>
 
 <p> The proposal makes only very basic assumptions about the required
 hardware and should be broadly implementable with good performance.
-Prototype implementations of the API are available in Firefox Nightly
-and in Google Chrome (where it is not enabled by default). </p>
+Prototype implementations of the API are available in Firefox and in
+Google Chrome. </p>
 
 <p>This specification constitutes a restatement and formalization of
 an earlier
@@ -69,6 +69,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-07-05 -- Rephrased the wait/wake mutual exclusion in terms of critical sections named by (G,i), as the old specification was too strong.
+  <li> 2016-07-05 -- Numerous minor editorial adjustments.
   <li> 2016-06-30 -- Modified algorithms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.  Updated section references to reference that revision.
   <li> (Older changelog removed)
 </ul>
@@ -107,7 +109,7 @@ comments.</p>
       <h1>Data blocks (ES7 6.2.6)</h1>
       <p> Insert the following paragraph after the third: </p>
 
-      <p> A data block that resides in memory that can be referenced from multiple agents is designated a <dfn>Shared Data Block</dfn>. </p>
+      <p> A data block that resides in memory that can be referenced from multiple agents concurrently is designated a <dfn>Shared Data Block</dfn>. </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
         <h1>CopyDataBlockBytes (_toBlock_, _toIndex_, _fromBlock_, _fromIndex_, _count_) (ES7 6.2.6.2)</h1>
@@ -152,14 +154,14 @@ comments.</p>
     <h1>Jobs and Job Queues (ES7 8.4)</h1>
     <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
       <h1>Forward Progress Guarantees</h1>
-      <p> The forward progress guarantee is provided by <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>. </p>
+      <p> The forward progress guarantee is provided by <a href="https://github.com/tc39/ecma262/pull/522">PR 522 on ES262</a>. </p>
     </emu-clause>
   </emu-clause>
 
   <emu-clause id="ExecutableCodeAndContexts.AgentCluster">
     <h1>Agents (AMENDMENTS)</h1>
 
-    <p> Add the following properties to the <dfn>Agent Record</dfn> which is provided by <a href="https://github.com/tc39/ecma262/pull/522">this PR on ES262</a>:</p>
+    <p> Add the following properties to the <dfn>Agent Record</dfn> (which is provided by <a href="https://github.com/tc39/ecma262/pull/522">PR 522 on ES262</a>):</p>
 
     <emu-table id="table-agent-record" caption="Agent Record Fields">
       <table>
@@ -178,27 +180,31 @@ comments.</p>
           <tr>
             <td> [[Signifier]] </td>
             <td> A value that admits equality testing </td>
-            <td> Uniquely identifies the agent within its agent cluster.  Constant. </td>
+            <td> Uniquely identifies the agent within its agent cluster. </td>
           </tr>
           <tr>
             <td> [[IsLockFree1]] </td>
             <td> Boolean </td>
-            <td> True iff atomic operations on one-byte values are lock-free.  Constant. </td>
+            <td> True iff atomic operations on one-byte values are lock-free. </td>
           </tr>
           <tr>
             <td> [[IsLockFree2]] </td>
             <td> Boolean </td>
-            <td> True iff atomic operations on two-byte values are lock-free.  Constant. </td>
+            <td> True iff atomic operations on two-byte values are lock-free. </td>
           </tr>
         </tbody>
       </table>
     </emu-table>
 
+    <p> Once the values of [[Signifier]], [[IsLockFree1]], and
+    [[IsLockFree2]] have been observed by any agent in the agent
+    cluster they cannot change. </p>
+    
     <emu-note>
       <p>The values of [[IsLockFree1]] and [[IsLockFree2]] are not
-        necessarily constant on a given piece of hardware, but may
-        reflect implementation choices that can vary over time and
-        between ECMAScript implementations.</p>
+        necessarily determined by the hardware, but may also reflect
+        implementation choices that can vary over time and between
+        ECMAScript implementations.</p>
 
       <p>There is no [[IsLockFree4]] property: 4-byte atomic
         operations are always lock-free. </p>
@@ -252,11 +258,9 @@ comments.</p>
       the [[LittleEndian]] property in their respective Agent Records. </p>
 
     <emu-note>
-      <p> (Spec draft note) Is the restriction on [[LittleEndian]] overreach?
-	It seemed reasonable at the time, but on some architectures it's
-	possible for different processes to have different endianness.  The rule
-	precludes sharing memory among such processes, in any ECMAScript
-	implementation. </p>
+      <p> If different agents within an agent cluster have different
+        values of [[LittleEndian]] it becomes hard to use shared
+        memory for multi-byte data. </p>
     </emu-note>
 
     <p> All agents within a cluster must have the same values for
@@ -289,8 +293,8 @@ comments.</p>
         possible to share memory between agents that don't belong to
         the same suspend/wake collective within the embedding. </p>
 
-      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>) That, in
-        turn, places interesting demands on the structured clone algorithm in web browsers. </p>
+      <p> TODO (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>): That, in
+        turn, places some nontrivial demands on the structured clone algorithm in web browsers. </p>
     </emu-note>
 
     <p> An embedding may terminate an agent without any of the agent's
@@ -313,11 +317,10 @@ comments.</p>
     </emu-note>
 
     <emu-note>
-      <p> (Spec draft note) Issue 55 contains discussions around the
-        termination signaling requirement.  It is not
-        uncontroversial.  </p>
+      <p> TODO (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/55">Issue 55</a>):
+        The termination signaling requirement is not uncontroversial.  </p>
 
-      <p> This spec additionally requires that if termination is
+      <p> This spec requires (see later text) that if termination is
         signaled then the signal creates the necessary happens-before
         edge in the memory ordering, which is a tougher requirement
         than the requirement that it be possible to detect
@@ -371,38 +374,6 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="IndexedCollections.TypedArray">
     <h1>TypedArray Objects (ES7 22.2)</h1>
 
-    <emu-clause id="IndexedCollections.TypedArray.intrinsic">
-      <h1>The %TypedArray% intrinsic object (ES7 22.2.1)</h1>
-
-      <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
-        <h1>%TypedArray%( object ) (ES7 22.2.4.4)</h1>
-        <p>This algorithm is modified as follows:</p>
-        <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object does not have either a [[TypedArrayName]] <del>or</del> <ins>,</ins> an [[ArrayBufferData]]<ins>, or a [[SharedArrayBufferData]]</ins> internal slot.</p>
-        <p> ... </p>
-      </emu-clause>
-
-      <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
-        <h1>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES7 22.2.4.5)</h1>
-        <p>This algorithm is modified as follows:</p>
-        <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object has an [[ArrayBufferData]] <ins>or [[SharedArrayBufferData]]</ins> internal slot.</p>
-        <p>_TypedArray_ called with at least one argument _buffer_ performs the following steps:</p>
-        <emu-alg>
-          1. Assert: Type(_buffer_) is Object and _buffer_ has an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]</ins> internal slot.
-          1. If NewTarget is *undefined*, throw a *TypeError* exception.
-          1. Let _constructorName_ be the String value of the Constructor Name value specified in <emu-xref href="#table-49"></emu-xref> for this <var>TypedArray</var> constructor.
-          1. Let _O_ be ? AllocateTypedArray(_constructorName_, NewTarget, <code>"%<var>TypedArray</var>Prototype%"</code>).
-          1. Let _constructorName_ be the String value of _O_.[[TypedArrayName]].
-          1. Let _elementSize_ be the Number value of the Element Size value in <emu-xref href="#table-49"></emu-xref> for _constructorName_.
-          1. Let _offset_ be ? ToIndex(_byteOffset_).
-          1. If _offset_ modulo _elementSize_ &ne; 0, throw a *RangeError* exception.
-          1. If IsDetachedBuffer(_buffer_) is *true*, throw a *TypeError* exception.
-          1. <del>Let</del> <ins> If IsSharedMemory(_buffer_) then let _bufferByteLength_ be _buffer_.[[SharedArrayBufferByteLength]], otherwise let</ins> _bufferByteLength_ be _buffer_.[[ArrayBufferByteLength]].
-          1. ...
-        </emu-alg>
-      </emu-clause>
-
-    </emu-clause> <!-- intrinsic object -->
-
     <emu-clause id="IndexedCollections.TypedArray.prototype">
       <h1>Properties of the %TypedArrayPrototype% object (ES7 22.2.3)</h1>
       <emu-clause id="IndexedCollections.TypedArray.prototype.set">
@@ -445,6 +416,39 @@ These call AllocateTypedArray with a specified length:
         </emu-clause>
       </emu-clause>
     </emu-clause>
+    
+    <emu-clause id="IndexedCollections.TypedArray.constructors">
+      <h1>The %TypedArray% constructors (ES7 22.2.4)</h1>
+
+      <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
+        <h1>%TypedArray%( object ) (ES7 22.2.4.4)</h1>
+        <p>This algorithm is modified as follows:</p>
+        <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object does not have either a [[TypedArrayName]] <del>or</del> <ins>,</ins> an [[ArrayBufferData]]<ins>, or a [[SharedArrayBufferData]]</ins> internal slot.</p>
+        <p> ... </p>
+      </emu-clause>
+
+      <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromBuffer">
+        <h1>%TypedArray%( buffer [ , byteOffset [ , length ] ] ) (ES7 22.2.4.5)</h1>
+        <p>This algorithm is modified as follows:</p>
+        <p>This description applies only if the _TypedArray_ function is called with at least one argument and the Type of the first argument is Object and that object has an [[ArrayBufferData]] <ins>or [[SharedArrayBufferData]]</ins> internal slot.</p>
+        <p>_TypedArray_ called with at least one argument _buffer_ performs the following steps:</p>
+        <emu-alg>
+          1. Assert: Type(_buffer_) is Object and _buffer_ has an [[ArrayBufferData]] <ins>or a [[SharedArrayBufferData]]</ins> internal slot.
+          1. If NewTarget is *undefined*, throw a *TypeError* exception.
+          1. Let _constructorName_ be the String value of the Constructor Name value specified in <emu-xref href="#table-49"></emu-xref> for this <var>TypedArray</var> constructor.
+          1. Let _O_ be ? AllocateTypedArray(_constructorName_, NewTarget, <code>"%<var>TypedArray</var>Prototype%"</code>).
+          1. Let _constructorName_ be the String value of _O_.[[TypedArrayName]].
+          1. Let _elementSize_ be the Number value of the Element Size value in <emu-xref href="#table-49"></emu-xref> for _constructorName_.
+          1. Let _offset_ be ? ToIndex(_byteOffset_).
+          1. If _offset_ modulo _elementSize_ &ne; 0, throw a *RangeError* exception.
+          1. If IsDetachedBuffer(_buffer_) is *true*, throw a *TypeError* exception.
+          1. <del>Let</del> <ins> If IsSharedMemory(_buffer_) then let _bufferByteLength_ be _buffer_.[[SharedArrayBufferByteLength]], otherwise let</ins> _bufferByteLength_ be _buffer_.[[ArrayBufferByteLength]].
+          1. ...
+        </emu-alg>
+      </emu-clause>
+
+    </emu-clause> <!-- intrinsic object -->
+
   </emu-clause>
 </emu-clause>
 
@@ -908,19 +912,6 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
     
-    <emu-clause id="WithinTheWaitWakeCriticalSection">
-      <h1>Within the wait/wake critical section ...</h1>
-      <p> In the algorithms below, the algorithm step 'Within the wait/wake critical section' means the following:</p>
-      <ul>
-        <li> There is a single critical section for the wait/wake operations that is shared among all agents in an agent cluster.
-        <li> The phrase 'Within the wait/wake critical section' acquires that section exclusively; any return from the dependent statements releases the section.
-      </ul>
-    </emu-clause>
-
-    <emu-note>
-      <p> (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/27">Issue 27</a>) The single critical section is an overspecification.  Really we only need a single critical section per address-free int32 cell.  This cell can be attached to the agent record as a property, but it may be that it is better provided by some semantic function of the address-free cell address. </p>
-    </emu-note>
-
     <emu-clause id="Atomics.AgentSignifier" aoid="AgentSignifier">
       <h1>Runtime semantics: AgentSignifier( )</h1>
       <p> When AgentSignifier is called without arguments then the following steps are taken.</p>
@@ -947,33 +938,65 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
     
-    <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
-      <h1>Runtime semantics: AddWaiter( W, G, i )</h1>
-      <p> When AddWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
+    <emu-clause id="GetWaiterList">
+      <h1>Runtime semantics: GetWaiterList( G, i )</h1>
+      <p> A <dfn>WaiterList</dfn> is a semantic object that contains an ordered list of those agents that are waiting on a location (_G_, _i_) in shared memory; _G_ is a Shared Data Block ID and _i_ a byte offset into the memory referenced by _G_. </p>
+      <p> The agent cluster has a store of WaiterList objects; the store is indexed by (_G_, _i_).  WaiterLists are agent-independent: a lookup in the store of WaiterLists by (_G_, _i_) will result in the same WaiterList object in any agent in the agent cluster. </p>
+      <p> Operations on a WaiterList -- adding and removing waiting agents, traversing the list of agents, suspending and waking agents on the list -- may only be performed by agents that have entered the WaiterList's critical section.  </p>
+      <p> When GetWaiterList is called with Shared Data Block ID _G_ and nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the wait/wake critical section.
-        1. Assert: _W_ is not in any global list of waiters
-        1. Add _W_ to the end of the global list of all waiters that wait on (_G_, _i_)
+        1. Assert: _G_ is the Shared Data Block ID of some Shared Data Block
+        1. Assert: _i_ and _i_+3 are valid byte offsets within the memory referenced by _G_
+        1. Assert: _i_ is divisible by 4
+        1. Return the WaiterList that is referenced by the pair (_G_, _i_)
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="EnterCriticalSection">
+      <h1>Runtime semantics: EnterCriticalSection( WL )</h1>
+      <p> When EnterCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
+      <emu-alg>
+        1. Assert: The calling agent is not in the critical section for any WaiterList
+        1. Wait until no agent is in the critical section for _WL_, then enter the critical section for _WL_
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="LeaveCriticalSection">
+      <h1>Runtime semantics: LeaveCriticalSection( WL )</h1>
+      <p> When LeaveCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
+      <emu-alg>
+        1. Assert: The calling agent is in the critical section for _WL_
+        1. Leave the critical section for _WL_
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
+      <h1>Runtime semantics: AddWaiter( WL, W )</h1>
+      <p> When AddWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
+      <emu-alg>
+        1. Assert: The calling agent is in the critical section for _WL_
+        1. Assert: _W_ is not on the list of waiters in any WaiterList
+        1. Add _W_ to the end of the list of waiters in _WL_
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.RemoveWaiter" aoid="RemoveWaiter">
-      <h1>Runtime semantics: RemoveWaiter( W, G, i )</h1>
-      <p> When RemoveWaiter is called with an agent signifier _W_, a Shared Data Block ID _G_, and a nonnegative integer _i_, then the following steps are taken. </p>
+      <h1>Runtime semantics: RemoveWaiter( WL, W )</h1>
+      <p> When RemoveWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the wait/wake critical section.
-        1. Assert: _W_ is in the global list of all waiters that wait on (_G_, _i_)
-        1. Remove _W_ from the global list of all waiters that wait on (_G_, _i_)
+        1. Assert: The calling agent is in the critical section for _WL_
+        1. Assert: _W_ is on the list of waiters in _WL_
+        1. Remove _W_ from the list of waiters in _WL_
       </emu-alg>
     </emu-clause>
     
     <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1>Runtime semantics: RemoveWaiters( G, i, c )</h1>
-      <p> When RemoveWaiters is called with Shared Data Block ID _G_ and nonnegative integers _i_ and _c_, then the following steps are taken. </p>
+      <h1>Runtime semantics: RemoveWaiters( WL, c )</h1>
+      <p> When RemoveWaiters is called with WaiterList _WL_ and nonnegative integer _c_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the wait/wake critical section.
+        1. Assert: The calling agent is in the critical section for _WL_
         1. Let _L_ be the empty list
-        1. Let _S_ be a reference to the global list of all waiters that wait on (_G_, _i_)
+        1. Let _S_ be a reference to the list of waiters in _WL_
         1. While _c_ &gt; 0 and _S_ is not the empty list:
           1. Let _W_ be the first worker in _S_
           1. Add _W_ to the end of _L_
@@ -984,33 +1007,31 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.Suspend" aoid="Suspend">
-      <h1>Runtime semantics: Suspend( W, timeout )</h1>
-      <p> When Suspend is called with a an agent signifier _W_ and nonnegative number _timeout_, then the following steps are taken. </p>
+      <h1>Runtime semantics: Suspend( WL, W, timeout )</h1>
+      <p> When Suspend is called with WaiterList _WL_, agent signifier _W_, and nonnegative number _timeout_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the wait/wake critical section.
-        1. Assert: The calling agent is on some global list of waiters
+        1. Assert: The calling agent is in the critical section for _WL_
+        1. Assert: The calling agent is on the list of waiters in _WL_
         1. Assert: _W_ is equal to AgentSignifier()
         1. Assert: AgentCanSuspend() is equal to true
-        1. Atomically relinquish the wait/wake critical section and suspend _W_ for up to _timeout_ milliseconds.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_W_), and not for any other reasons at all.
-        1. Re-acquire the wait/wake critical section.
-        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_W_), then return ~true~
+        1. Call LeaveCriticalSection( _WL_ ) and suspend _W_ for up to _timeout_ milliseconds, performing the combined operation in such a way that a wakeup that arrives after the critical section is exited but before the suspension takes effect is not lost.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), and not for any other reasons at all.
+        1. Call EnterCriticalSection( _WL_ )
+        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), then return ~true~
         1. Return ~false~
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
-      <h1>Runtime semantics: WakeWaiter( W )</h1>
-      <p> When WakeWaiter is called with an agent signifier _W_, then the following steps are taken. </p>
+      <h1>Runtime semantics: WakeWaiter( WL, W )</h1>
+      <p> When WakeWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the wait/wake critical section.
-        1. Assert: _W_ is on some global list of waiters
+        1. Assert: The calling agent is in the critical section for _WL_
+        1. Assert: _W_ is on the list of waiters in _WL_
         1. Wake the agent _W_
       </emu-alg>
 
       <emu-note>
-        <p> The embedding may delay waking _W_, eg for resource
-          management reasons, but _W_ must eventually be woken in
-          order to guarantee forward progress. </p>
+        <p> The embedding may delay waking _W_, eg for resource management reasons, but _W_ must eventually be woken in order to guarantee forward progress. </p>
       </emu-note>
 
     </emu-clause>
@@ -1125,14 +1146,20 @@ These call AllocateTypedArray with a specified length:
         1. If _B_ is ~false~ then throw a ~TypeError~ exception.
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Within the wait/wake critical section do:
-          1. Let _w_ be Atomics.load(_typedArray_, _i_)
-          1. If _v_ does not equal _w_ then:
-            1. Return the string `"not-equal"`.
-          1. Let _W_ be AgentSignifier().
-          1. Call AddWaiter(_W_, _G_, _i_)
-          1. Let awoken = Suspend(_W_, _t_)
-          1. Call RemoveWaiter(_W_, _G_, _i_)
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
+        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
+        1. Call EnterCriticalSection(_WL_)
+        1. Let _w_ be Atomics.load(_typedArray_, _i_)
+        1. If _v_ does not equal _w_ then:
+          1. Call LeaveCriticalSection(_WL_)
+          1. Return the string `"not-equal"`.
+        1. Let _W_ be AgentSignifier().
+        1. Call AddWaiter(_WL_, _W_)
+        1. Let awoken = Suspend(_WL_, _W_, _t_)
+        1. Call RemoveWaiter(_WL_, _W_)
+        1. Call LeaveCriticalSection(_WL_)
         1. If awoken is ~true~ then return the string `"ok"`.
         1. Return the string `"timed-out"`.
       </emu-alg>
@@ -1153,14 +1180,19 @@ These call AllocateTypedArray with a specified length:
           1. Let _c_ be max( +0, _tmp_ ).
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
         1. Let _G_ be SharedDataBlockID( _bufferVal_ )
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
+        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
+        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
         1. Let _n_ = 0
-        1. Within the wait/wake critical section do:
-          1. Let _S_ be RemoveWaiters( _G_, _i_, _c_ )
-          1. While _S_ is not the empty list:
-            1. Let _W_ be the first agent in _S_
-            1. Remove _W_ from the front of _S_
-            1. Call WakeWaiter( _W_ )
-            1. Add 1 to _n_
+        1. Call EnterCriticalSection(_WL_):
+        1. Let _S_ be RemoveWaiters( _WL_, _c_ )
+        1. While _S_ is not the empty list:
+          1. Let _W_ be the first agent in _S_
+          1. Remove _W_ from the front of _S_
+          1. Call WakeWaiter( _WL_, _W_ )
+          1. Add 1 to _n_
+        1. Call LeaveCriticalSection(_WL_)
         1. Return _n_.
       </emu-alg>
     </emu-clause>
