@@ -69,6 +69,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-07-05 -- Rewrote (and shrunk) the informative Web Browser Embedding section so that it only addresses the requirements of this spec, not how HTML ought to evolve to bring maximum bliss.
   <li> 2016-07-05 -- Rephrased the wait/wake mutual exclusion in terms of critical sections named by (G,i), as the old specification was too strong.
   <li> 2016-07-05 -- Numerous minor editorial adjustments.
   <li> 2016-06-30 -- Modified algorithms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.  Updated section references to reference that revision.
@@ -1299,220 +1300,78 @@ These call AllocateTypedArray with a specified length:
 <emu-clause id="WebBrowserEmbedding">
   <h1>Web browser embedding (informative)</h1>
 
-  <emu-note>
-    <p> The <a href="https://github.com/whatwg/html/pull/727">emerging
-      revision of the Structured Clone specification</a> has details
-      on how SharedArrayBuffers are transmitted among agents.  What is
-      left here comprises constraints and agent mapping detail. </p>
-  </emu-note>
+  <p> This section outlines how the Shared Memory and Atomics
+    specification fits into the current web ecosystem with the minimum
+    amount of change to that ecosystem.  This section is not part of
+    the proposal, it is informative only.  </p>
 
-  <emu-clause id="WebBrowserEmbedding.Agents">
-    <h1>Agent mapping</h1>
+  <p> In a web browser an <em>agent</em> is an HTML <em>event
+    loop</em> <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">[here]</a>.
+    The event loop is realized as either a main thread (which may be
+    shared among tabs, as it is in Firefox) or some type of worker
+    thread.  The event loops are running jobs in the sense of ES262,
+    and the forward-progress requirement of this specification
+    (section&nbsp;3.1.1) is generally met as long as each agent has
+    its own dedicated operating system thread or shared-thread agents
+    can't block. </p>
+    
+  <p> Browsers will typically let agents that run on the browser's
+    main thread have [[CanBlock]] = *false*, to prevent blocking the
+    UI and to allow the main thread to do work on behalf of other
+    threads. </p>
 
-    <p> In a web browser an <em>agent</em> is an HTML <em>event
-      loop</em> <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">[here]</a>.  </p>
+  <p> Normal ("dedicated") `Worker`s will be supported as agents.
 
-    <p> Browsers will typically let agents that run on the browser's
-      main thread have [[CanBlock]]=false.  Browsers that support
-      several tabs within the same content process may share a single
-      agent execution thread across all the tabs in that case (Firefox
-      does). </p>
+  <p> Memory will be shared among agents by means of using
+    `postMessage` to transmit `SharedArrayBuffer` and `TypedArray`
+    objects that have `SharedArrayBuffer` buffers; this requires an
+    extension to the Structured Clone mechanism.  There is agreement
+    on the general syntax and semantics for this extension. </p>
+    
+  <p> Agent-to-agent communication extends the happens-before relation
+    of the program, as follows:</p>
 
-    <p> Normal ("dedicated") Web Workers must be supported.</p>
+  <ul>
+    <li> The call to the `Worker` constructor in the parent
+      happens-before the execution of the main script in the worker.
 
-    <p> There are reasons not to support transmitting shared memory
-      from a web page to a ServiceWorker or SharedWorker ("non-page
-      workers").  In some browsers, non-page workers may be
-      technically incapable of receiving shared memory segments due to
-      process separation.  Also, if a non-page is communicating
-      through shared memory with a web worker, a deadlock can ensue if
-      the non-page worker is waiting to be woken up by the web worker
-      and the web worker is suspended or killed because its owning
-      document is placed into the history or closed. </p>
+    <li> (Worker termination is not directly observable in current
+      browsers, see below.)
 
-    <p> The structured clone spec makes (or will make) an allowance for
-      the transmission to fail.  If shared memory cannot be transmitted
-      that failure mechanism will be invoked. </p>
+    <li> A `postMessage` to another agent happens-before the event
+      fires in the agent.
+  </ul>
 
-  </emu-clause>
-  
-  <emu-clause id="WebBrowserEmbedding.MemoryModel">
-    <h1>Agent communication semantics</h1>
+  <p> If the browser does not allow a `ServiceWorker` or
+    `SharedWorker` ("non-page worker") to share memory with a `Worker`
+    it will not violate the suspend/wake cohort rule of this
+    specification (section&nbsp;3.3).  The restriction on sharing
+    memory can be implemented in the extension to the Structured Clone
+    mechanism.  For example, a non-page worker may simply not be
+    allowed to receive shared memory (leading to a null value or an
+    error signal).  There is not yet any agreement on this point, but
+    it is clear that the restriction must be on the receiving side of
+    the communication, as the sender may be sending on a `MessagePort`
+    that is not yet connected, but may in the future be connected to
+    either a valid or invalid recipient. </p>
 
-    <p>Agent-to-agent communication extends the happens-before
-    relation of the program, as follows:</p>
+  <p> At the moment, I believe dedicated workers are in the same
+    process as their owning tab in all browsers, so if the process
+    crashes then the workers will crash too.  I also don't know any
+    reason a browser should forcibly terminate a worker except when a
+    tab is closed.  In sum, the termination signaling requirement of
+    this specification (section&nbsp;3.3) is probably met by existing
+    browsers, or can be met easily. </p>
 
-    <ul>
-      <li>The call to the Worker constructor in the parent
-        happens-before the execution of the main script in the worker.
-      <li>The termination of a worker happens-before the parent of the
-        worker (or any other agent) can determine that the worker has
-        terminated.
-      <li>A postMessage to a worker happens-before the event fires in the worker.
-    </ul>
-
-  </emu-clause>
-
-  <emu-clause id="WebBrowserEmbedding.DOM">
-    <h1>DOM, browser APIs, WebIDL</h1>
-
-    <p> APIs that can accept shared memory should do so explicitly.
-      See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/38">Issue
-      #38</a> for a discussion of possible changes to WebIDL to make
-      the necessary annotations possible. </p>
-
-  </emu-clause>
-
-  <emu-clause id="WebBrowserEmbedding.CloneAndTransfer">
-    <h1>Transmitting and Cloning SharedArrayBuffers and Views</h1>
-
-    <p> Transmitting and cloning in a web browser are addressed by the
-      HTML spec.
-      See <a href="https://github.com/tc39/ecmascript_sharedmem/issues/65">Issue
-      #65</a> for a discussion and for the prose that was previously
-      here, <a href="https://github.com/whatwg/html/pull/727">Issue
-      #727 of the WHATWG spec</a> for the proposed changes (and many
-      other things),
-      and <a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue
-      #39</a> for a discussion of how transfering and cloning can
-      fail. </p>
-
-  </emu-clause>
-
-  <emu-clause id="WebBrowserEmbedding.WorkerSemantics">
-    <h1>Clarifications and changes to Web Worker semantics</h1>
-
-    <emu-note>
-      <p> Several of these issues have been reported as bugs against the WHATWG
-      spec, <a href='https://www.w3.org/Bugs/Public/show_bug.cgi?id=29039'>see
-      this bug report</a>. </p>
-    </emu-note>
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Start">
-      <h1>Actions to start a worker</h1>
-      <p> (Clarification) The only action required to start a worker is to call
-	"new Worker()". </p>
-
-      <emu-note>
-	<p> (Spec draft note) Firefox requires a trip through the event loop
-	  to start the worker.  I'm told this won't be fixed, spec or no spec. </p>
-
-	<p> The current state of affairs is a minor deadlock hazard.  If one
-	  worker creates another and then blocks on a futex waiting
-	  for the new worker to unblock it, the workers may deadlock
-	  since the new one may not have been created.  The hazard is
-	  reduced by (a) prohibiting blocking on the main thread and
-	  (b) either disallowing nested workers or not requiring
-	  workers to return to their event loops to get a nested
-	  worker started. </p>
-      </emu-note>
-
-      <p> (Compatible change) If a worker cannot be started for reasons of
-	resource exhaustion (notably, no threads available, including arbitrary
-	implementation limits on the number of threads) then an error must be
-	reported in some manner TBD (TODO). </p>
-
-      <emu-note>
-        <p> (Spec draft note) In current Firefox, there is a per-domain limit on
-          the number of workers.  An attempt to create a worker will silently
-          not start the worker if the limit has been reached; the worker will be
-          queued and started when another worker has terminated.  Again, this
-          creates deadlock hazards. </p>
-
-        <p> There are other error situations during worker startup that can't
-          necessarily be signaled synchronously, notably, a load error on the
-          URL.  Those have to be signaled via an event callback, or the creating
-          agent must poll the state of the worker to see if it enters an error
-          state (see more below on the state).  A callback is probably cleanest,
-          but we'll want the state variable anyway, so maybe both. </p>
-      </emu-note>
-    </emu-clause> <!-- start -->
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Jobs">
-      <h1>Workers are agents</h1>
-      <p> (Clarification) Every worker implements an independent agent as defined above. </p>
-      <emu-note>
-        <p> Thus the forward-progress guarantee of jobs also applies to workers. </p>
-      </emu-note>
-    </emu-clause> <!-- jobs -->
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.LicenseToKill">
-      <h1>Curtail the license to kill</h1>
-
-      <p> (Compatible change) Workers may be killed by the browser
-	only for specific reasons.  These reasons are TBD (TODO) but
-	include evicting the owning page from the history and closing
-	the owning page.  These reasons do not include workers that
-	'run too long'. </p>
-
-      <emu-note>
-        <p> Currently the WHATWG spec allows the browser to kill any worker at
-          any time.  The purpose of the rule is probably a combination of the
-          need to stop runaway scripts (without the normal slow-script dialog)
-          and the need to remove workers once a page is evicted from the browser
-          cache or a tab is closed.  However, the wording is overly broad.
-          Also, common uses of workers for computation conflict with the ability
-          to detect "runaway" agents:</p>
-
-        <ul>
-          <li> The worker may perform a genuinely long-running computation
-          <li> The worker will have its own user-implemented "event" loop,
-            communicating synchronously through shared memory; it will not use the
-            browser's event loop
-        </ul>
-      </emu-note>
-
-    </emu-clause> <!-- license to kill -->
-
-    <emu-clause id="WebBrowserEmbedding.WorkerSemantics.Introspection">
-      <h1>Termination detection</h1>
-      <p> (Compatible(?) change) The worker object should have a read-only
-	property called "state" whose value represents the state of the worker (eg
-	a string naming the state).  One state might be "terminated", indicating
-	the worker is dead. </p>
-
-      <emu-note>
-        <p> There appears to be no way at present to directly determine whether
-        a Worker has terminated. </p>
-      </emu-note>
-
-      <emu-note>
-        <p> Possible complementary mechanisms include throwing an exception when
-          a message is sent to a terminated worker, and to send an error event to
-          the creating agent when a worker is killed. </p>
-      </emu-note>
-
-      <emu-note>
-	<p> The spec here can be related back to the properties of the Agent Record, specified
-	  earlier. </p>
-      </emu-note>
-    </emu-clause> <!-- introspection -->
-  </emu-clause> <!-- worker semantics -->
-  
-  <emu-clause id="WebBrowserEmbedding.Termination">
-    <h1>Agent termination</h1>
-
-    <p>If a worker is terminated by a call to its terminate method while it is
-      blocked in then the worker is first woken and then immediately terminated
-      (the wakeup is not observable to code running in the worker). </p>
-
-    <emu-note>
-      <p> (Spec draft note) Firefox supports close handlers that could in
-	principle be used to clean up inconsistent state, but I think that's not in
-	the HTML5 spec. </p>
-    </emu-note>
-
-    <p>If a worker is terminated for any other reason, such as the user agent
-      reloading or closing the window or frame, and the worker is blocked in a
-      call to futexWait when it is terminated, then the worker is first woken
-      and then immediately terminated (the wakeup is not observable to code
-      running in the worker).</p>
-
-    <emu-note>
-      <p> (Spec draft note) After the running script has been terminated the
-	worker's close handler(s) will be run as if the wait had not been
-	aborted.</p>
-    </emu-note>
-  </emu-clause> <!-- termination -->
-
+  <p> The web platform should evolve to serve the shared memory use
+    case better: by incorporating inspectable worker state and worker
+    lifecycle events, and by tightening the wording in the HTML spec
+    (currently the browser is allowed to kill a worker at any time for
+    any reason, which is not quite what we want).  WebIDL should
+    evolve to allow Web APIs to be described as to when they can and
+    cannot receive shared memory parameters.  However, only an
+    extension to the Structured Clone algorithm is needed to support
+    the Shared Memory and Atomics specification in practice on current
+    browsers. </p>
+    
 </emu-clause>
