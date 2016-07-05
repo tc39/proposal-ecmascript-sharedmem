@@ -278,10 +278,10 @@ comments.</p>
       suspend and wake all agents in an agent cluster together. </p>
 
     <emu-note>
-      <p> The purpose of that restriction is to avoid a situation
-        where a worker deadlocks or starves because another agent has
-        been suspended.  For example, if a DOM SharedWorker shares
-        memory with a regular worker, and the regular worker is
+      <p> The purpose of the preceding restriction is to avoid a
+        situation where an agent deadlocks or starves because another
+        agent has been suspended.  For example, if a DOM SharedWorker
+        shares memory with a regular worker, and the regular worker is
         suspended while it holds a lock (because the web page the
         regular worker is in is pushed into the window history), and
         the SharedWorker tries to acquire the lock, then the
@@ -292,21 +292,19 @@ comments.</p>
       <p> The implication of the restriction is that it will not be
         possible to share memory between agents that don't belong to
         the same suspend/wake collective within the embedding. </p>
-
-      <p> TODO (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/39">Issue 39</a>): That, in
-        turn, places some nontrivial demands on the structured clone algorithm in web browsers. </p>
     </emu-note>
 
     <p> An embedding may terminate an agent without any of the agent's
       cluster's other agents' prior knowledge or cooperation.  If an
       agent is terminated not by programmatic action of its own or of
       another agent in the cluster but by forces external to the
-      cluster, then the embedding has two choices: Either terminate
-      all the agents in the cluster, or provide reliable APIs that
-      allow the agents in the cluster to coordinate so that at least
-      one remaining member of the cluster will be able to detect the
-      termination, with the termination data containing enough
-      information to identify the agent that was terminated. </p>
+      cluster, then the embedding must choose one of two strategies:
+      Either terminate all the agents in the cluster, or provide
+      reliable APIs that allow the agents in the cluster to coordinate
+      so that at least one remaining member of the cluster will be
+      able to detect the termination, with the termination data
+      containing enough information to identify the agent that was
+      terminated. </p>
 
     <emu-note>
       <p> Examples of that type of termination are: operating systems
@@ -317,23 +315,16 @@ comments.</p>
     </emu-note>
 
     <emu-note>
-      <p> TODO (<a href="https://github.com/tc39/ecmascript_sharedmem/issues/55">Issue 55</a>):
-        The termination signaling requirement is not uncontroversial.  </p>
-
-      <p> This spec requires (see later text) that if termination is
-        signaled then the signal creates the necessary happens-before
-        edge in the memory ordering, which is a tougher requirement
-        than the requirement that it be possible to detect
-        termination. </p>
+      <p> This proposal additionally requires (see later text) that if
+        termination is signaled then the signal creates a
+        happens-before edge in the memory ordering. </p>
 
       <p> The web platform provides nothing at the moment to detect or
         signal termination, regardless of shared memory, and this is
-        already a problem for developers.  Agent clusters are more
-        tightly coupled than pages that can signal each other, so the
-        problem may be easier to solve for agent clusters.  In current
-        browsers dedicated workers are anyway in-process and an agent
-        cluster will normally terminate en masse, so the requirement
-        is satisfied for now. </p>
+        already a problem for developers.  However, in current web
+        browsers dedicated workers are in-process and an agent cluster
+        will normally terminate en masse, so the requirement is
+        satisfied for now. </p>
     </emu-note>
 
   </emu-clause> <!-- agent cluster -->
