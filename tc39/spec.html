@@ -766,14 +766,14 @@ These call AllocateTypedArray with a specified length:
 
       <p> Program transformations by a compiler or the hardware may
         reorder an agent's data access events (may change the agent's
-        program order) so long as that does not affect the program's
-        intra-agent meaning, provided they do not reorder data access
-        events with non-data access events, nor reorder non-data
-        access events with each other. </p>
+        program order) when that does not affect the program's
+        intra-agent meaning, but may not reorder data access events
+        with non-data access events, nor reorder non-data access
+        events with each other. </p>
 
       <p> An event A <em>happens before</em> another event B if either:</p>
       <ol>
-        <li> A precedes B in an agent's program order,
+        <li> A precedes B in an agent's (possibly transformed) program order,
         <li> A is the sending of a SharedArrayBuffer and B is the
           receipt in another agent of that buffer,
         <li> A is the waking up a sleeping agent and B the agent being
@@ -812,12 +812,6 @@ These call AllocateTypedArray with a specified length:
           sequentially consistent executions.
       </ul>
 
-      <!-- If an execution has no data races then ReadSharedBytes()
-           simply reads the bytes from memory one by one, as the
-           existing GetValueFromBuffer(), and WriteSharedBytes()
-           writes the bytes to memory one by one, as the existing
-           PutValueInBuffer().  -->
-      
     </emu-clause>
 
     <emu-clause id="Atomics.DataRaces">
@@ -833,108 +827,84 @@ These call AllocateTypedArray with a specified length:
         the values resulting from a data race are often hard to
         predict. </p>
 
-      The idea here is to outline how the program can be transformed
-      to open up a number of allowable behaviors.
-
-      Then we can define a race: what it is and how long it lasts.
-
-      Then we can define some notion of introducing races (illegal).
-
-      Then we can define what the values may look like during a race.
-
       <p> In the absence of data races, there are no limits on program
-        transformations apart from reordering with respect to non-data
-        access events.  However, that changes with the possibility of
-        data races.  Transformations that are explicitly prohibited
-        are: </p>
+        transformations apart from forbidden reordering with respect
+        to non-data access events.  However, that changes with the
+        possibility of data races.  Classes of transformations that
+        are explicitly prohibited are: </p>
 
       <ul>
         <li> Rematerialization, in which a single read from a shared
           location is executed multiple times and the program observes
           more than one of the values read.
 
-        <li> Spurious writes, in which ...  FIXME.  Encompasses RMW on
-          a larger area, presumably.  Covered elsewhere?  Merge to here?
+        <li> Spurious writes (introduced writes?), in which ...  FIXME.
+          Encompasses RMW on a larger area, presumably.  Covered elsewhere?
+          Merge to here?
 
         <li> Value speculation, in which the compiler or hardware
-          makes a guess about a value in memory and uses that to
-          justify a computation that makes the guess correct.
+          makes a guess about a value in shared memory and uses that
+          to justify a computation that makes the guess correct.
       </ul>
 
       <emu-note>
         <p> Examples of transformations that remain valid (assuming no
-          intra-agent semantic change) are: merging multiple reads
-          from the same location, reordering reads from different
+          intra-agent semantic change and no reordering with respect
+          to non-data-access events) are: merging multiple reads from
+          the same location, reordering reads from different
           locations, introducing speculative reads, merging multiple
           writes to the same location, and reordering writes to
-          different locations. </p>
+          different locations.  </p>
+
+        <p> Code movement transformations do not affect whether there
+          is a data race in the program, as that is determined by the
+          happens-before relation.  Transformations may however affect
+          the race's observability by making the racing accesses more
+          or less likely to conflict during execution. </p>
       </emu-note>
 
-      <p> A data race affects a number of shared memory locations over
-        a certain time.  While the race is ongoing, reads may observe
-        values other than the ones stipulated by the write-to-read
-        rules of the last section, and writes ... </p>
-        
-      <p> The spatial region of a data race is the union of the access
-        ranges involved in the accesses that cause the race.  
-        
-      <p> The ECMAScript implementation may not enlarge the temporal
-        and spacial regions of a data race. </p>
-      
+      <p> The following rules apply to shared-memory reads and writes
+        that are actually issued to the computer's memory subsystem
+        (that is, once the compiler and hardware have performed all
+        transformations). </p>
 
-      <p> A data race affects the union of the access ranges involved in
-        the race, for the duration of the race.  The race ends only
-        when all the threads involved in the race have synchronized. </p>
+      <ul>
+        <li> (General writes) If any number of writes race then each
+          byte that is stored in memory is selected arbitrarily from
+          among the pertinent bytes of the values that were written;
+          the bytes are written to memory in arbitrary order, and each
+          byte may be written more than once.
+
+        <li> (General reads) If a read races with any number of writes
+          then each byte that is read is selected arbitrarily from
+          among the pertinent bytes of the value that was in memory at
+          the read's access range before the writes, and the values
+          that were written.
+          
+        <li> (Single-copy atomic writes) If any number of writes via
+          an integer-typed TypedArray (not a DataView) race to the
+          same access range and there are no other racing writes to
+          any part of that access range, then the value that is stored
+          in memory is one of the values written; the memory may be
+          written more than once.
+
+        <li> (Single-copy atomic reads) If a read races with any
+          number of writes via an integer-typed TypedArray (not a
+          DataView) to the same access range and there are no other
+          racing writes to any part of that access range, then the
+          value that is read is either the value that was in memory
+          before any value was written, or the value written by one of
+          the writes.
+      </ul>
 
       <emu-note>
-        <p> (Spec draft note) The race starts after the last
-          preceding synchronization, but do we need to specify that further? </p>
-      </emu-note>
-      
-      <p> The access ranges involved in a race will contain
-        unpredictable values for the duration of the race, according to the
-        following rules: </p>
-
-      <ol>
-        <li> A read from shared memory always produces a value.
-        <li> The shared memory will always honor a write, but if there
-          is a race the memory can arbitrarily select bits from the
-          operands of the racing writes and the previous memory contents
-          at the racy written-to locations.
-        <li> The values at racy locations are not stable
-          until the race has ended.
-      </ol>
-
-      <emu-note>
-        <p> Mainstream memories behave according to these rules, so
-          the rules are really restrictions on the compiler: if there
-          is a race, and the compiler can prove that there is a race,
-          it still must not produce a completely arbitrary value (thus
+        <p> Mainstream computer memories behave according to these
+          rules, so the rules restrict the compiler: if there is a
+          race, and the compiler can prove that there is a race, it
+          still must not produce a completely arbitrary value (thus
           risking revealing a secret by eg reusing register contents),
           but must produce a value that could be a combination of some
-          values written to memory. (It could produce the last value
-          written by the thread executing the read.) </p>
-
-        <p> The third rule precludes a so-called rematerialization
-          optimization, where a read from shared memory can be
-          performed multiple times in such a way that several
-          different values are observed for what is a single value in
-          the semantics.  If `mem` is some integer TypedArray the
-          following program is not allowed to print 0: </p>
-        <pre>
-        let x = mem[n];
-        if (x)
-          print(x);
-        </pre>
-      </emu-note>
-
-      <emu-note>
-        <p> Although the rules above restrict the values that can be
-          written to racy locations, races have highly unpredictable
-          consequences: a racy -- ie largely unpredictable and
-          non-portable -- value used in a condition can confuse the
-          program and cause it to compute nonsensical or undesirable
-          results which are then used in further computations. </p>
+          values written to memory. </p>
       </emu-note>
 
     </emu-clause>
