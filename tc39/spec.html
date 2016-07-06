@@ -488,7 +488,9 @@ These call AllocateTypedArray with a specified length:
           1. Assert: _byteIndex_ is an integer value &ge; 0.
           1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-          1. Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].
+          1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del> <ins>If IsSharedMemory(_arrayBuffer_) then: </ins>
+            1. <ins>Let _rawValue_ be a List of _elementSize_ resulting from ReadSharedBytes(_block_, _byteIndex_, _type_, _elementSize_)</ins>
+          1. <ins>Else, let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the SetValueInBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
           1. ...
         </emu-alg>
@@ -709,8 +711,17 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="AtomicsObjectFunctionProps.semantics">
     <h1>Runtime semantics</h1>
     
-    <emu-clause id="Atomics.WithAtomicAccessTo">
-      <h1>With atomic access to shared memory</h1>
+    <p> The memory model is described with two tiers: There is a
+      simple high-level model that applies to the subset of legal
+      programs that have no data races, and a more complex low-level
+      model (compatible with the high-level model) that applies also
+      to programs that do have data races. </p>
+      
+    <emu-clause id="Atomics.HappensBefore">
+      <h1>Happens-before, data-race-freedom, and sequential consistency</h1>
+      
+      <p> Shared memory accesses are divided into two groups, atomic
+        accesses and data accesses. </p>
       
       <p> Let <em>atomic accesses</em> be those algorithm steps that
         are labeled "With atomic access to shared memory" in the
@@ -723,8 +734,10 @@ These call AllocateTypedArray with a specified length:
         of atomic accesses, when those invocations' _arrayBuffer_
         argument is a SharedArrayBuffer. </p>
         
-      <p> Let the <em>access range</em> of an atomic or data access be the
-        memory cells read or written by the access. </p>
+      <p> Let the <em>access range</em> of a shared memory access be
+        the memory cells read or written by the access.  (These cells
+        are always consecutive and within a single Shared Data
+        Block.) </p>
 
       <p> Atomic accesses that are <em>viable</em> are performed in a
         single total order (the <em>synchronization order</em>)
@@ -735,49 +748,34 @@ These call AllocateTypedArray with a specified length:
         (None of the accesses that intersect in that way are
         viable.) </p>
 
-      <emu-note>
-        <p> ECMAScript allows TypedArrays to alias each other and
-          exposes atomic accesses directly on TypedArrays.  It is thus
-          possible for atomic accesses of different size to partly
-          overlapping access ranges to be performed concurrently.
-          Requiring overlapping concurrent atomic accesses to be part
-          of the total atomics order would impose significant run-time
-          costs on some, possibly all, platforms.</p>
-
-        <p> For example, on a platform such as MIPS32 that only has
-          4-byte atomics, an 8-byte atomic access (eg for Int64) must
-          be implemented with a lock, yet it is desirable to implement
-          4-byte atomic accesses directly.  Requiring overlapping
-          concurrent accesses to be part of the total atomics order
-          would require all atomic accesses to use the lock. </p>
-
-        <p> In a more general case, if we were to provide a method to
-          (say) atomically compare-and-exchange a larger region of
-          memory, such a primitive would have to use a lock on
-          virtually all platforms, forcing all platforms to use locks
-          even for smaller atomic accesses. </p>
-      </emu-note>
-
       <p> In the following, "atomic access" refers only to viable
         atomic accesses, and "data access" refers also to non-viable
         atomic accesses. </p>
       
-      <p> An <em>event</em> in an agent is an atomic access, a
-        data access, the sending of a SharedArrayBuffer, the receipt
-        of a SharedArrayBuffer, the action of waking up a sleeping
-        agent, or a sleeping agent being woken up.  Events can also be
+      <p> An <em>event</em> in an agent is an atomic access, a data
+        access, the sending of a SharedArrayBuffer, the receipt of a
+        SharedArrayBuffer, the action of waking up a sleeping agent,
+        or a sleeping agent being woken up.  Events can also be
         embedding-specific. </p>
 
       <emu-note>
-        <p> Examples of embedding-specific events are starting and stopping agents
-          and communicating via other channels than shared memory. </p>
+        <p> Examples of embedding-specific events are starting and
+          stopping agents and communicating via other channels than
+          shared memory. </p>
       </emu-note>
+
+      <p> Program transformations by a compiler or the hardware may
+        reorder an agent's data access events (may change the agent's
+        program order) so long as that does not affect the program's
+        intra-agent meaning, provided they do not reorder data access
+        events with non-data access events, nor reorder non-data
+        access events with each other. </p>
 
       <p> An event A <em>happens before</em> another event B if either:</p>
       <ol>
         <li> A precedes B in an agent's program order,
         <li> A is the sending of a SharedArrayBuffer and B is the
-        receipt in another agent of that buffer,
+          receipt in another agent of that buffer,
         <li> A is the waking up a sleeping agent and B the agent being
           woken up,
         <li> A and B are paired embedding-specific events in separate
@@ -791,35 +789,100 @@ These call AllocateTypedArray with a specified length:
       <p> Executions must be such that <em>happens before</em> is
         irreflexive (acyclic). </p>
 
-      <emu-note>
-        <p> If a call to Atomics.wait returns `"not-equal"` then
-          there is a happens-before relation between any atomic write
-          that wrote the slot that is read by that function, because
-          that function uses an atomic read to read that slot. </p>
-      </emu-note>
+      <p> Two shared memory accesses whose access ranges intersect
+        constitute a <em>data race</em> if neither happens before the
+        other, at least one of them is not an atomic access, and at
+        least one of them is a write. </p>
 
-      <p> A data access read R only sees a write W that happens before
-        R, where there is no write V such that V happens before R and
-        W happens before V. </p>
+      <p> If the execution of an agent cluster has no data races,
+        then the following hold: </p>
+
+      <ul>
+        <li> A data access read R only sees a write W that happens
+          before R, where there is no write V such that V happens
+          before R and W happens before V.
+
+        <li> An atomic read R sees either the last preceding (in
+          synchronization order) atomic write U to the same
+          location, or a non-atomic write W that happens before R,
+          where there is no write V such that V happens before R and
+          W happens before V.
+
+        <li> The agent cluster behaves according to one of its
+          sequentially consistent executions.
+      </ul>
+
+      <!-- If an execution has no data races then ReadSharedBytes()
+           simply reads the bytes from memory one by one, as the
+           existing GetValueFromBuffer(), and WriteSharedBytes()
+           writes the bytes to memory one by one, as the existing
+           PutValueInBuffer().  -->
       
-      <p> An atomic read R sees either the last preceding (in
-        synchronization order) atomic write U to the same location, or
-        a non-atomic write W that happens before R, where there is no
-        write V such that V happens before R and W happens before
-        V. </p>
+    </emu-clause>
 
-      <p> Two memory accesses whose access ranges intersect constitute
-        a <em>data race</em> if neither happens before the other, at
-        least one of them is not an atomic access, and at least one of
-        them is a write. </p>
+    <emu-clause id="Atomics.DataRaces">
+      <h1> Data races </h1>
+
+      <p> If the execution of an agent cluster has a data race then
+        the guarantees for write-to-read visibility in the previous
+        section do not hold, and the cluster's behavior is no longer
+        guaranteed to be sequentially consistent.  Data races expose
+        the effect of program transformations in the compiler and in
+        the hardware, and have unintuitive and platform-specific
+        effects.  ECMAScript programs with data races are safe, but
+        the values resulting from a data race are often hard to
+        predict. </p>
+
+      The idea here is to outline how the program can be transformed
+      to open up a number of allowable behaviors.
+
+      Then we can define a race: what it is and how long it lasts.
+
+      Then we can define some notion of introducing races (illegal).
+
+      Then we can define what the values may look like during a race.
+
+      <p> In the absence of data races, there are no limits on program
+        transformations apart from reordering with respect to non-data
+        access events.  However, that changes with the possibility of
+        data races.  Transformations that are explicitly prohibited
+        are: </p>
+
+      <ul>
+        <li> Rematerialization, in which a single read from a shared
+          location is executed multiple times and the program observes
+          more than one of the values read.
+
+        <li> Spurious writes, in which ...  FIXME.  Encompasses RMW on
+          a larger area, presumably.  Covered elsewhere?  Merge to here?
+
+        <li> Value speculation, in which the compiler or hardware
+          makes a guess about a value in memory and uses that to
+          justify a computation that makes the guess correct.
+      </ul>
 
       <emu-note>
-        <p> If the execution of an agent cluster has no data races, then
-          the agent cluster behaves according to one of its sequentially
-          consistent executions. </p>
+        <p> Examples of transformations that remain valid (assuming no
+          intra-agent semantic change) are: merging multiple reads
+          from the same location, reordering reads from different
+          locations, introducing speculative reads, merging multiple
+          writes to the same location, and reordering writes to
+          different locations. </p>
       </emu-note>
 
-      <p> The race affects the union of the access ranges involved in
+      <p> A data race affects a number of shared memory locations over
+        a certain time.  While the race is ongoing, reads may observe
+        values other than the ones stipulated by the write-to-read
+        rules of the last section, and writes ... </p>
+        
+      <p> The spatial region of a data race is the union of the access
+        ranges involved in the accesses that cause the race.  
+        
+      <p> The ECMAScript implementation may not enlarge the temporal
+        and spacial regions of a data race. </p>
+      
+
+      <p> A data race affects the union of the access ranges involved in
         the race, for the duration of the race.  The race ends only
         when all the threads involved in the race have synchronized. </p>
 
