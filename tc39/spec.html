@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-07-05 </p>
+<p> Revised: 2016-07-07 </p>
 <p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications (here denoted "ES7") is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29).  At the moment, ES7 (ES2016) section numbering differs from ES6 (ES2015) only for TypedArrays (section 22.2).</p>
 
 <emu-intro id="intro">
@@ -18,10 +18,10 @@
 
 <p> This proposal adds a simple form of shared memory to ECMAScript.
 Shared memory is being exposed in the form of a new SharedArrayBuffer
-type; the existing TypedArrays are adapted in such a way that they can
-be used to create views on shared memory.  The new global Atomics
-object provides atomic operations on shared memory locations,
-including operations that can be used to create blocking
+type; the existing TypedArrays and DataView are adapted in such a way
+that they can be used to create views on shared memory.  The new
+global Atomics object provides atomic operations on shared memory
+locations, including operations that can be used to create blocking
 synchronization primitives.  Though not a part of this specification,
 we intend for the role of "threads" to be played by Web Workers in web
 browser environments.<p>
@@ -35,7 +35,7 @@ abstractions that are useful in specific domains. </p>
 <ul>
   <li> Support for threaded code in programs written in other
   languages that are translated to asm.js or plain JS or a combination
-  of the two, notably C and C++ but also other safe languages.
+  of the two, notably C and C++ but also other, safe, languages.
 
   <li> Support for hand-written JS or JS+asm.js that makes use of
   multiprocessing facilities for select tasks, such as image
@@ -69,10 +69,11 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-07-07 -- Rewrote the memory model section, which introduced separate access functions for shared memory, and caused many other changes.
   <li> 2016-07-05 -- Rewrote (and shrunk) the informative Web Browser Embedding section so that it only addresses the requirements of this spec, not how HTML ought to evolve to bring maximum bliss.
   <li> 2016-07-05 -- Rephrased the wait/wake mutual exclusion in terms of critical sections named by (G,i), as the old specification was too strong.
   <li> 2016-07-05 -- Numerous minor editorial adjustments.
-  <li> 2016-06-30 -- Modified algorithms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.  Updated section references to reference that revision.
+  <li> 2016-06-30 -- Algorithms that are modified relative to their ES262 forms include more context and are more clearly marked, and there's a defined ES262 base revision for those modifications.  Updated section references to reference that revision.
   <li> (Older changelog removed)
 </ul>
 
@@ -222,7 +223,8 @@ comments.</p>
         not imply anything about the (perceived) atomicity of
         non-atomic accesses of size <em>n</em>, specifically,
         non-atomic accesses may still be performed as a sequence of
-        several separate memory accesses. </p>
+        several separate memory accesses.  See ReadSharedMemory and
+        WriteSharedMemory for details. </p>
     </emu-note>
 
   </emu-clause>
@@ -316,20 +318,41 @@ comments.</p>
     </emu-note>
 
     <emu-note>
-      <p> This proposal additionally requires (see later text) that if
+      <p> This proposal additionally suggests (see later text) that if
         termination is signaled then the signal creates a
         happens-before edge in the memory ordering. </p>
-
-      <p> The web platform provides nothing at the moment to detect or
-        signal termination, regardless of shared memory, and this is
-        already a problem for developers.  However, in current web
-        browsers dedicated workers are in-process and an agent cluster
-        will normally terminate en masse, so the requirement is
-        satisfied for now. </p>
     </emu-note>
 
   </emu-clause> <!-- agent cluster -->
 
+</emu-clause>
+
+<!-- es6num="9" -->
+<emu-clause id="sec-ordinary-and-exotic-objects-behaviours">
+  <h1>Ordinary and Exotic Objects Behaviours (ES7 9)</h1>
+
+  <!-- es6num="9.4" -->
+  <emu-clause id="sec-built-in-exotic-object-internal-methods-and-slots">
+    <h1>Built-in Exotic Object Internal Methods and Slots (ES7 9.4)</h1>
+
+    <!-- es6num="9.4.5" -->
+    <emu-clause id="sec-integer-indexed-exotic-objects">
+      <h1>Integer Indexed Exotic Objects (ES7 9.4.5)</h1>
+
+      <!-- es6num="9.4.5.8" -->
+      <emu-clause id="sec-integerindexedelementget" aoid="IntegerIndexedElementGet">
+        <h1>IntegerIndexedElementGet ( _O_, _index_ ) (ES7 9.4.5.8)</h1>
+
+        <p> In the call to GetValueFromBuffer, pass *true* as the fourth argument to indicate that it is a TypedArray access. </p>
+      </emu-clause>
+
+      <!-- es6num="9.4.5.9" -->
+      <emu-clause id="sec-integerindexedelementset" aoid="IntegerIndexedElementSet">
+        <h1>IntegerIndexedElementSet ( _O_, _index_, _value_ ) (ES7 9.4.5.9)</h1>
+
+        <p> In the call to SetValueInBuffer, pass *true* as the fourth argument to indicate that it is a TypedArray access. </p>
+    </emu-clause>
+  </emu-clause>
 </emu-clause>
 
 <emu-clause id="GlobalObject">
@@ -370,6 +393,12 @@ These call AllocateTypedArray with a specified length:
       <h1>Properties of the %TypedArrayPrototype% object (ES7 22.2.3)</h1>
       <emu-clause id="IndexedCollections.TypedArray.prototype.set">
         <h1> %TypedArray%.prototype.set( overloaded [ , offset ] ) (ES7 22.2.3.23)</h1>
+
+        <emu-clause id="IndexedCollections.TypedArray.prototype.setFromTypedArray">
+          <h1>%TypedArray%.prototype.set( array [, offset ] ) (ES7 22.2.3.23.1)</h1>
+          <p> In the call to SetValueInBuffer, pass *true* as the fourth argument to indicate that the operation is on a TypedArray. </p>
+        </emu-clause>
+
         <emu-clause id="IndexedCollections.TypedArray.prototype.setFromTypedArray">
           <h1>%TypedArray%.prototype.set( typedArray [, offset ] ) (ES7 22.2.3.23.2)</h1>
           <p>This algorithm is modified as follows:</p>
@@ -403,8 +432,27 @@ These call AllocateTypedArray with a specified length:
               1. NOTE: %ArrayBuffer% is used to clone _srcBuffer_ because is it known to not have any observable side-effects.
               1. Let _srcByteIndex_ be 0.
             1. Else, let _srcByteIndex_ be _srcByteOffset_.
-            1. ...
+            1. Let _targetByteIndex_ be _targetOffset_ &times; _targetElementSize_ + _targetByteOffset_.
+            1. Let _limit_ be _targetByteIndex_ + _targetElementSize_ &times; _srcLength_.
+            1. If SameValue(_srcType_, _targetType_) is *true*, then
+              1. NOTE: If _srcType_ and _targetType_ are the same, the transfer must be performed in a manner that preserves the bit-level encoding of the source data.
+              1. Repeat, while _targetByteIndex_ &lt; _limit_
+                1. Let _value_ be GetValueFromBuffer(_srcBuffer_, _srcByteIndex_, `"Uint8"`, <ins>*true*</ins>).
+                1. Perform SetValueInBuffer(_targetBuffer_, _targetByteIndex_, `"Uint8"`, <ins>*true*</ins>, _value_).
+                1. ...
+            1. Else,
+              1. Repeat, while _targetByteIndex_ &lt; _limit_
+                1. Let _value_ be GetValueFromBuffer(_srcBuffer_, _srcByteIndex_, _srcType_, <ins>*true*</ins>).
+                1. Perform SetValueInBuffer(_targetBuffer_, _targetByteIndex_, _targetType_, <ins>*true*</ins>, _value_).
+                1. ...
+            1. Return *undefined*.
           </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="IndexedCollections.TypedArray.prototype.slice">
+          <h1>%TypedArray%.prototype.slice( _start_, _end_ ) (ES7 22.2.3.24)</h1>
+          <p> In the calls to GetValueFromBuffer and SetValueInBuffer, pass *true* as the fourth argument to indicate that the operation is
+            on a TypedArray. </p>
         </emu-clause>
       </emu-clause>
     </emu-clause>
@@ -412,6 +460,13 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="IndexedCollections.TypedArray.constructors">
       <h1>The %TypedArray% constructors (ES7 22.2.4)</h1>
 
+      <!-- es6num="22.2.1.3" -->
+      <emu-clause id="sec-typedarray-typedarray">
+        <h1>_TypedArray_ ( _typedArray_ ) (ES7 22.2.4.3)</h1>
+        <p> In the calls to GetValueFromBuffer and SetValueInBuffer, pass *true* as the fourth argument to indicate that the operation is
+          on a TypedArray. </p>
+      </emu-clause>
+      
       <emu-clause id="IndexedCollections.TypedArray.intrinsic.constructFromObject">
         <h1>%TypedArray%( object ) (ES7 22.2.4.4)</h1>
         <p>This algorithm is modified as follows:</p>
@@ -528,6 +583,25 @@ These call AllocateTypedArray with a specified length:
 
   <emu-clause id="StructuredData.DataView">
     <h1>DataView Objects (ES7 24.2)</h1>
+
+    <!-- es6num="24.2.1" -->
+    <emu-clause id="sec-abstract-operations-for-dataview-objects">
+      <h1>Abstract Operations For DataView Objects (ES7 24.2.1)</h1>
+
+      <!-- es6num="24.2.1.1" -->
+      <emu-clause id="sec-getviewvalue" aoid="GetViewValue">
+        <h1>GetViewValue ( _view_, _requestIndex_, _isLittleEndian_, _type_ ) (ES7 24.2.1.1)</h1>
+        <p> In the call to GetValueFromBuffer, pass *false* as the fourth argument to indicate that it is a DataView access. </p>
+      </emu-clause>
+      
+      <!-- es6num="24.2.1.2" -->
+      <emu-clause id="sec-setviewvalue" aoid="SetViewValue">
+        <h1>SetViewValue ( _view_, _requestIndex_, _isLittleEndian_, _type_, _value_ ) (ES7 24.2.1.2)</h1>
+        <p> In the call to SetValueInBuffer, pass *false* as the fourth argument to indicate that it is a DataView access. </p>
+      </emu-clause>
+
+    </emu-clause>
+    
     <emu-clause id="StructuredData.DataView.constructor">
       <h1>The DataView Constructor (ES7 24.2.2)</h1>
       <emu-clause id="StructuredData.DataView.constructor.detail">
@@ -706,7 +780,7 @@ These call AllocateTypedArray with a specified length:
   <h1>The Atomics Object</h1>
   
   <p>The Atomics object is the <dfn>%Atomics%</dfn> intrinsic object and the initial value of the `Atomics` property of the global object. The Atomics object is a single ordinary object.</p>
-  <p> The Atomics object provides functions that operate indivisibly (atomically) on shared memory array cells as well as functions that let agents wait for and dispatch primitive events.  When used properly, these functions execute in a well-understood order even when executing concurrently on concurrent agents running on parallel CPUs.  The allowable outcomes of concurrent execution are determined by the <dfn>memory model</dfn>, defined below. </p>
+  <p> The Atomics object provides functions that operate indivisibly (atomically) on shared memory array cells as well as functions that let agents wait for and dispatch primitive events.  When used with discipline, the Atomics functions allow multi-agent programs that communicate through shared memory to execute in a well-understood order even on parallel CPUs.  The rules that govern shared-memory communication are provided by the <dfn>memory model</dfn>, defined below. </p>
   <p>The value of the [[Prototype]] internal slot of the Atomics object is the intrinsic object %ObjectPrototype%.</p>
   <p>The Atomics object is not a function object. It does not have a [[Construct]] internal method; it is not possible to use the Atomics object as a constructor with the `new` operator. The Atomics object also does not have a [[Call]] internal method; it is not possible to invoke the Atomics object as a function.</p>
 
@@ -728,13 +802,13 @@ These call AllocateTypedArray with a specified length:
         steps that are labeled "With atomic access to shared memory"
         in the algorithms below, ie, the primitive `load` and `store`
         operations and the read-modify-write operations `add`, `sub`,
-        `and`, `or`, `xor`, `exchange, and `compareExchange`; the read
-        and write operations will ultimately be ReadSharedMemory() and
-        WriteSharedMemory().</p>
+        `and`, `or`, `xor`, `exchange`, and `compareExchange`; the
+        read and write operations will ultimately be performed by
+        ReadSharedMemory and WriteSharedMemory.</p>
 
-      <p> Let <em>initial data accesses</em> be those invocations of
-        ReadSharedMemory() and WriteSharedMemory() that are not part
-        of the initial atomic accesses. </p>
+      <p> Let the <em>initial data accesses</em> be those invocations
+        of ReadSharedMemory and WriteSharedMemory that are not
+        part of the initial atomic accesses. </p>
         
       <p> Let the <em>access range</em> of a shared memory access be
         the memory cells read or written by the access.  (These cells
@@ -762,14 +836,14 @@ These call AllocateTypedArray with a specified length:
         embedding-specific. </p>
 
       <emu-note>
-        <p> Examples of embedding-specific events are starting and
-          stopping agents and communicating via other channels than
-          shared memory. </p>
+        <p> Examples of embedding-specific events that should be
+          accounted for are starting and stopping agents and
+          communicating via other channels than shared memory. </p>
       </emu-note>
 
       <p> Program transformations by a compiler or the hardware may
-        reorder an agent's data access events (may change the agent's
-        program order) when that does not affect the program's
+        reorder an agent's data access events (and thus change the
+        agent's program order) when that does not affect the program's
         intra-agent meaning, but may not reorder data-access events
         with non-data-access events, nor reorder non-data-access
         events with each other. </p>
@@ -779,7 +853,7 @@ These call AllocateTypedArray with a specified length:
         <li> A precedes B in an agent's (possibly transformed) program order,
         <li> A is the sending of a SharedArrayBuffer and B is the
           receipt in another agent of that buffer,
-        <li> A is the waking up a sleeping agent and B the agent being
+        <li> A is the waking up of a sleeping agent and B the agent being
           woken up,
         <li> A and B are paired embedding-specific events in separate
           agents where the embedding states that A happens before B,
@@ -816,13 +890,15 @@ These call AllocateTypedArray with a specified length:
           where there is no write V such that V happens before R and
           W happens before V.
 
-        <li> The shared memory reads and writes issued by an atomic
+        <li> The shared memory read and write issued by an atomic
           access will be performed without any other shared memory
-          writes intervening.
+          writes intervening between or interfering with the read and
+          write (as explained further in the next section).
 
-        <li> Program transformations will not create data races.
+        <li> Semantics-preserving (intra-agent) program
+          transformations will not create data races.
 
-        <li> The agent cluster behaves according to one of its
+        <li> The agent cluster will behave according to one of its
           sequentially consistent executions.
       </ul>
 
@@ -850,18 +926,18 @@ These call AllocateTypedArray with a specified length:
         prohibited are: </p>
 
       <ul>
-        <li> Rematerialization, in which what is semantically a single
-          read is executed multiple times and the program observes
-          more than one of the values read, if those values can be
-          different.
+        <li> Introducing new reads, when the effect is that what is
+          semantically a single read in the program is executed
+          multiple times and the program is subsequently allowed to
+          observe multiple values for the one read.
 
-        <li> Introduced writes, in which a value is written to shared
-          memory that would not appear in memory in the absence of the
-          transformation.  This class includes read-modify-write on a
-          larger datum to implement the write of a smaller datum,
-          using a to-be-written variable as a scratch location, and
+        <li> Introducing writes that change memory in ways that the
+          untransformed program could not have changed it (for
+          example, introducing read-modify-write operations on a
+          larger location to write a smaller datum, writing a value to
+          a location that the program could not have written, and
           spuriously writing a just-read value back to the location it
-          was read from.
+          was read from).
 
         <li> Value speculation, in which the compiler or hardware
           makes a guess about a value in shared memory and uses that
@@ -879,11 +955,11 @@ These call AllocateTypedArray with a specified length:
       </emu-note>
 
       <p> Shared memory access is always performed by two primitive
-        subroutines, ReadSharedMemory() and WriteSharedMemory(),
+        subroutines, ReadSharedMemory and WriteSharedMemory,
         described in the following.  These subroutines represent the
         software/hardware interface for shared memory access.  They
-        never perform non-shared-memory access.  ReadSharedMemory()
-        and WriteSharedMemory() define the valid outcomes of data races. </p>
+        never perform non-shared-memory access.  ReadSharedMemory
+        and WriteSharedMemory define the valid outcomes of data races. </p>
 
       <emu-note>
         <p> The result of a read-write data race is generally that the
@@ -895,40 +971,46 @@ These call AllocateTypedArray with a specified length:
           may thus be an interleaving of the bytes of the two
           values. </p>
           
-        <p> ReadSharedMemory() and WriteSharedMemory() have special
+        <p> ReadSharedMemory and WriteSharedMemory have special
           provisions that allow some classes of data races to have
           more predictable outcomes than that (because all hardware
           supports it and because it is valuable functionality).
           Note, however, that program transformations can have
           surprising effects on the timing of memory accesses:
-          Non-atomic accesses may be optimized away if deemed
+          Non-atomic accesses may be optimized away or moved if deemed
           redundant. </p>
       </emu-note>
         
-      <p> When an atomic access that is not in a data race performs a
-        read-write pair of memory accesses, these accesses are
-        performed indivisibly in that no write access is allowed to
+      <p> When an atomic access that is in a data race performs a
+        read-write pair of memory accesses, those accesses may not be
+        performed indivisibly: a write access may be allowed to
         access memory between the read and the write of the pair. </p>
 
+      <emu-note>
+        <p> For example, non-lock-free atomic operations will allow
+          such a race to be observed. </p>
+      </emu-note>
+          
     </emu-clause>
 
     <emu-clause id="Atomics.ReadSharedMemory" aoid="ReadSharedMemory">
       <h1>ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
 
-      <p> ReadSharedMemory() takes a shared memory block _block_,
+      <p> ReadSharedMemory takes a shared memory block _block_,
         nonnegative integers _byteIndex_ and _numBytes_, and a Boolean
-        _accessAtomic_, and returns a list of _numBytes_ bytes read
-        from _block_ starting at _byteIndex_, using _accessAtomic_ to
-        guide the operation. </p>
+        _accessAtomic_, and returns a List of _numBytes_ containing,
+        in order, the _numBytes_ sequence of bytes starting with
+        _block_[_byteIndex_], using _accessAtomic_ to guide the
+        operation. </p>
 
-      <p> ReadSharedMemory() may contain machinery that has speculated
-        that the read request will be made, and if so it may return a
-        value that it has obtained earlier through a speculative read
-        (by the rules below), provided such speculation does not
-        violate transformation rules described earlier (notably rules
-        about reordering with respect to atomic accesses). </p>
+      <p> ReadSharedMemory may contain machinery that speculates
+        whether a read request will be made. If so, it may read (by
+        the rules below) the value before the request is made,
+        provided such speculation does not violate transformation
+        rules described earlier (notably rules about reordering with
+        respect to atomic accesses). </p>
 
-      <p> If the read has a data race with any number of writes, and
+      <p> If the read has a data race with any number of writes where
         the read and the writes all access the exact same access
         range, and the read has no data race with any other writes,
         and _accessAtomic_ is *true*, then the bytes that are returned
@@ -941,27 +1023,27 @@ These call AllocateTypedArray with a specified length:
         in the access range, select either the byte in memory at that
         location or a byte from one of the values to be written that
         provides a byte for that location. </p>
-
     </emu-clause>
         
     <emu-clause id="Atomics.WriteSharedMemory" aoid="WriteSharedMemory">
       <h1>WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _bytes_)</h1>
 
-      <p> WriteSharedMemory() takes a shared memory block _block_,
+      <p> WriteSharedMemory takes a shared memory block _block_,
         nonnegative integers _byteIndex_ and _numBytes_, a Boolean
-        _accessAtomic_, and a list of _numBytes_ bytes to write to
-        _block_ starting at _byteIndex_, using _accessAtomic_ to guide the
+        _accessAtomic_, and a List of _numBytes_, and store the
+        individual bytes of _bytes_ into _block_, in order, starting
+        at _block[_byteIndex_], using _accessAtomic_ to guide the
         operation. </p>
 
-      <p> WriteSharedMemory() may contain machinery that delays the
+      <p> WriteSharedMemory may contain machinery that delays the
         write request, and if so it may hold the bytes for later
         writing (by the rules below), provided such delay does not
         violate transformation rules described earlier (notably rules
         about reordering with respect to atomic accesses). </p>
 
-      <p> If the write has a data race with any number of other
-        writes, and all the writes access the exact same access range,
-        and the write has no data race with any other writes, and
+      <p> If the write has a data race with any number of other writes
+        where all the writes access the exact same access range, and
+        the write has no data race with any other writes, and
         _accessAtomic_ is *true*, then each write writes all of its
         bytes before the next write occurs, and the writes occur in
         some arbitrary order. </p>
@@ -1032,7 +1114,7 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
     
-    <emu-clause id="GetWaiterList">
+    <emu-clause id="GetWaiterList" aoid="GetWaiterList">
       <h1>GetWaiterList( G, i )</h1>
       <p> A <dfn>WaiterList</dfn> is a semantic object that contains an ordered list of those agents that are waiting on a location (_G_, _i_) in shared memory; _G_ is a Shared Data Block ID and _i_ a byte offset into the memory referenced by _G_. </p>
       <p> The agent cluster has a store of WaiterList objects; the store is indexed by (_G_, _i_).  WaiterLists are agent-independent: a lookup in the store of WaiterLists by (_G_, _i_) will result in the same WaiterList object in any agent in the agent cluster. </p>
@@ -1046,7 +1128,7 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="EnterCriticalSection">
+    <emu-clause id="EnterCriticalSection" aoid="EnterCriticalSection">
       <h1>EnterCriticalSection( WL )</h1>
       <p> When EnterCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
       <emu-alg>
@@ -1055,7 +1137,7 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="LeaveCriticalSection">
+    <emu-clause id="LeaveCriticalSection" aoid="LeaveCriticalSection">
       <h1>LeaveCriticalSection( WL )</h1>
       <p> When LeaveCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
       <emu-alg>
@@ -1237,15 +1319,16 @@ These call AllocateTypedArray with a specified length:
       <emu-note>
         <p> Atomics.isLockFree() is an optimization primitive.  The
           intuition is that if the atomic step of an atomic primitive
-          (compareExchange, load, store, add, sub, and, or, xor, or
-          exchange) on a datum of size _n_ bytes will be performed
-          without the calling agent acquiring a lock outside the _n_
-          bytes comprising the datum, then Atomics.isLockFree(_n_)
-          will return *true*.  High-performance algorithms will use
-          Atomics.isLockFree() to determine whether to use locks or
-          atomic operations in critical sections.  If an atomic
-          primitive is not lock-free then it is often more efficient
-          for an algorithm to provide its own locking. </p>
+          (`compareExchange`, `load`, `store`, `add`, `sub`, `and`,
+          `or`, `xor`, or `exchange`) on a datum of size _n_ bytes
+          will be performed without the calling agent acquiring a lock
+          outside the _n_ bytes comprising the datum, then
+          Atomics.isLockFree(_n_) will return *true*.
+          High-performance algorithms will use Atomics.isLockFree to
+          determine whether to use locks or atomic operations in
+          critical sections.  If an atomic primitive is not lock-free
+          then it is often more efficient for an algorithm to provide
+          its own locking. </p>
 
         <p> Atomics.isLockFree(4) always returns *true* as that can be
           supported on all known relevant hardware.  Being able to
@@ -1422,13 +1505,14 @@ These call AllocateTypedArray with a specified length:
     UI and to allow the main thread to do work on behalf of other
     threads. </p>
 
-  <p> Normal ("dedicated") `Worker`s will be supported as agents.
+  <p> Normal ("dedicated") `Worker`s must be supported as agents for
+    this proposal to make much sense. </p>
 
-  <p> Memory will be shared among agents by means of using
-    `postMessage` to transmit `SharedArrayBuffer` and `TypedArray`
-    objects that have `SharedArrayBuffer` buffers; this requires an
-    extension to the Structured Clone mechanism.  There is agreement
-    on the general syntax and semantics for this extension. </p>
+  <p> Memory will be shared among agents by using `postMessage` to
+    transmit `SharedArrayBuffer` objects or `TypedArray` objects that
+    have `SharedArrayBuffer` buffers; this requires an extension to
+    the Structured Clone mechanism.  There is agreement on the general
+    syntax and semantics for that extension. </p>
     
   <p> Agent-to-agent communication extends the happens-before relation
     of the program, as follows:</p>
@@ -1438,13 +1522,13 @@ These call AllocateTypedArray with a specified length:
       happens-before the execution of the main script in the worker.
 
     <li> (Worker termination is not directly observable in current
-      browsers, see below.)
+      browsers, but this is a moot point; see below.)
 
     <li> A `postMessage` to another agent happens-before the event
       fires in the agent.
   </ul>
 
-  <p> If the browser does not allow a `ServiceWorker` or
+  <p> So long as the browser does not allow a `ServiceWorker` or
     `SharedWorker` ("non-page worker") to share memory with a `Worker`
     it will not violate the suspend/wake cohort rule of this
     specification (section&nbsp;3.3).  The restriction on sharing
