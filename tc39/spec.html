@@ -479,17 +479,18 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
       
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
-        <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type, isLittleEndian ) (ES7 24.1.1.5)</h1>
+        <h1>GetValueFromBuffer( arrayBuffer, byteIndex, type, <ins>isTypedArray,</ins> isLittleEndian ) (ES7 24.1.1.5)</h1>
         <p> This algorithm is modified as follows:</p>
-        <p> The abstract operation GetValueFromBuffer takes four parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <p> The abstract operation GetValueFromBuffer takes <del>four</del><ins>five</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, <ins>a Boolean _isTypedArray_,</ins> and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
         <emu-alg>
           1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
           1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
           1. Assert: _byteIndex_ is an integer value &ge; 0.
           1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-          1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del> <ins>If IsSharedMemory(_arrayBuffer_) then: </ins>
-            1. <ins>Let _rawValue_ be a List of _elementSize_ resulting from ReadSharedBytes(_block_, _byteIndex_, _type_, _elementSize_)</ins>
+          1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del><br><ins>If IsSharedMemory(_arrayBuffer_) then: </ins>
+            1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*</ins>
+            1. <ins>Let _rawValue_ be a List of _elementSize_ resulting from ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_)</ins>
           1. <ins>Else, let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the SetValueInBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
           1. ...
@@ -497,9 +498,9 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
-        <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, value, isLittleEndian ) (ES7 24.1.1.6)</h1>
+        <h1>SetValueInBuffer( arrayBuffer, byteIndex, type, <ins>isTypedArray,</ins> value, isLittleEndian ) (ES7 24.1.1.6)</h1>
         <p> This algorithm is modified as follows:</p>
-        <p> The abstract operation SetValueInBuffer takes five parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <p> The abstract operation SetValueInBuffer takes <del>five</del><ins>six</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, a Boolean _isTypedArray_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
         <emu-alg>
           1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
           1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
@@ -508,12 +509,18 @@ These call AllocateTypedArray with a specified length:
           1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
           1. Assert: _block_ is not *undefined*.
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the GetValueFromBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
-          1. ...
+          1. If _type_ is `"Float32"`, then
+            1. ...
+          1. Else if _type_ is `"Float64"`, then
+            1. ...
+          1. Else,
+            1. ...
+          1. <del> Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_]. </del><br> <ins> If IsSharedMemory(_arrayBuffer_) then: </ins>
+            1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*</ins>
+            1. <ins>Call WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)</ins>
+          1. <ins> Else, Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_]. </ins>
+          1. Return NormalCompletion(*undefined*).
         </emu-alg>
-
-        <emu-note>
-          <p> When SetValueInBuffer is called to set bytes in shared memory the implementation may set several bytes at a time (and that is the normal case), but it may not use read-modify-write on a larger datum, as that might introduce data races where the source program has none.  Data races are discussed in the section on the Atomics object. </p>
-        </emu-note>
       </emu-clause>
       
     </emu-clause> <!-- abstract -->
@@ -875,12 +882,8 @@ These call AllocateTypedArray with a specified length:
         subroutines, ReadSharedMemory() and WriteSharedMemory(),
         described in the following.  These subroutines represent the
         software/hardware interface for shared memory access.  They
-        never perform non-shared-memory access. </p>
-
-      <p> When an atomic access that is not in a data race performs a
-        read-write pair of memory accesses, these accesses are
-        performed indivisibly in that no write access is allowed to
-        access memory between the read and the write of the pair. </p>
+        never perform non-shared-memory access.  ReadSharedMemory()
+        and WriteSharedMemory() define the valid outcomes of data races. </p>
 
       <emu-note>
         <p> The result of a read-write data race is generally that the
@@ -897,19 +900,26 @@ These call AllocateTypedArray with a specified length:
           more predictable outcomes than that (because all hardware
           supports it and because it is valuable functionality).
           Note, however, that program transformations can have
-          surprising effects on the timing of memory accesses.
-          Non-atomic reads and writes may be optimized away. </p>
+          surprising effects on the timing of memory accesses:
+          Non-atomic accesses may be optimized away if deemed
+          redundant. </p>
       </emu-note>
         
+      <p> When an atomic access that is not in a data race performs a
+        read-write pair of memory accesses, these accesses are
+        performed indivisibly in that no write access is allowed to
+        access memory between the read and the write of the pair. </p>
+
     </emu-clause>
 
-    <emu-clause>
+    <emu-clause id="Atomics.ReadSharedMemory" aoid="ReadSharedMemory">
       <h1>ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
 
       <p> ReadSharedMemory() takes a shared memory block _block_,
-        nonnegative integers _byteIndex_ and _numBytes_, and a boolean
-        _accessAtomic_, and returns a list of _numBytes_ bytes read from _block_
-        at _byteIndex_, using _accessAtomic_ to guide the operation. </p>
+        nonnegative integers _byteIndex_ and _numBytes_, and a Boolean
+        _accessAtomic_, and returns a list of _numBytes_ bytes read
+        from _block_ starting at _byteIndex_, using _accessAtomic_ to
+        guide the operation. </p>
 
       <p> ReadSharedMemory() may contain machinery that has speculated
         that the read request will be made, and if so it may return a
@@ -918,12 +928,12 @@ These call AllocateTypedArray with a specified length:
         violate transformation rules described earlier (notably rules
         about reordering with respect to atomic accesses). </p>
 
-      <p> If the read has a data race with any number of writes to the
-        exact same access range as the access range of the read, and
-        no data race with any other writes, and _accessAtomic_ is
-        *true*, then the bytes that are returned are the bytes in
-        memory before any of the writes occurred or the bytes written
-        by one of the writes. </p>
+      <p> If the read has a data race with any number of writes, and
+        the read and the writes all access the exact same access
+        range, and the read has no data race with any other writes,
+        and _accessAtomic_ is *true*, then the bytes that are returned
+        are the bytes in memory before any of the writes occurred or
+        the bytes written by one of the writes. </p>
        
       <p> Otherwise, the read may have a data race with any number of
         writes, and the bytes that are returned are selected
@@ -934,13 +944,13 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
         
-    <emu-clause>
+    <emu-clause id="Atomics.WriteSharedMemory" aoid="WriteSharedMemory">
       <h1>WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _bytes_)</h1>
 
       <p> WriteSharedMemory() takes a shared memory block _block_,
-        nonnegative integers _byteIndex_ and _numBytes_, a boolean
+        nonnegative integers _byteIndex_ and _numBytes_, a Boolean
         _accessAtomic_, and a list of _numBytes_ bytes to write to
-        _block_ at _byteIndex_, using _accessAtomic_ to guide the
+        _block_ starting at _byteIndex_, using _accessAtomic_ to guide the
         operation. </p>
 
       <p> WriteSharedMemory() may contain machinery that delays the
@@ -949,21 +959,22 @@ These call AllocateTypedArray with a specified length:
         violate transformation rules described earlier (notably rules
         about reordering with respect to atomic accesses). </p>
 
-      <p> If the write has a data race with any number of other writes
-        to the exact same access range as the access range of this
-        write, and no data race with any other writes, and
+      <p> If the write has a data race with any number of other
+        writes, and all the writes access the exact same access range,
+        and the write has no data race with any other writes, and
         _accessAtomic_ is *true*, then each write writes all of its
         bytes before the next write occurs, and the writes occur in
         some arbitrary order. </p>
         
-      <li> Otherwise, the write may have a data race with any number
-        of writes, and the bytes of the values to be written are
-        written individually to memory in some arbitrary interleaving. </p>
+      <p> Otherwise, the write may have a data race with any number of
+        writes, and the bytes of the values to be written by all the
+        writes are written individually to memory (at appropriate
+        locations) in some arbitrary interleaving. </p>
 
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
-      <h1>Runtime semantics: ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</h1>
+      <h1>ValidateSharedIntegerTypedArray( typedArray [, onlyInt32] )</h1>
       <emu-alg>
         1. If Type(_typedArray_) is not Object, throw a *TypeError* exception.
         1. If _typedArray_ does not have a [[TypedArrayName]] internal slot, throw a *TypeError* exception.
@@ -981,7 +992,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.ValidateAtomicAccess" aoid="ValidateAtomicAccess">
-      <h1>Runtime semantics: ValidateAtomicAccess( typedArray, requestIndex )</h1>
+      <h1>ValidateAtomicAccess( typedArray, requestIndex )</h1>
       <P> Perform the following steps: </p>
       <emu-alg>
         1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot
@@ -996,7 +1007,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.AgentSignifier" aoid="AgentSignifier">
-      <h1>Runtime semantics: AgentSignifier( )</h1>
+      <h1>AgentSignifier( )</h1>
       <p> When AgentSignifier is called without arguments then the following steps are taken.</p>
       <emu-alg>
         1. Let _W_ be the value of the [[Signifier]] property of the Agent Record of the <em>surrounding agent</em>.
@@ -1006,7 +1017,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.AgentCanSuspend" aoid="AgentCanSuspend">
-      <h1>Runtime semantics: AgentCanSuspend( )</h1>
+      <h1>AgentCanSuspend( )</h1>
       <p> When AgentCanSuspend is called without arguments then the following steps are taken.</p>
       <emu-alg>
         1. Let _B_ be the value of the [[CanBlock]] property of the Agent Record of the <em>surrounding agent</em>.
@@ -1022,7 +1033,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="GetWaiterList">
-      <h1>Runtime semantics: GetWaiterList( G, i )</h1>
+      <h1>GetWaiterList( G, i )</h1>
       <p> A <dfn>WaiterList</dfn> is a semantic object that contains an ordered list of those agents that are waiting on a location (_G_, _i_) in shared memory; _G_ is a Shared Data Block ID and _i_ a byte offset into the memory referenced by _G_. </p>
       <p> The agent cluster has a store of WaiterList objects; the store is indexed by (_G_, _i_).  WaiterLists are agent-independent: a lookup in the store of WaiterLists by (_G_, _i_) will result in the same WaiterList object in any agent in the agent cluster. </p>
       <p> Operations on a WaiterList -- adding and removing waiting agents, traversing the list of agents, suspending and waking agents on the list -- may only be performed by agents that have entered the WaiterList's critical section.  </p>
@@ -1036,7 +1047,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="EnterCriticalSection">
-      <h1>Runtime semantics: EnterCriticalSection( WL )</h1>
+      <h1>EnterCriticalSection( WL )</h1>
       <p> When EnterCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is not in the critical section for any WaiterList
@@ -1045,7 +1056,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="LeaveCriticalSection">
-      <h1>Runtime semantics: LeaveCriticalSection( WL )</h1>
+      <h1>LeaveCriticalSection( WL )</h1>
       <p> When LeaveCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_
@@ -1054,7 +1065,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.AddWaiter" aoid="AddWaiter">
-      <h1>Runtime semantics: AddWaiter( WL, W )</h1>
+      <h1>AddWaiter( WL, W )</h1>
       <p> When AddWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_
@@ -1064,7 +1075,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.RemoveWaiter" aoid="RemoveWaiter">
-      <h1>Runtime semantics: RemoveWaiter( WL, W )</h1>
+      <h1>RemoveWaiter( WL, W )</h1>
       <p> When RemoveWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_
@@ -1074,7 +1085,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
     
     <emu-clause id="Atomics.RemoveWaiters" aoid="RemoveWaiters">
-      <h1>Runtime semantics: RemoveWaiters( WL, c )</h1>
+      <h1>RemoveWaiters( WL, c )</h1>
       <p> When RemoveWaiters is called with WaiterList _WL_ and nonnegative integer _c_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_
@@ -1090,7 +1101,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.Suspend" aoid="Suspend">
-      <h1>Runtime semantics: Suspend( WL, W, timeout )</h1>
+      <h1>Suspend( WL, W, timeout )</h1>
       <p> When Suspend is called with WaiterList _WL_, agent signifier _W_, and nonnegative number _timeout_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_
@@ -1105,7 +1116,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.WakeWaiter" aoid="WakeWaiter">
-      <h1>Runtime semantics: WakeWaiter( WL, W )</h1>
+      <h1>WakeWaiter( WL, W )</h1>
       <p> When WakeWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_
@@ -1120,7 +1131,7 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.FetchOp" aoid="AtomicFetchOp">
-      <h1>Runtime semantics: AtomicFetchOp( typedArray, index, value, op )</h1>
+      <h1>AtomicFetchOp( typedArray, index, value, op )</h1>
       <p> AtomicFetchOp is a semantic function that atomically loads
         a value, combines it with another value, and stores the result
         of the combination.  It returns the loaded value.  It is
