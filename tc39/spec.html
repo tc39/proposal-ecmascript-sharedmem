@@ -811,10 +811,23 @@ These call AllocateTypedArray with a specified length:
         additional rules that determine the allowable effects of data
         races. </p>
 
+      <p> ECMAScript shared memory obeys very weak type discipline, in
+        that the byte array of a Shared Data Block can be aliased by
+        TypedArrays of different types and accessed with even less
+        discipline via DataViews, and also in that atomic operations
+        are applied to cells that are not exclusively atomic.  (In
+        this it is similar to the "low-level atomics" of C.)  In
+        contrast, correct synchronization minimally requires a
+        stronger type discipline where a location used for
+        synchronization in some part of the program is only used for
+        synchronization and where all atomic operations that touch the
+        location in that part of the program use the exact same access
+        range. [FIXME: Consequences of that] </p>
+
       <emu-note>
-        <p> (spec draft note) The description of fundamentals and sequentially
-          consistent executions owes much to the Java memory
-          model. </p>
+        <p> (spec draft note) Acknowledgement: The description of
+          fundamentals and sequentially consistent executions owes
+          much to the Java memory model. </p>
       </emu-note>
 
       <emu-clause id="AtomicsObject.Fundamentals">
@@ -832,32 +845,30 @@ These call AllocateTypedArray with a specified length:
 
         <emu-note>
           <p> Examples of synchronizing embedding-specific events that
-            should be accounted for are sending a SharedArrayBuffer from
-            one agent to another, starting and stopping agents, and
-            communicating via channels other than shared memory among
-            agents that also share memory. </p>
+            should be accounted for are sending a SharedArrayBuffer
+            from one agent to another, starting and stopping agents,
+            and communicating within the agent cluster via channels
+            other than shared memory. </p>
         </emu-note>
 
         <p> Let a <em>program</em> be a collection of ECMAScript
           programs that run together on an agent cluster.
-          The <em>program order</em> of one agent is a total ordering of
-          the agent's events that is consistent with the program's
-          intra-agent semantics. </p>
+          The <em>program order</em> is a total ordering of the
+          program's events that is consistent with each ECMAScript
+          program's intra-agent semantics. </p>
 
         <p> An execution of a set of events is <em>sequentially
             consistent</em> if the events occur in a total order
-          (the <em>execution order</em>) that is consistent with each
-          agent's program order, and a read _R_ of a location _L_ sees a
-          write _W_ s.t. _W_ precedes _R_ in the execution order, and
-          there is no other write _V_ to _L_ s.t. _W_ precedes _V_ and
-          _V_ precedes _R_. </p>
+            (the <em>execution order</em>) that is consistent with the
+            program order, and a read _R_ of a location _L_ sees a
+            write _W_ s.t. _W_ precedes _R_ in the execution order,
+            and there is no other write _V_ to _L_ s.t. _W_ precedes
+            _V_ and _V_ precedes _R_. </p>
 
-        <p> Program transformations by a compiler or the hardware may
-          reorder an agent's non-synchronizing events (when that does
-          not affect the program's intra-agent meaning), but may not
-          reorder its non-synchronizing events with its synchronizing
-          events, nor reorder its synchronizing events with each
-          other. </p>
+        <p> Program transformations by a compiler or the hardware must
+          not reorder (within a single agent) its non-synchronizing
+          events with its synchronizing events, nor reorder its
+          synchronizing events with each other. </p>
 
         <emu-note>
           <p> The prohibition on reordering synchronizing events is
@@ -887,7 +898,7 @@ These call AllocateTypedArray with a specified length:
           Block.) </p>
 
         <p> Assume that initial atomic accesses are to be performed in a
-          single total order that is consistent with each agent's
+          single total order that is consistent with the
           program order.  Two initial atomic accesses from different
           agents are deemed <em>not viable</em> if they are adjacent in
           that total order and their access ranges intersect but are not
@@ -900,7 +911,7 @@ These call AllocateTypedArray with a specified length:
           the non-viable initial atomic accesses. </p>
 
         <emu-note>
-          <p> The notion of viability is needed because this propsoal
+          <p> The notion of viability is needed because this proposal
             couples atomic operations on normal memory cells with the
             ability to alias memory as cells of different sizes (as
             opposed to having dedicated atomic cells).  To provide
@@ -911,9 +922,17 @@ These call AllocateTypedArray with a specified length:
             the program has a data race, discussed below. </p>
         </emu-note>
 
+        <p> [FIXME: The following does not work?  Synchronizing events
+          can't have races but we have not properly laundered races
+          because there can be a data-atomic race.  We have (maybe)
+          laundered atomic-atomic races through the notion of
+          viability, but without data-atomic races some atomics that
+          are part of the synchronization order are actually racy, and
+          I'm not sure what the effect of that is.] </p>
+
         <p> Synchronizing events are then performed in a single total
           order -- known as the <em>synchronization order</em> -- that
-          is consistent with each agent's program order.  This induces
+          is consistent with the program order.  This induces
           a <em>synchronized-with</em> relation on actions: </p>
 
         <ul>
@@ -933,7 +952,7 @@ These call AllocateTypedArray with a specified length:
           event A <em>happens before</em> another event B if either:</p>
 
         <ul>
-          <li> A precedes B in an agent's program order,
+          <li> A precedes B in the program order,
           <li> A synchronizes-with B, or
           <li> A happens before C and C happens before B (transitivity).
         </ul>
@@ -954,7 +973,7 @@ These call AllocateTypedArray with a specified length:
         </emu-note>
 
         <p> If an atomic access is not in a data race, the shared memory
-          read and write issued by the atomic access will be performed
+          read and write issued by the atomic access must be performed
           without any other shared memory writes intervening between or
           interfering with the read and write (as explained further
           below). </p>
@@ -987,26 +1006,27 @@ These call AllocateTypedArray with a specified length:
           provided by sequential consistency do not hold; an atomic
           access in a data race is not indivisible; and generally
           programs with data races do not behave as if they were
-          sequentially consistent.  Data races expose the effect of
+          sequentially consistent.  Data races expose the effects of
           program transformations in the compiler and in the hardware,
-          and have unintuitive and platform-specific effects.
-          ECMAScript programs with data races are safe (races cannot
-          subvert the language implementation, they affect only the
-          memory locations in Shared Data Blocks), but the values
-          resulting from a data race are often hard to predict.  The
-          effects of data races include observing values that, within
-          limits, appear to come from the past (because they should
-          have been written before other values, which have not been
-          seen) or from the future (because they should have been
-          written after other values, which have not been seen), or
-          which should not exist at all (because some conflicting
-          writes may interleave the bytes being written). </p>
+          which are unintuitive and platform-specific.  ECMAScript
+          programs with data races are safe (races cannot subvert the
+          language implementation, they affect only the memory
+          locations in Shared Data Blocks), but the values resulting
+          from a data race are often hard to predict.  The effects of
+          data races include observing values that, within limits,
+          appear to come from the past (because they should have been
+          written before other values, which have not been seen) or
+          from the future (because they should have been written after
+          other values, which have not been seen), or which should not
+          exist at all (because some conflicting writes may interleave
+          the bytes being written). </p>
 
         <p> When an atomic access that is in a data race performs a
-          read-write pair of memory accesses, those accesses may not be
-          performed indivisibly: a write access from another agent may
-          be allowed to execute between the read and the write of the
-          pair. </p>
+          read-write pair of memory accesses, those accesses may not
+          be performed indivisibly: a write access from another agent
+          may be allowed to execute between the read and the write of
+          the pair. [FIXME: This affects synchronization order in a
+          bad way, see notes above.] </p>
 
         <emu-note>
           <p> For example, non-lock-free atomic operations will allow
@@ -1017,7 +1037,7 @@ These call AllocateTypedArray with a specified length:
             atomic access may not be executed atomically. </p>
         </emu-note>
 
-        <p> The following rules restrict write-to-read visibility in
+        <p> The following rules restrict write-to-read behavior in
           the presence of data races: </p>
 
         <ul>
@@ -1026,11 +1046,6 @@ These call AllocateTypedArray with a specified length:
             program is executed multiple times then the program is
             subsequently allowed to observe only one of the values
             read.)
-
-          <li> Any given read may only observe values that have been
-            or are about to be written to memory.  (For example, the
-            compiler or hardware may not speculate about a value and
-            then use that value to justify the speculation.)
 
           <li> Any given read may only observe value changes in memory
             that follow from program semantics.  (For example, the
@@ -1041,6 +1056,12 @@ These call AllocateTypedArray with a specified length:
             spuriously writing a just-read value back to the location
             it was read from.  Note that byte interleavings resulting
             from races, described below, is within program semantics.)
+
+          <li> Any given read may only observe values that have been
+            or will be written to memory.  (For example, the compiler
+            or hardware may not speculate about a value and then use
+            that value to justify the speculation.) [FIXME: This is
+            too strong to allow hoisting and commoning I think]
         </ul>
 
         <emu-note>
@@ -1069,7 +1090,7 @@ These call AllocateTypedArray with a specified length:
             is valuable to programs in practice.  Note, however, that
             program transformations can have surprising effects on the
             timing of memory accesses: Non-atomic accesses may be
-            optimized away or moved if deemed redundant. </p>
+            moved or removed if deemed redundant. </p>
         </emu-note>
 
       </emu-clause>
@@ -1079,7 +1100,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.ReadSharedMemory" aoid="ReadSharedMemory">
       <h1>ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
 
-      <p> ReadSharedMemory takes a shared memory block _block_,
+      <p> ReadSharedMemory takes a Shared Data Block _block_,
         nonnegative integers _byteIndex_ and _numBytes_, and a Boolean
         _accessAtomic_, and returns a List of _numBytes_ containing,
         in order, the _numBytes_ sequence of bytes starting with
@@ -1109,13 +1130,13 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.WriteSharedMemory" aoid="WriteSharedMemory">
-      <h1>WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _bytes_)</h1>
+      <h1>WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)</h1>
 
-      <p> WriteSharedMemory takes a shared memory block _block_,
+      <p> WriteSharedMemory takes a Shared Data Block _block_,
         nonnegative integers _byteIndex_ and _numBytes_, a Boolean
-        _accessAtomic_, and a List of _numBytes_, and store the
-        individual bytes of _bytes_ into _block_, in order, starting
-        at _block[_byteIndex_], using _accessAtomic_ to guide the
+        _accessAtomic_, and a List _rawBytes_ of _numBytes_, and store the
+        individual bytes of _rawBytes_ into _block_, in order, starting
+        at _block_[_byteIndex_], using _accessAtomic_ to guide the
         operation. </p>
 
       <p> WriteSharedMemory may contain machinery that delays the
