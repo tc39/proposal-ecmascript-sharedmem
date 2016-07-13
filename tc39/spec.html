@@ -583,7 +583,7 @@ These call AllocateTypedArray with a specified length:
             1. ...
           1. <del> Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_]. </del><br> <ins> If IsSharedMemory(_arrayBuffer_) then: </ins>
             1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*</ins>
-            1. <ins>Call WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)</ins>
+            1. <ins>Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)</ins>
           1. <ins> Else, Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_]. </ins>
           1. Return NormalCompletion(*undefined*).
         </emu-alg>
@@ -1343,8 +1343,8 @@ These call AllocateTypedArray with a specified length:
         1. Assert: _W_ is equal to AgentSignifier()
         1. Assert: _W_ is on the list of waiters in _WL_
         1. Assert: AgentCanSuspend() is equal to true
-        1. Call LeaveCriticalSection(_WL_) and suspend _W_ for up to _timeout_ milliseconds, performing the combined operation in such a way that a wakeup that arrives after the critical section is exited but before the suspension takes effect is not lost.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), and not for any other reasons at all.
-        1. Call EnterCriticalSection(_WL_)
+        1. Perform LeaveCriticalSection(_WL_) and suspend _W_ for up to _timeout_ milliseconds, performing the combined operation in such a way that a wakeup that arrives after the critical section is exited but before the suspension takes effect is not lost.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), and not for any other reasons at all.
+        1. Perform EnterCriticalSection(_WL_)
         1. If _W_ was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), then return *true*
         1. Return *false*
       </emu-alg>
@@ -1387,7 +1387,7 @@ These call AllocateTypedArray with a specified length:
         1. With atomic access to shared memory, do:
           1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_)
           1. Compute: Let _w_ be _op_(_r_, _v_)
-          1. Call SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_)
+          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_)
         1. Return _r_
       </emu-alg>
     </emu-clause>
@@ -1440,7 +1440,7 @@ These call AllocateTypedArray with a specified length:
         1. With atomic access to shared memory, do:
           1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_)
           1. If _r_ is the same as _x_ then:
-            1. Call SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_)
+            1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_)
         1. Return _r_
       </emu-alg>
 
@@ -1537,7 +1537,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
         1. With atomic access to shared memory, do:
-          1. Call SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_)
+          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_)
         1. Return _v_
       </emu-alg>
     </emu-clause>
@@ -1575,16 +1575,16 @@ These call AllocateTypedArray with a specified length:
         1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
         1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
-        1. Call EnterCriticalSection(_WL_)
+        1. Perform EnterCriticalSection(_WL_)
         1. Let _w_ be Atomics.load(_typedArray_, _i_)
         1. If _v_ does not equal _w_ then:
-          1. Call LeaveCriticalSection(_WL_)
+          1. Perform LeaveCriticalSection(_WL_)
           1. Return the string `"not-equal"`.
         1. Let _W_ be AgentSignifier().
-        1. Call AddWaiter(_WL_, _W_)
+        1. Perform AddWaiter(_WL_, _W_)
         1. Let awoken be Suspend(_WL_, _W_, _t_)
-        1. Call RemoveWaiter(_WL_, _W_)
-        1. Call LeaveCriticalSection(_WL_)
+        1. Perform RemoveWaiter(_WL_, _W_)
+        1. Perform LeaveCriticalSection(_WL_)
         1. If awoken is *true* then return the string `"ok"`.
         1. Return the string `"timed-out"`.
       </emu-alg>
@@ -1610,14 +1610,14 @@ These call AllocateTypedArray with a specified length:
         1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
         1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
         1. Let _n_ be 0
-        1. Call EnterCriticalSection(_WL_):
+        1. Perform EnterCriticalSection(_WL_):
         1. Let _S_ be RemoveWaiters(_WL_, _c_)
         1. While _S_ is not the empty list:
           1. Let _W_ be the first agent in _S_
           1. Remove _W_ from the front of _S_
-          1. Call WakeWaiter(_WL_, _W_)
+          1. Perform WakeWaiter(_WL_, _W_)
           1. Add 1 to _n_
-        1. Call LeaveCriticalSection(_WL_)
+        1. Perform LeaveCriticalSection(_WL_)
         1. Return _n_.
       </emu-alg>
     </emu-clause>
