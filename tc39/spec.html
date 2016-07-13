@@ -98,7 +98,7 @@ comments.</p>
       <h1>Data blocks (<a href="https://tc39.github.io/ecma262/#sec-data-blocks">ES7 6.2.6</a>)</h1>
       <p> Insert the following paragraph after the third: </p>
 
-      <p> A data block that resides in memory that can be referenced from multiple agents concurrently is designated a <dfn>Shared Data Block</dfn>. </p>
+      <p> A data block that resides in memory that can be referenced from multiple agents concurrently is designated a <dfn>Shared Data Block</dfn>.  A Shared Data Block has an identity (for the purposes of equality testing Shared Data Block values) that is <em>address-free</em>: it is tied not to the virtual addresses the block is mapped to in any process, but to the set of locations in memory that the block represents. </p>
 
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes" aoid="CopyDataBlockBytes">
         <h1>CopyDataBlockBytes ( _toBlock_, _toIndex_, _fromBlock_, _fromIndex_, _count_ ) (<a href="https://tc39.github.io/ecma262/#sec-copydatablockbytes">ES7 6.2.6.2</a>)</h1>
@@ -129,18 +129,6 @@ comments.</p>
           1. Set all of the bytes of _db_ to 0 as if by calls to WriteSharedMemory(_db_, _i_, *true*, 1, 0) for each index _i_ in _db_.
           1. Return _db_.
         </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID" aoid="SharedDataBlockID">
-        <h1>SharedDataBlockID( _block_ )</h1>
-        <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument _block_, the following steps are taken:</p>
-        <emu-alg>
-          1. Let _G_ be an address-free identifier for _block_.  All agents in the same agent cluster must use the same value for _G_ for any given _block_, and must use distinct values of _G_ for distinct blocks.
-          1. Return _G_.
-        </emu-alg>
-        <emu-note>
-          <p>The <dfn>Shared Data Block ID</dfn> is used by the wait/wake mechanism and names _block_ independently of any virtual addresses it may be mapped to in any particular agent.</p>
-        </emu-note>
       </emu-clause>
     </emu-clause>
   </emu-clause>
@@ -432,7 +420,7 @@ These call AllocateTypedArray with a specified length:
             1. Let _srcLength_ be _typedArray_.[[ArrayLength]].
             1. Let _srcByteOffset_ be _typedArray_.[[ByteOffset]].
             1. If _srcLength_ + _targetOffset_ &gt; _targetLength_, throw a *RangeError* exception.
-            1. <ins>If both IsSharedMemory(_srcBuffer_) and IsSharedMemory(_targetBuffer_) are *true*, then let _same_ be *true* if SharedDataBlockID(_srcBuffer_.[[SharedArrayBufferData]]) equals SharedDataBlockID(_targetBuffer_.[[SharedArrayBufferData]]); otherwise let _same_ be SameValue(_srcBuffer_, _targetBuffer_). </ins>
+            1. <ins>If both IsSharedMemory(_srcBuffer_) and IsSharedMemory(_targetBuffer_) are *true*, then let _same_ be *true* if _srcBuffer_.[[SharedArrayBufferData]] equals _targetBuffer_.[[SharedArrayBufferData]]; otherwise let _same_ be SameValue(_srcBuffer_, _targetBuffer_). </ins>
             1. <del>If SameValue(_srcBuffer_, _targetBuffer_)</del> <ins>_same_</ins> is *true*, then
               1. Let _srcBuffer_ be ? CloneArrayBuffer(_srcBuffer_, _srcByteOffset_, _srcLength_, %ArrayBuffer%).
               1. NOTE: %ArrayBuffer% is used to clone _srcBuffer_ because is it known to not have any observable side-effects.
@@ -1263,16 +1251,16 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="GetWaiterList" aoid="GetWaiterList">
-      <h1>GetWaiterList( _G_, _i_ )</h1>
-      <p> A <dfn>WaiterList</dfn> is a semantic object that contains an ordered list of those agents that are waiting on a location (_G_, _i_) in shared memory; _G_ is a Shared Data Block ID and _i_ a byte offset into the memory referenced by _G_. </p>
-      <p> The agent cluster has a store of WaiterList objects; the store is indexed by (_G_, _i_).  WaiterLists are agent-independent: a lookup in the store of WaiterLists by (_G_, _i_) will result in the same WaiterList object in any agent in the agent cluster. </p>
+      <h1>GetWaiterList( _block_, _i_ )</h1>
+      <p> A <dfn>WaiterList</dfn> is a semantic object that contains an ordered list of those agents that are waiting on a location (_block_, _i_) in shared memory; _block_ is a Shared Data Block and _i_ a byte offset into the memory of _block_. </p>
+      <p> The agent cluster has a store of WaiterList objects; the store is indexed by (_block_, _i_).  WaiterLists are agent-independent: a lookup in the store of WaiterLists by (_block_, _i_) will result in the same WaiterList object in any agent in the agent cluster. </p>
       <p> Operations on a WaiterList -- adding and removing waiting agents, traversing the list of agents, suspending and waking agents on the list -- may only be performed by agents that have entered the WaiterList's critical section.  </p>
-      <p> When GetWaiterList is called with Shared Data Block ID _G_ and nonnegative integer _i_, then the following steps are taken. </p>
+      <p> When GetWaiterList is called with Shared Data Block _block_ and nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: _G_ is the Shared Data Block ID of some Shared Data Block.
-        1. Assert: _i_ and _i_+3 are valid byte offsets within the memory referenced by _G_.
+        1. Assert: _block_ is a Shared Data Block.
+        1. Assert: _i_ and _i_+3 are valid byte offsets within the memory of _block_.
         1. Assert: _i_ is divisible by 4.
-        1. Return the WaiterList that is referenced by the pair (_G_, _i_).
+        1. Return the WaiterList that is referenced by the pair (_block_, _i_).
       </emu-alg>
     </emu-clause>
 
@@ -1539,11 +1527,10 @@ These call AllocateTypedArray with a specified length:
         1. Let _B_ be AgentCanSuspend().
         1. If _B_ is *false* then throw a *TypeError* exception.
         1. Let _bufferVal_ be _buffer_.[[SharedArrayBufferData]].
-        1. Let _G_ be SharedDataBlockID(_bufferVal_).
         1. Let _arrayTypeName_ be _typedArray_.[[TypedArrayName]].
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_.
-        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_).
+        1. Let _WL_ be GetWaiterList(_block_, _indexedPosition_).
         1. Perform EnterCriticalSection(_WL_).
         1. Let _w_ be Atomics.load(_typedArray_, _i_).
         1. If _v_ does not equal _w_ then:
@@ -1570,11 +1557,10 @@ These call AllocateTypedArray with a specified length:
           1. Let _tmp_ be ? ToInteger(_count_).
           1. Let _c_ be max(*+0*, _tmp_).
         1. Let _bufferVal_ be _buffer_.[[SharedArrayBufferData]].
-        1. Let _G_ be SharedDataBlockID(_bufferVal_).
         1. Let _arrayTypeName_ be _typedArray_.[[TypedArrayName]].
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_.
-        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_).
+        1. Let _WL_ be GetWaiterList(_block_, _indexedPosition_).
         1. Let _n_ be 0.
         1. Perform EnterCriticalSection(_WL_).
         1. Let _S_ be RemoveWaiters(_WL_, _c_).
