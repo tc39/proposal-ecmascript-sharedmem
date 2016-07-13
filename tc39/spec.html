@@ -135,7 +135,7 @@ comments.</p>
         <h1>SharedDataBlockID( _block_ )</h1>
         <p>When the abstract operation SharedDataBlockID is called with Shared Data Block argument _block_, the following steps are taken:</p>
         <emu-alg>
-          1. Let _G_ be an address-free identifier for _block_.  All agents in the same agent cluster must use the same value for _G_ for any given _block_.
+          1. Let _G_ be an address-free identifier for _block_.  All agents in the same agent cluster must use the same value for _G_ for any given _block_, and must use distinct values of _G_ for distinct blocks.
           1. Return _G_.
         </emu-alg>
         <emu-note>

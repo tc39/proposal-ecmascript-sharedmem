@@ -121,7 +121,7 @@ comments.</p>
       <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID" aoid="SharedDataBlockID">
         <h1><span class="secnum">2.2.1.3</span>SharedDataBlockID( <var>block</var> )<span class="utils"><span class="anchor"><a href="#DataTypesValues.SpecTypes.DataBlocks.SharedDataBlockID">#</a></span></span></h1>
         <p>When the abstract operation SharedDataBlockID is called with <emu-xref href="#DataTypesValues.SpecTypes.DataBlocks"><a href="#DataTypesValues.SpecTypes.DataBlocks">Shared Data Block</a></emu-xref> argument <var>block</var>, the following steps are taken:</p>
-        <emu-alg><ol><li>Let <var>G</var> be an address-free identifier for <var>block</var>.  All agents in the same agent cluster must use the same value for <var>G</var> for any given <var>block</var>.</li><li>Return <var>G</var>.
+        <emu-alg><ol><li>Let <var>G</var> be an address-free identifier for <var>block</var>.  All agents in the same agent cluster must use the same value for <var>G</var> for any given <var>block</var>, and must use distinct values of <var>G</var> for distinct blocks.</li><li>Return <var>G</var>.
         </li></ol></emu-alg>
         <emu-note><span class="note">Note</span>
           <p>The  <dfn>Shared Data Block ID</dfn> is used by the wait/wake mechanism and names <var>block</var> independently of any virtual addresses it may be mapped to in any particular agent.</p>
