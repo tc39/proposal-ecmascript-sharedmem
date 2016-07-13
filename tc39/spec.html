@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-07-11 </p>
+<p> Revised: 2016-07-13 </p>
 <p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications (here denoted "ES7") is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29).  At the moment, ES7 (ES2016) section numbering differs from ES6 (ES2015) only for TypedArrays (section 22.2).</p>
 
 <emu-intro id="intro">
@@ -56,6 +56,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li> 2016-07-13 -- Many editorial fixes.
   <li> 2016-07-11 -- Rewrote the memory model section, which introduced separate access functions for shared memory, and caused many other changes.
   <li> 2016-07-05 -- Rewrote (and shrunk) the informative Web Browser Embedding section so that it only addresses the requirements of this spec, not how HTML ought to evolve.
   <li> 2016-07-05 -- Rephrased the wait/wake mutual exclusion in terms of critical sections named by (G,i), as the old specification was too strong.
@@ -99,7 +100,7 @@ comments.</p>
 
       <p> A data block that resides in memory that can be referenced from multiple agents concurrently is designated a <dfn>Shared Data Block</dfn>. </p>
 
-      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes">
+      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CopyDataBlockBytes" aoid="CopyDataBlockBytes">
         <h1>CopyDataBlockBytes ( _toBlock_, _toIndex_, _fromBlock_, _fromIndex_, _count_ ) (<a href="https://tc39.github.io/ecma262/#sec-copydatablockbytes">ES7 6.2.6.2</a>)</h1>
         <p> This algorithm is modified as follows:</p>
         <p>When the abstract operation CopyDataBlockBytes is called, the following steps are taken:</p>
@@ -119,7 +120,7 @@ comments.</p>
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock">
+      <emu-clause id="DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock" aoid="CreateSharedByteDataBlock">
         <h1>CreateSharedByteDataBlock( _size_ )</h1>
         <p>When the abstract operation CreateSharedByteDataBlock is called with integer argument size, the following steps are taken:</p>
         <emu-alg>
