@@ -111,7 +111,7 @@ comments.</p>
           1. Let _toSize_ be the number of bytes in _toBlock_.
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
-            1. <del> Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_]. </del> <br> <ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_] </ins>
+            1. <del> Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_]. </del> <br> <ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_]. </ins>
             1. <ins>If _toBlock_ is a Shared Data Block then perform WriteSharedMemory(_toBlock_, _toIndex_, *true*, 1, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_. </ins>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
             1. Decrement _count_ by 1.
@@ -499,7 +499,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _offset_ be ? ToIndex(_byteOffset_).
           1. If _offset_ modulo _elementSize_ &ne; 0, throw a *RangeError* exception.
           1. If IsDetachedBuffer(_buffer_) is *true*, throw a *TypeError* exception.
-          1. <del>Let</del> <ins> If IsSharedMemory(_buffer_) then let _bufferByteLength_ be _buffer_.[[SharedArrayBufferByteLength]], otherwise let</ins> _bufferByteLength_ be _buffer_.[[ArrayBufferByteLength]].
+          1. <del>Let</del> <ins> If IsSharedMemory(_buffer_) then let _bufferByteLength_ be _buffer_.[[SharedArrayBufferByteLength]], otherwise let</ins> _bufferByteLength_ be _buffer_.[[ArrayBufferByteLength]]. </ins>
           1. ...
         </emu-alg>
       </emu-clause>
@@ -554,9 +554,9 @@ These call AllocateTypedArray with a specified length:
           1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del><br><ins>If IsSharedMemory(_arrayBuffer_) then: </ins>
-            1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*</ins>
-            1. <ins>Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_)</ins>
-            1. <ins>Assert: _rawValue_ is a List of size _elementSize_</ins>
+            1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*. </ins>
+            1. <ins>Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_). </ins>
+            1. <ins>Assert: _rawValue_ is a List of size _elementSize_. </ins>
           1. <ins>Else, let _rawValue_ be a List containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the SetValueInBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
           1. ...
@@ -572,7 +572,7 @@ These call AllocateTypedArray with a specified length:
           1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
           1. Assert: _byteIndex_ is an integer value &ge; 0.
           1. Assert: Type(_value_) is Number.
-          1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].
+          1. <del>Let</del> <ins>If IsSharedMemory(_arrayBuffer_) then let _block_ be _arrayBuffer_.[[SharedArrayBufferData]], else let</ins> _block_ be _arrayBuffer_.[[ArrayBufferData]].</ins>
           1. Assert: _block_ is not *undefined*.
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the GetValueFromBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
           1. If _type_ is `"Float32"`, then
@@ -582,8 +582,8 @@ These call AllocateTypedArray with a specified length:
           1. Else,
             1. ...
           1. <del> Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_]. </del><br> <ins> If IsSharedMemory(_arrayBuffer_) then: </ins>
-            1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*</ins>
-            1. <ins>Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)</ins>
+            1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*. </ins>
+            1. <ins>Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_). </ins>
           1. <ins> Else, Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_]. </ins>
           1. Return NormalCompletion(*undefined*).
         </emu-alg>
@@ -1213,16 +1213,16 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. If Type(_typedArray_) is not Object, throw a *TypeError* exception.
         1. If _typedArray_ does not have a [[TypedArrayName]] internal slot, throw a *TypeError* exception.
-        1. Let _typeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _typeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
         1. If _onlyInt32_ is *true* then
-          1. If _typeName_ is not `"Int32Array"` then throw a *TypeError* exception
+          1. If _typeName_ is not `"Int32Array"` then throw a *TypeError* exception.
         1. Else
-          1. If _typeName_ is not `"Int8Array"`, `"Uint8Array"`, `"Int16Array"`, `"Uint16Array"`, `"Int32Array"`, or `"Uint32Array"` then throw a *TypeError* exception
+          1. If _typeName_ is not `"Int8Array"`, `"Uint8Array"`, `"Int16Array"`, `"Uint16Array"`, `"Int32Array"`, or `"Uint32Array"` then throw a *TypeError* exception.
         1. If _typedArray_ does not have a [[ViewedArrayBuffer]] internal slot, throw a *TypeError* exception.
-        1. Let _buffer_ be the value of _typedArray_’s [[ViewedArrayBuffer]] internal slot
-        1. If Type(_buffer_) is not Object, throw a *TypeError* exception
-        1. If _buffer_ does not have a [[SharedArrayBufferData]] internal slot, throw a *TypeError* exception
-        1. Return _buffer_
+        1. Let _buffer_ be the value of _typedArray_’s [[ViewedArrayBuffer]] internal slot.
+        1. If Type(_buffer_) is not Object, throw a *TypeError* exception.
+        1. If _buffer_ does not have a [[SharedArrayBufferData]] internal slot, throw a *TypeError* exception.
+        1. Return _buffer_.
       </emu-alg>
     </emu-clause>
 
@@ -1230,14 +1230,14 @@ These call AllocateTypedArray with a specified length:
       <h1>ValidateAtomicAccess( _typedArray_, _requestIndex_ )</h1>
       <P> Perform the following steps: </p>
       <emu-alg>
-        1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot
-        1. Let _numberIndex_ be ToNumber(_requestIndex_)
-        1. ReturnIfAbrupt(_numberIndex_)
-        1. Let _accessIndex_ be ToInteger(_numberIndex_)
-        1. If _numberIndex_ &ne; _accessIndex_, throw a *RangeError* exception
-        1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot
-        1. If _accessIndex_ &lt; 0 or _accessIndex_ &ge; _length_, throw a *RangeError* exception
-        1. Return _accessIndex_
+        1. Assert: _typedArray_ is an Object that has a [[ViewedArrayBuffer]] internal slot.
+        1. Let _numberIndex_ be ToNumber(_requestIndex_).
+        1. ReturnIfAbrupt(_numberIndex_).
+        1. Let _accessIndex_ be ToInteger(_numberIndex_).
+        1. If _numberIndex_ &ne; _accessIndex_, throw a *RangeError* exception.
+        1. Let _length_ be the value of _typedArray_'s [[ArrayLength]] internal slot.
+        1. If _accessIndex_ &lt; 0 or _accessIndex_ &ge; _length_, throw a *RangeError* exception.
+        1. Return _accessIndex_.
       </emu-alg>
     </emu-clause>
 
@@ -1274,10 +1274,10 @@ These call AllocateTypedArray with a specified length:
       <p> Operations on a WaiterList -- adding and removing waiting agents, traversing the list of agents, suspending and waking agents on the list -- may only be performed by agents that have entered the WaiterList's critical section.  </p>
       <p> When GetWaiterList is called with Shared Data Block ID _G_ and nonnegative integer _i_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: _G_ is the Shared Data Block ID of some Shared Data Block
-        1. Assert: _i_ and _i_+3 are valid byte offsets within the memory referenced by _G_
-        1. Assert: _i_ is divisible by 4
-        1. Return the WaiterList that is referenced by the pair (_G_, _i_)
+        1. Assert: _G_ is the Shared Data Block ID of some Shared Data Block.
+        1. Assert: _i_ and _i_+3 are valid byte offsets within the memory referenced by _G_.
+        1. Assert: _i_ is divisible by 4.
+        1. Return the WaiterList that is referenced by the pair (_G_, _i_).
       </emu-alg>
     </emu-clause>
 
@@ -1285,8 +1285,8 @@ These call AllocateTypedArray with a specified length:
       <h1>EnterCriticalSection( _WL_ )</h1>
       <p> When EnterCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is not in the critical section for any WaiterList
-        1. Wait until no agent is in the critical section for _WL_, then enter the critical section for _WL_ (without allowing any other agent to enter)
+        1. Assert: The calling agent is not in the critical section for any WaiterList.
+        1. Wait until no agent is in the critical section for _WL_, then enter the critical section for _WL_ (without allowing any other agent to enter).
       </emu-alg>
     </emu-clause>
 
@@ -1294,8 +1294,8 @@ These call AllocateTypedArray with a specified length:
       <h1>LeaveCriticalSection( _WL_ )</h1>
       <p> When LeaveCriticalSection is called with WaiterList _WL_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the critical section for _WL_
-        1. Leave the critical section for _WL_
+        1. Assert: The calling agent is in the critical section for _WL_.
+        1. Leave the critical section for _WL_.
       </emu-alg>
     </emu-clause>
 
@@ -1303,9 +1303,9 @@ These call AllocateTypedArray with a specified length:
       <h1>AddWaiter( _WL_, _W_ )</h1>
       <p> When AddWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the critical section for _WL_
-        1. Assert: _W_ is not on the list of waiters in any WaiterList
-        1. Add _W_ to the end of the list of waiters in _WL_
+        1. Assert: The calling agent is in the critical section for _WL_.
+        1. Assert: _W_ is not on the list of waiters in any WaiterList.
+        1. Add _W_ to the end of the list of waiters in _WL_.
       </emu-alg>
     </emu-clause>
 
@@ -1313,9 +1313,9 @@ These call AllocateTypedArray with a specified length:
       <h1>RemoveWaiter( _WL_, _W_ )</h1>
       <p> When RemoveWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the critical section for _WL_
-        1. Assert: _W_ is on the list of waiters in _WL_
-        1. Remove _W_ from the list of waiters in _WL_
+        1. Assert: The calling agent is in the critical section for _WL_.
+        1. Assert: _W_ is on the list of waiters in _WL_.
+        1. Remove _W_ from the list of waiters in _WL_.
       </emu-alg>
     </emu-clause>
 
@@ -1323,15 +1323,15 @@ These call AllocateTypedArray with a specified length:
       <h1>RemoveWaiters( _WL_, _c_ )</h1>
       <p> When RemoveWaiters is called with WaiterList _WL_ and nonnegative integer _c_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the critical section for _WL_
-        1. Let _L_ be the empty list
-        1. Let _S_ be a reference to the list of waiters in _WL_
+        1. Assert: The calling agent is in the critical section for _WL_.
+        1. Let _L_ be the empty list.
+        1. Let _S_ be a reference to the list of waiters in _WL_.
         1. While _c_ &gt; 0 and _S_ is not the empty list:
-          1. Let _W_ be the first waiter in _S_
-          1. Add _W_ to the end of _L_
-          1. Remove _W_ from _S_
-          1. Subtract 1 from _c_
-        1. Return _L_
+          1. Let _W_ be the first waiter in _S_.
+          1. Add _W_ to the end of _L_.
+          1. Remove _W_ from _S_.
+          1. Subtract 1 from _c_.
+        1. Return _L_.
       </emu-alg>
     </emu-clause>
 
@@ -1339,14 +1339,14 @@ These call AllocateTypedArray with a specified length:
       <h1>Suspend( _WL_, _W_, _timeout_ )</h1>
       <p> When Suspend is called with WaiterList _WL_, agent signifier _W_, and nonnegative number _timeout_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the critical section for _WL_
-        1. Assert: _W_ is equal to AgentSignifier()
-        1. Assert: _W_ is on the list of waiters in _WL_
-        1. Assert: AgentCanSuspend() is equal to true
+        1. Assert: The calling agent is in the critical section for _WL_.
+        1. Assert: _W_ is equal to AgentSignifier().
+        1. Assert: _W_ is on the list of waiters in _WL_.
+        1. Assert: AgentCanSuspend() is equal to true.
         1. Perform LeaveCriticalSection(_WL_) and suspend _W_ for up to _timeout_ milliseconds, performing the combined operation in such a way that a wakeup that arrives after the critical section is exited but before the suspension takes effect is not lost.  _W_ can wake up either because the timeout expired or because it was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), and not for any other reasons at all.
-        1. Perform EnterCriticalSection(_WL_)
-        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), then return *true*
-        1. Return *false*
+        1. Perform EnterCriticalSection(_WL_).
+        1. If _W_ was woken explicitly by another agent calling WakeWaiter(_WL_, _W_), then return *true*.
+        1. Return *false*.
       </emu-alg>
     </emu-clause>
 
@@ -1354,9 +1354,9 @@ These call AllocateTypedArray with a specified length:
       <h1>WakeWaiter( _WL_, _W_ )</h1>
       <p> When WakeWaiter is called with WaiterList _WL_ and agent signifier _W_, then the following steps are taken. </p>
       <emu-alg>
-        1. Assert: The calling agent is in the critical section for _WL_
-        1. Assert: _W_ is on the list of waiters in _WL_
-        1. Wake the agent _W_
+        1. Assert: The calling agent is in the critical section for _WL_.
+        1. Assert: _W_ is on the list of waiters in _WL_.
+        1. Wake the agent _W_.
       </emu-alg>
 
       <emu-note>
@@ -1373,22 +1373,22 @@ These call AllocateTypedArray with a specified length:
         parameterized by the (pure) combining operation.  The following
         steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_)
-        1. ReturnIfAbrupt(_i_)
-        1. Let _v_ be ToInteger(_value_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_).
+        1. ReturnIfAbrupt(_buffer_).
+        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
+        1. ReturnIfAbrupt(_i_).
+        1. Let _v_ be ToInteger(_value_).
         1. ReturnIfAbrupt(_value_).
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
         1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_)
-          1. Compute: Let _w_ be _op_(_r_, _v_)
-          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_)
-        1. Return _r_
+          1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. Compute: Let _w_ be _op_(_r_, _v_).
+          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_).
+        1. Return _r_.
       </emu-alg>
     </emu-clause>
   </emu-clause> <!-- runtime semantics -->
@@ -1401,9 +1401,9 @@ These call AllocateTypedArray with a specified length:
       <p> Let `add` denote a semantic function of two number arguments that returns the sum of the arguments. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `add`)
-        1. ReturnIfAbrupt(_result_)
-        1. Return _result_
+        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `add`).
+        1. ReturnIfAbrupt(_result_).
+        1. Return _result_.
       </emu-alg>
     </emu-clause>
 
@@ -1412,9 +1412,9 @@ These call AllocateTypedArray with a specified length:
       <p> Let `and` denote a semantic function of two number arguments that returns the bitwise "and" of the arguments. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `and`)
-        1. ReturnIfAbrupt(_result_)
-        1. Return _result_
+        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `and`).
+        1. ReturnIfAbrupt(_result_).
+        1. Return _result_.
       </emu-alg>
     </emu-clause>
 
@@ -1422,26 +1422,26 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.compareExchange( _typedArray_, _index_, _expectedValue_, _replacementValue_ )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_)
-        1. ReturnIfAbrupt(_i_)
-        1. Let _expected_ be ToInteger(_expectedValue_)
-        1. ReturnIfAbrupt(_expected_)
-        1. Let _replacement_ be ToInteger(_replacedValue_)
-        1. ReturnIfAbrupt(_replacement_)
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
-        1. Let _convOp_ be the conversion operation specified in Table 49 for _arrayTypeName_
-        1. Let _x_ be _convOp_ (_expected_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_).
+        1. ReturnIfAbrupt(_buffer_).
+        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
+        1. ReturnIfAbrupt(_i_).
+        1. Let _expected_ be ToInteger(_expectedValue_).
+        1. ReturnIfAbrupt(_expected_).
+        1. Let _replacement_ be ToInteger(_replacedValue_).
+        1. ReturnIfAbrupt(_replacement_).
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
+        1. Let _convOp_ be the conversion operation specified in Table 49 for _arrayTypeName_.
+        1. Let _x_ be _convOp_ (_expected_).
         1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_)
+          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
           1. If _r_ is the same as _x_ then:
-            1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_)
-        1. Return _r_
+            1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_).
+        1. Return _r_.
       </emu-alg>
 
     </emu-clause>
@@ -1451,9 +1451,9 @@ These call AllocateTypedArray with a specified length:
       <p> Let `second` denote a semantic function of two number arguments that returns its second argument. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `second`)
-        1. ReturnIfAbrupt(_result_)
-        1. Return _result_
+        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `second`).
+        1. ReturnIfAbrupt(_result_).
+        1. Return _result_.
       </emu-alg>
     </emu-clause>
 
@@ -1461,12 +1461,12 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.isLockFree( _size_ )</h1>
 
       <emu-alg>
-        1. Let _n_ be ToInteger(_size_)
-        1. ReturnIfAbrupt(_n_)
+        1. Let _n_ be ToInteger(_size_).
+        1. ReturnIfAbrupt(_n_).
         1. If _n_ equals 1 then return the value of the [[IsLockFree1]] property of the Agent Record of the <em>surrounding agent</em>.
         1. If _n_ equals 2 then return the value of the [[IsLockFree2]] property of the Agent Record of the <em>surrounding agent</em>.
         1. If _n_ equals 4 then return *true*.
-        1. Return *false*
+        1. Return *false*.
       </emu-alg>
 
       <emu-note>
@@ -1495,18 +1495,18 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.load( _typedArray_, _index_ )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_)
-        1. ReturnIfAbrupt(_i_)
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_).
+        1. ReturnIfAbrupt(_buffer_).
+        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
+        1. ReturnIfAbrupt(_i_).
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
         1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_)
-        1. Return _r_
+          1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+        1. Return _r_.
       </emu-alg>
     </emu-clause>
 
@@ -1515,9 +1515,9 @@ These call AllocateTypedArray with a specified length:
       <p> Let `or` denote a semantic function of two number arguments that returns the bitwise "or" of the arguments. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `or`)
-        1. ReturnIfAbrupt(_result_)
-        1. Return _result_
+        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `or`).
+        1. ReturnIfAbrupt(_result_).
+        1. Return _result_.
       </emu-alg>
     </emu-clause>
 
@@ -1525,20 +1525,20 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.store( _typedArray_, _index_, _value_ )</h1>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_)
-        1. ReturnIfAbrupt(_i_)
-        1. Let _v_ be ToInteger(_value_)
-        1. ReturnIfAbrupt(_v_)
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_).
+        1. ReturnIfAbrupt(_buffer_).
+        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
+        1. ReturnIfAbrupt(_i_).
+        1. Let _v_ be ToInteger(_value_).
+        1. ReturnIfAbrupt(_v_).
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
         1. Let _elementSize_ be the Number value of the Element Size value specified in Table 49 for _arrayTypeName_.
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
         1. With atomic access to shared memory, do:
-          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_)
-        1. Return _v_
+          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_).
+        1. Return _v_.
       </emu-alg>
     </emu-clause>
 
@@ -1547,9 +1547,9 @@ These call AllocateTypedArray with a specified length:
       <p> Let `subtract` denote a semantic function of two number arguments that returns the difference of the arguments. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `subtract`)
-        1. ReturnIfAbrupt(_result_)
-        1. Return _result_
+        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `subtract`).
+        1. ReturnIfAbrupt(_result_).
+        1. Return _result_.
       </emu-alg>
     </emu-clause>
 
@@ -1557,34 +1557,34 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.wait( _typedArray_, _index_, _value_, _timeout_ )</h1>
       <p> Atomics.wait puts the calling agent in a wait queue and puts it to sleep until it is awoken or the sleep times out. The following steps are taken:</p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, *true*)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_)
-        1. ReturnIfAbrupt(_i_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, *true*).
+        1. ReturnIfAbrupt(_buffer_).
+        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
+        1. ReturnIfAbrupt(_i_).
         1. Let _v_ be the result of ToInt32(_value_).
-        1. ReturnIfAbrupt(_v_)
+        1. ReturnIfAbrupt(_v_).
         1. If _timeout_ is not provided or is *undefined* then let _t_ be *+&infin;*.  Otherwise:
-          1. Let _q_ be the result of ToNumber(_timeout_)
-          1. ReturnIfAbrupt(_q_)
+          1. Let _q_ be the result of ToNumber(_timeout_).
+          1. ReturnIfAbrupt(_q_).
           1. If _q_ is *NaN* then let _t_ be *+&infin;*, otherwise let _t_ be max(0, _q_).
-        1. Let _B_ be AgentCanSuspend()
+        1. Let _B_ be AgentCanSuspend().
         1. If _B_ is *false* then throw a *TypeError* exception.
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
-        1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _G_ be SharedDataBlockID(_bufferVal_).
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
         1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
-        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
-        1. Perform EnterCriticalSection(_WL_)
-        1. Let _w_ be Atomics.load(_typedArray_, _i_)
+        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_.
+        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_).
+        1. Perform EnterCriticalSection(_WL_).
+        1. Let _w_ be Atomics.load(_typedArray_, _i_).
         1. If _v_ does not equal _w_ then:
-          1. Perform LeaveCriticalSection(_WL_)
+          1. Perform LeaveCriticalSection(_WL_).
           1. Return the string `"not-equal"`.
         1. Let _W_ be AgentSignifier().
-        1. Perform AddWaiter(_WL_, _W_)
-        1. Let awoken be Suspend(_WL_, _W_, _t_)
-        1. Perform RemoveWaiter(_WL_, _W_)
-        1. Perform LeaveCriticalSection(_WL_)
+        1. Perform AddWaiter(_WL_, _W_).
+        1. Let awoken be Suspend(_WL_, _W_, _t_).
+        1. Perform RemoveWaiter(_WL_, _W_).
+        1. Perform LeaveCriticalSection(_WL_).
         1. If awoken is *true* then return the string `"ok"`.
         1. Return the string `"timed-out"`.
       </emu-alg>
@@ -1595,29 +1595,29 @@ These call AllocateTypedArray with a specified length:
       <h1>Atomics.wake( _typedArray_, _index_, _count_ )</h1>
       <p> Atomics.wake wakes up some agents that are sleeping in the wait queue.  The following steps are taken: </p>
       <emu-alg>
-        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, *true*)
-        1. ReturnIfAbrupt(_buffer_)
-        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_)
-        1. ReturnIfAbrupt(_i_)
+        1. Let _buffer_ be ValidateSharedIntegerTypedArray(_typedArray_, *true*).
+        1. ReturnIfAbrupt(_buffer_).
+        1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
+        1. ReturnIfAbrupt(_i_).
         1. If _count_ is not provided or is *undefined* then let _c_ be *+&infin;*.  Otherwise:
-          1. Let _tmp_ be ToInteger(_count_)
-          1. ReturnIfAbrupt(_tmp_)
+          1. Let _tmp_ be ToInteger(_count_).
+          1. ReturnIfAbrupt(_tmp_).
           1. Let _c_ be max(*+0*, _tmp_).
         1. Let _bufferVal_ be the value of the internal [[SharedArrayBufferData]] property of _buffer_.
-        1. Let _G_ be SharedDataBlockID(_bufferVal_)
-        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot
+        1. Let _G_ be SharedDataBlockID(_bufferVal_).
+        1. Let _arrayTypeName_ be the value of _typedArray_'s [[TypedArrayName]] internal slot.
         1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
-        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
-        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
-        1. Let _n_ be 0
-        1. Perform EnterCriticalSection(_WL_):
-        1. Let _S_ be RemoveWaiters(_WL_, _c_)
+        1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_.
+        1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_).
+        1. Let _n_ be 0.
+        1. Perform EnterCriticalSection(_WL_).
+        1. Let _S_ be RemoveWaiters(_WL_, _c_).
         1. While _S_ is not the empty list:
-          1. Let _W_ be the first agent in _S_
-          1. Remove _W_ from the front of _S_
-          1. Perform WakeWaiter(_WL_, _W_)
-          1. Add 1 to _n_
-        1. Perform LeaveCriticalSection(_WL_)
+          1. Let _W_ be the first agent in _S_.
+          1. Remove _W_ from the front of _S_.
+          1. Perform WakeWaiter(_WL_, _W_).
+          1. Add 1 to _n_.
+        1. Perform LeaveCriticalSection(_WL_).
         1. Return _n_.
       </emu-alg>
     </emu-clause>
@@ -1627,9 +1627,9 @@ These call AllocateTypedArray with a specified length:
       <p> Let `xor` denote a semantic function of two number arguments that returns the bitwise "xor" of the arguments. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
-        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `xor`)
-        1. ReturnIfAbrupt(_result_)
-        1. Return _result_
+        1. Let _result_ be AtomicFetchOp(_typedArray_, _index_, _value_, `xor`).
+        1. ReturnIfAbrupt(_result_).
+        1. Return _result_.
       </emu-alg>
     </emu-clause>
   </emu-clause>
