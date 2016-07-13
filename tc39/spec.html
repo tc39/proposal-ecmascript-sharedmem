@@ -431,7 +431,7 @@ These call AllocateTypedArray with a specified length:
             1. Let _srcLength_ be _typedArray_.[[ArrayLength]].
             1. Let _srcByteOffset_ be _typedArray_.[[ByteOffset]].
             1. If _srcLength_ + _targetOffset_ &gt; _targetLength_, throw a *RangeError* exception.
-            1. <ins>If Type(_x_) is SharedArrayBuffer, then let _same_ = SharedDataBlockID(_x_.[[SharedArrayBufferData]]) == SharedDataBlockID(_y_.[[SharedArrayBufferData]]); otherwise let _same_ = SameValue(_srcBuffer_, _targetBuffer_). </ins>
+            1. <ins>If Type(_x_) is SharedArrayBuffer, then let _same_ be *true* if SharedDataBlockID(_x_.[[SharedArrayBufferData]]) equals SharedDataBlockID(_y_.[[SharedArrayBufferData]]); otherwise let _same_ be SameValue(_srcBuffer_, _targetBuffer_). </ins>
             1. <del>If SameValue(_srcBuffer_, _targetBuffer_)</del> <ins>_same_</ins> is *true*, then
               1. Let _srcBuffer_ be ? CloneArrayBuffer(_srcBuffer_, _srcByteOffset_, _srcLength_, %ArrayBuffer%).
               1. NOTE: %ArrayBuffer% is used to clone _srcBuffer_ because is it known to not have any observable side-effects.
@@ -1582,7 +1582,7 @@ These call AllocateTypedArray with a specified length:
           1. Return the string `"not-equal"`.
         1. Let _W_ be AgentSignifier().
         1. Call AddWaiter(_WL_, _W_)
-        1. Let awoken = Suspend(_WL_, _W_, _t_)
+        1. Let awoken be Suspend(_WL_, _W_, _t_)
         1. Call RemoveWaiter(_WL_, _W_)
         1. Call LeaveCriticalSection(_WL_)
         1. If awoken is *true* then return the string `"ok"`.
@@ -1609,7 +1609,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _offset_ be the value of _typedArray_'s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_
         1. Let _WL_ be GetWaiterList(_G_, _indexedPosition_)
-        1. Let _n_ = 0
+        1. Let _n_ be 0
         1. Call EnterCriticalSection(_WL_):
         1. Let _S_ be RemoveWaiters( _WL_, _c_ )
         1. While _S_ is not the empty list:
@@ -1654,7 +1654,7 @@ These call AllocateTypedArray with a specified length:
     can't block. </p>
 
   <p> Browsers will typically let agents that run on the browser's
-    main thread have [[CanBlock]] = *false*, to prevent blocking the
+    main thread have [[CanBlock]] equal to *false*, to prevent blocking the
     UI and to allow the main thread to do work on behalf of other
     threads. </p>
 
