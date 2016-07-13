@@ -1385,7 +1385,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
           1. Compute: Let _w_ be _op_(_r_, _v_).
           1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_).
         1. Return _r_.
@@ -1505,7 +1505,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _offset_ be the value of _typedArray_’s [[ByteOffset]] internal slot.
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be the result of GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
         1. Return _r_.
       </emu-alg>
     </emu-clause>
@@ -1561,10 +1561,10 @@ These call AllocateTypedArray with a specified length:
         1. ReturnIfAbrupt(_buffer_).
         1. Let _i_ be ValidateAtomicAccess(_typedArray_, _index_).
         1. ReturnIfAbrupt(_i_).
-        1. Let _v_ be the result of ToInt32(_value_).
+        1. Let _v_ be ToInt32(_value_).
         1. ReturnIfAbrupt(_v_).
         1. If _timeout_ is not provided or is *undefined* then let _t_ be *+&infin;*.  Otherwise:
-          1. Let _q_ be the result of ToNumber(_timeout_).
+          1. Let _q_ be ToNumber(_timeout_).
           1. ReturnIfAbrupt(_q_).
           1. If _q_ is *NaN* then let _t_ be *+&infin;*, otherwise let _t_ be max(0, _q_).
         1. Let _B_ be AgentCanSuspend().
