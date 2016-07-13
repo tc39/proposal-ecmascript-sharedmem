@@ -111,7 +111,8 @@ comments.</p>
           1. Let _toSize_ be the number of bytes in _toBlock_.
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
-            1. Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_]. <br> <ins> NOTE: If _fromBlock_ is a Shared Data Block then _fromBlock_[_fromIndex_] is read as if by ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*).  If _toBlock_ is a Shared Data Block then _toBlock_[_toIndex_] is written as if by WriteSharedMemory(_toBlock_, _toIndex_, *true*, 1, _B_) where _B_ is the byte to write.
+            1. <del> Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_]. </del> <br> <ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_] </ins>
+            1. <ins>If _toBlock_ is a Shared Data Block then perform WriteSharedMemory(_toBlock_, _toIndex_, *true*, 1, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_. </ins>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
             1. Decrement _count_ by 1.
           1. Return NormalCompletion(~empty~).
