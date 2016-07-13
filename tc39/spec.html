@@ -432,7 +432,7 @@ These call AllocateTypedArray with a specified length:
             1. Let _srcLength_ be _typedArray_.[[ArrayLength]].
             1. Let _srcByteOffset_ be _typedArray_.[[ByteOffset]].
             1. If _srcLength_ + _targetOffset_ &gt; _targetLength_, throw a *RangeError* exception.
-            1. <ins>If Type(_x_) is SharedArrayBuffer, then let _same_ be *true* if SharedDataBlockID(_x_.[[SharedArrayBufferData]]) equals SharedDataBlockID(_y_.[[SharedArrayBufferData]]); otherwise let _same_ be SameValue(_srcBuffer_, _targetBuffer_). </ins>
+            1. <ins>If both IsSharedMemory(_srcBuffer_) and IsSharedMemory(_targetBuffer_) are *true*, then let _same_ be *true* if SharedDataBlockID(_srcBuffer_.[[SharedArrayBufferData]]) equals SharedDataBlockID(_targetBuffer_.[[SharedArrayBufferData]]); otherwise let _same_ be SameValue(_srcBuffer_, _targetBuffer_). </ins>
             1. <del>If SameValue(_srcBuffer_, _targetBuffer_)</del> <ins>_same_</ins> is *true*, then
               1. Let _srcBuffer_ be ? CloneArrayBuffer(_srcBuffer_, _srcByteOffset_, _srcLength_, %ArrayBuffer%).
               1. NOTE: %ArrayBuffer% is used to clone _srcBuffer_ because is it known to not have any observable side-effects.
