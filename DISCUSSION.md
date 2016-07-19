@@ -92,6 +92,9 @@ The problem here is with the language specification -- the memory model -- more 
 
 The shared memory proposal sidesteps the memory model complexity issue by splitting the model into two parts.  One part circumscribes a sublanguage that uses atomics in a disciplined way and whose data race free computations are sequentially consistent.  Programs written to this model (which includes all translated C and C++ programs that don't have undefined behavior) are immune to reorderings by the compiler and hardware.  The second part is operational, and describes the kinds of reorderings that the compiler and hardware may and may not do, and the types of interleavings that may be observed in the presence of data races.  This is not exactly elegant, and leaves open the question of a formalization of the memory model, but probably fits the operational style of the ES spec reasonably well and gives practical guidance to users and compiler writes alike.
 
+### Implementation constraints from data race semantics
+
+We depend on access-atomicity in some cases, but this should not impact implementations significantly.  The TypedArray elements that must be access-atomic are already subject to being accessed using the Atomics methods, and furthermore, four-byte atomic accesses must be lock free.  On most systems (ARM, MIPS, Power), the need for lock-free atomic accesses will force a four-byte alignment for every Int32Array and Uint32Array, even if the system can handle unaligned non-atomic accesses.  Thus the need for access-atomicity will not create any new alignment constraints.  On x86 systems starting with the Core-2 Duo (introduced 2007) there is general support for unaligned accesses both in terms of full atomicity and access-atomicity, and though it will be natural to align shared memory also on this system, it is not necessary.
 
 ### A summary of the constraints on the memory model
 
