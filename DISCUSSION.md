@@ -1,5 +1,7 @@
 # Issues not addressed elsewhere
 
+(Updated for the July 2016 draft in preparation for Stage 3.)
+
 ## Cross-cutting concerns
 
 This is a run-down of aspects of the Shared memory and Atomics specification that affect ECMAScript as a whole.
@@ -9,7 +11,7 @@ This is a run-down of aspects of the Shared memory and Atomics specification tha
 The current spec uses TypedArrays for views on shared memory, this has several negative aspects:
 
 * It complicates the definition of TypedArray, in order for it to handle two kinds of buffers that are only superficially similar
-* There is space for confusion around a couple of choices (to be enumerated here) where a TypedArray operation creates a new buffer and could choose to create a new shared buffer or a new unshared buffer
+* There is a little space for confusion around a couple of choices where a TypedArray operation creates a new buffer and could choose to create a new shared buffer or a new unshared buffer
 * Host APIs that accept a TypedArray must be aware that that API may be mapping shared memory
 
 An earlier design had a separate type hierarchy for shared views, but it was abandoned when it met with resistance.
@@ -54,7 +56,7 @@ The original proposal (in the historical/ subdirectory) contains detailed ration
 
 ### Futexes, storage management
 
-Obviously futexes are very low level and quite hard to use.
+Obviously futexes (currently embodied by Atomics.wait and Atomics.wake) are very low level and quite hard to use.
 
 The primary reason futexes were chosen as the blocking mechanism rather than a high-level mechanism such as mutexes or [synchronic objects](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4195.pdf) is that futexes do not require storage management or any kind of complex initialization, and as such are a better fit for asm.js than higher-level mechanisms.  Unlike SIMD values, for example, mutex objects and synchronic objects would have to be true references and would require cross-agent storage management, and might require a construction protocol that would be incompatible with translated C and C++ code.
 
@@ -72,14 +74,53 @@ There are several use cases for "relaxed" or "unordered" atomics, ie, loads and 
 
 It is desirable to provide relaxed atomics eventually, just not for the initial version of the specification.
 
-### Data races, machine dependencies
+### Data races
 
-The meaning of data races is currently semi-specified: data races are allowed, and the bytes affected by a race are limited to the union of the byte ranges accessed by the racing accesses, but the values that are stored in memory after a race are unpredictable.  This is in contrast with C++, where races have undefined behavior (anything can happen), and Java, where some races have defined behavior, notably, in a race of compatible accesses (same size, same address, same type) the observable values are limited to the values that were in memory before the race and the operands of the write operations.
+The meaning of data races is currently semi-specified: data races are allowed, and the bytes affected by a race are limited to the union of the byte ranges accessed by the racing accesses, and the values that are stored in memory after a race are predictable to a limited extent.  Exactly what to guarantee, if anything, has been contentious.
 
-As all modern mainstream hardware provides Java-like guarantees for integer data up to pointer size the same guarantees were originally adopted for the ES shared memory, but this was somewhat controversial (it complicates the memory model) and the specification was therefore loosened to its current state.  The necessary guarantees can be reintroduced in the form of relaxed atomics, when we need them.
+On the one end of the spectrum there is C++, where races have undefined behavior -- anything can happen.  That is not acceptable for ES, since ES must be safe; a race in the user program cannot be wholly undefined behavior in the C++ sense.
 
-On the other hand, going all the way to the C++ model is unacceptable in a safe language.  An alternative that was discussed is to make a race leave all of memory in an unpredictable state but the spec author finds this absurd for a language that is (traditionally) as tolerant of errors as ECMAScript.
+The minimal safe alternative to undefined behavior is therefore to make a race leave all of the backing memory for SharedArrayBuffers (either all buffers or the buffer in which the race happened) in an unpredictable state, while not affecting other memory, including shared metadata.  This formalization is appealing to users whose main use case is translating C++ code to ES -- races are already undefined behavior.  (It is probably not appealing to anyone else.)
 
-The problem here is with the language specification more than the hardware, as all interesting hardware behaves reasonably in the face of races.  There is ongoing work for the C and C++ memory models to properly formalize weak atomic accesses, which is a related problem; this work shows that it is very hard to pin down the exact behavior of a race without going to a memory model like Java's, and Java's is known to have problems still.
+At the other end of the spectrum there is Java, where races have fairly closely circumscribed behavior, in order to prevent races on pointer fields from subverting safety.  If a read and a write on a pointer field race then the read observes either the pointer value that is in memory before the write or the pointer value that is written; if two writes race they are executed in some arbitrary order but the values written are not interleaved in any way (they don't tear).  Java also brings type safety to bear on the problem, in that a field is never both a pointer and some other kind of data that can be partially accessed, and modern hardware supports this type of safety directly: the hardware is "single-copy atomic" or "access-atomic" for pointer-sized values.
 
-The specification also precludes the use of read-modify-write accesses to implement writes to smaller data in terms of writes to larger data (writing bytes as part of a word, for example).  The justification for this is that no mainstream CPU since the first Alpha has not had appropriate read and write operations for smaller data sizes.  The same is not true for atomic accesses on all platforms: ARMv6, MIPS, and PPC do not have byte and halfword atomic operations, for example.  (The consequences of the latter point are under investigation and may on rare platforms - none of the three listed - preclude implementing byte and halfword atomics in terms of word atomics, but it should not otherwise be a problem.)
+ES has less type safety than Java, in that TypedArrays of different access size can be mapped onto the same memory and thus a datum can be accessed in ways that may violate access-atomicity.  At the same time, it seems like a shame not to extend the existing hardware guarantees for access-atomicity to programs that can make use of them (thus potentially allowing programs written in safe threaded languages that rely on that guarantee to be translated to JS or asm.js).
+
+With that as the background, and on the assumption that a platform that can't run Java won't be running ES either, early versions of the shared memory spec did try to expose the hardware's capability to predict the outcome of some races.  That was however controversial (it complicates the memory model some, and some people really wanted relaxed atomics for their C++ programs) and the specification was therefore loosened and races were given largely unspecified, though safe, effects.  Later, the loose specification met with opposition from another quarter (it's a lost opportunity).  Furthermore, the memory model as it ended up being stated is not (yet) made significantly more complex by pinning down some racy behavior.  In consequence, the spec has been tightened again, and now tries to specify how races might be handled and when racy behavior can be predicted.
+
+The problem here is with the language specification -- the memory model -- more than the hardware, as all interesting hardware behaves reasonably in the face of races.  Data races expose optimizations in the compiler and the hardware and this plays havoc with the language specification, so making races undefined behavior keeps the language specification simple and does not outlaw desirable optimizations.  Java, needing to give meaning to some races, has a much more complicated memory model as a consequence, and even C++ has not escaped the problem, in that its relaxed atomic accesses are very similar to racy accesses in practice and complicate its memory model.
+
+The shared memory proposal sidesteps the memory model complexity issue by splitting the model into two parts.  One part circumscribes a sublanguage that uses atomics in a disciplined way and whose data race free computations are sequentially consistent.  Programs written to this model (which includes all translated C and C++ programs that don't have undefined behavior) are immune to reorderings by the compiler and hardware.  The second part is operational, and describes the kinds of reorderings that the compiler and hardware may and may not do, and the types of interleavings that may be observed in the presence of data races.  This is not exactly elegant, and leaves open the question of a formalization of the memory model, but probably fits the operational style of the ES spec reasonably well and gives practical guidance to users and compiler writes alike.
+
+
+### A summary of the constraints on the memory model
+
+TC39 discussed the memory model at several meetings and some desiderata were enumerated.  Here is a list, with some discussion.
+
+#### Correcness
+
+The call for "correctness" means that instead of informal prose and/or pseudocode there should be a formalization of the memory model that we can trust.  We're currently far away from having that.
+
+As described above, the spec attempts to layer the specification by defining what it means for a program to be data race free (at which point the program appears sequentially consistent), and then add operational details about programs with data races.  However, the definition of data race freedom is itself somewhat complicated in that it calls for atomics to be used in a consistent way within regions of the program.  That amounts to a kind of dynamic type discipline, but it is not established that that condition is sufficient or necessary for data race freedom - it's probably sufficient but probably not quite necessary.  The operational details that are then layered on top of that to specify the kinds of reorderings that might be observed in racy programs, and the outcomes of races, are commonsensical but not in any way formal.
+
+At this point it is also not clear what form the formalization should take.  Axiomatic formalizations are traditional but have known problems with races; recent attempts have a more operational flavor, so as to incorporate reordering in the compiler and hardware (write buffers, speculation).
+
+Presently (July 2016) Google is pursuing a research project with the goal of formalizing the memory model.
+
+#### Quantum garbage
+
+The characterization "quantum garbage" is informal but encompasses a couple of different phenomena where values in the program appear to change in extremely strange ways:
+
+What appears to be a single read in the source program must not be allowed to take on several values. This occurs as a result of an optimization that duplicates the read, such as rematerialization (duplicate the read instead of storing the read value in a temp), deoptimization (one tier of execution might read the value and expose it, but then deopt back to another tier that adds another read for the value), and aggressive speculation (a conditional side effect that is executed early even though a later evaluation of the condition decides the effect should not occur).
+
+What appears as a value in memory should not fluctuate counter to program logic.  This could occur as a result of inserted writes that are innocuous in single-threaded program, such as read-modify-write accesses (write a smaller datum in terms of a larger one), spurious writes (writing back a value that was just read to the slot it was read from), and using shared memory locations as temps (writing a temporary value to a slot that will later be overwritten with a final value).
+
+To the author's knowledge, current JITs are not affected by these constraints, though it seems possible that future JITs could be, as new "higher-level" tiers are triggered by long-running, well-typed, compute-intensive programs.  But even in that case, optimization is only inhibited when operating on shared memory.  If the JIT knows shared memory is not accessed then it will not be restricted.
+
+#### Out-of-thin-air values
+
+The "out of thin air" problem can be characterized as one where the compiler or hardware guesses at the value to be read from memory in a situation where that guess will result in code being executed that makes the guess correct.  It is widely believed that this is exclusively a problem with the formalization of the memory model in the presence of relaxed atomics (or data races, in our case), not a problem with existing compilers or hardware.
+
+(The problem also presupposes the ability of the compiler to simultaneously inspect the code of two concurrent threads but it's not clear whether that matters one way or the other; on the one hand, ES will generally run threads in separate agents, which are strongly separated from each other; on the other hand, there's no rule saying a JIT can't observe multiple agent programs.)
+
+In the present proposal, data race free programs can't manufacture values out of thin air since the absence of races makes reorderings irrelevant, but programs with races could have the problem.  However, the shared memory proposal does not have this problem because it explicitly prohibits reorderings that would cause the problem to exist.  (This is lame but it's what everyone does, more or less.)
