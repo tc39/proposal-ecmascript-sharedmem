@@ -176,7 +176,9 @@ or by having the hardware flush subnormals to zero.
 As time goes by, the hardware problems are mitigated, and new ones are
 introduced, eg, GPUs now support denormals, but they implement
 operations on denormals in microcode, making them useful timing
-channels.
+channels.  Attacks are also being launched against ARM [Lipp et al, 8]
+and using novel attack vectors [Gruss et al, 9], though the relevance
+to JS is hazy at best, at this time.
 
 We should not let "the hardware problem" be a reason not to take the
 attacks seriously, but worrying about one particular type of clock,
@@ -205,3 +207,7 @@ but it is still where the actual problem is.
 [6] [Mehmet Sinan Inci et al, "Seriously, get off my cloud!  Cross-VM RSA Key Recovery in a Public Cloud"](https://eprint.iacr.org/2015/898.pdf)
 
 [7] [Tor project: "High-precision timestamps in JS"](https://trac.torproject.org/projects/tor/ticket/17412)
+
+[8] [Moritz Lipp et al, "ARMageddon: Last-Level Cache Attacks on Mobile Devices"](http://arxiv.org/abs/1511.04897)
+
+[9] [Daniel Gruss et al, "Flush+Flush: A Fast and Stealthy Cache Attack"](http://arxiv.org/abs/1511.04594)
