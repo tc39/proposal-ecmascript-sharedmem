@@ -23,6 +23,10 @@ virtualized server environments, though not yet in JS, it has been
 possible to extract cryptographic keys for AES and RSA from the cache
 [Osvik et al, 5] [Inci et al, 6].  Several published papers focus on exfiltration of data as a high-value use of JS, wherein a local attacker process would signal data by accessing its memory and the JS code, having legitimate access to the network from within the browser, would detect those signals and upload the data.
 
+Attacks are also being launched against ARM [Lipp et al, 8]
+and there are ever-novel attack vectors [Gruss et al, 9]; the relevance
+of those attacks to JS is hazy, at this time.
+
 In these cases, a precise timer is needed to distinguish a fast
 operation from a slow operation.  For the cache attacks and row
 hammering this is the time difference between a cache hit and a cache
@@ -176,9 +180,7 @@ or by having the hardware flush subnormals to zero.
 As time goes by, the hardware problems are mitigated, and new ones are
 introduced, eg, GPUs now support denormals, but they implement
 operations on denormals in microcode, making them useful timing
-channels.  Attacks are also being launched against ARM [Lipp et al, 8]
-and using novel attack vectors [Gruss et al, 9], though the relevance
-to JS is hazy at best, at this time.
+channels.
 
 We should not let "the hardware problem" be a reason not to take the
 attacks seriously, but worrying about one particular type of clock,
