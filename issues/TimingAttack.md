@@ -1,6 +1,6 @@
 # Shared memory: Side-channel information leaks
 
-lhansen@mozilla.com / updated 2016-01-24
+lhansen@mozilla.com / updated 2016-01-24, minor changes 2016-07-20
 
 ## Introduction
 
@@ -16,12 +16,12 @@ which has 5μs resolution.
 A number of side channel attacks need a high-resolution timing source
 to work.  (This is why `performance.now()` resolution has been reduced.)
 There are several examples of such attacks in JS, including last-level
-cache sniffing to extract user behavior or user data [1], row
-hammering to cause bit flips in memory on some types of hardware [2],
-and SVG/CSS attacks that can read pixels using transforms [3] [4].  In
+cache sniffing to extract user behavior or user data [Oren, 1], row
+hammering to cause bit flips in memory on some types of hardware [Gruss et al, 2],
+and SVG/CSS attacks that can read pixels using transforms [Stone, 3] [Andrysco et al, 4].  In
 virtualized server environments, though not yet in JS, it has been
 possible to extract cryptographic keys for AES and RSA from the cache
-[5] [6].
+[Osvik et al, 5] [Inci et al, 6].
 
 In these cases, a precise timer is needed to distinguish a fast
 operation from a slow operation.  For the cache attacks and row
@@ -52,7 +52,7 @@ for the feature in JS, and probably making programs that use shared
 memory less effective than programs that copy memory.  In practice,
 requiring affinity may be a reasonable default if it can be changed
 easily when needed, or it may be a reasonable option for high-security
-environments such as Tor [7], but it is not a reasonable mitigation when
+environments such as Tor [Tor project, 7], but it is not a reasonable mitigation when
 shared-memory parallelism is actually needed.
 
 The affinity solution has another couple of problems:
@@ -157,11 +157,12 @@ hardware bugs:
 
 - Rowhammer is ultimately caused by a combination of DDR3 memory
   weaknesses coupled with aggressive (ie low) BIOS DRAM refresh rates.
+  (Later also demonstrated on some DDR4 memory.)
 - Cache sniffing is arguably a problem with shared caches, a problem
   that is far from new but has now moved to the L3 cache in
-  virtualized environments.
+  virtualized environments.  (Later also demonstrated on some L1 caches.)
 
-Rowhammer is being addressed by adjusting the BIOS refresh rates and
+Rowhammer is being addressed by adjusting the BIOS refresh rates (with a performance penalty) and
 by more resilient memory types.  Cache sniffing is being addressed by
 cache partitioning (though it's unclear how good current attempts
 are).
@@ -185,7 +186,7 @@ view.  Other clocks and other hardware bugs will be found.  (An
 experiment shows that a counting clock made from the 5μs timer can get
 pretty reliable 1μs resolution.)  The problem is less the specific
 nature of these side channels than that sensitive computations are not
-properly insulated from the rest of the system.  Admittedly, that
+properly insulated from the rest of the system.  Admittedly, insulation
 often requires hardware and OS changes and not merely careful coding,
 but it is still where the actual problem is.
 
