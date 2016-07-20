@@ -21,7 +21,7 @@ hammering to cause bit flips in memory on some types of hardware [Gruss et al, 2
 and SVG/CSS attacks that can read pixels using transforms [Stone, 3] [Andrysco et al, 4].  In
 virtualized server environments, though not yet in JS, it has been
 possible to extract cryptographic keys for AES and RSA from the cache
-[Osvik et al, 5] [Inci et al, 6].
+[Osvik et al, 5] [Inci et al, 6].  Several published papers focus on exfiltration of data as a high-value use of JS, wherein a local attacker process would signal data by accessing its memory and the JS code, having legitimate access to the network from within the browser, would detect those signals and upload the data.
 
 In these cases, a precise timer is needed to distinguish a fast
 operation from a slow operation.  For the cache attacks and row
