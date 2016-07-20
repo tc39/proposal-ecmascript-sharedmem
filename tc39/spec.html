@@ -552,7 +552,7 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
         <h1>SetValueInBuffer( _arrayBuffer_, _byteIndex_, _type_, <ins>_isTypedArray_,</ins> _value_, _isLittleEndian_ ) (<a href="https://tc39.github.io/ecma262/#sec-setvalueinbuffer">ES7 24.1.1.6</a>)</h1>
         <p>This algorithm is modified as follows:</p>
-        <p>The abstract operation SetValueInBuffer takes <del>five</del><ins>six</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, a Boolean _isTypedArray_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <p>The abstract operation SetValueInBuffer takes <del>five</del><ins>six</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, <ins>a Boolean _isTypedArray_,</ins> a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
         <emu-alg>
           1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
           1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
