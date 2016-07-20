@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <h1>ECMAScript Shared Memory and Atomics</h1>
-<p> Revised: 2016-07-13 </p>
+<p> Revised: 2016-07-20 </p>
 <p> Some algorithms and semantics in this proposal are presented as modifications to existing ES262 algorithms and semantics.  The base revision of ES262 for the modifications (here denoted "ES7") is currently f35248729043089b47ccf29e4c47559386f5f6fd (2016-06-29).  At the moment, ES7 (ES2016) section numbering differs from ES6 (ES2015) only for TypedArrays (section 22.2).</p>
 
 <emu-intro id="intro">
@@ -56,7 +56,8 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li> 2016-07-13 -- Many editorial fixes.
+  <li> 2016-07-20 -- Editorial fix: clarify the operator passed to AtomicFetchOp.
+  <li> 2016-07-13 -- Editorial fixes.
   <li> 2016-07-11 -- Rewrote the memory model section, which introduced separate access functions for shared memory, and caused many other changes.
   <li> 2016-07-05 -- Rewrote (and shrunk) the informative Web Browser Embedding section so that it only addresses the requirements of this spec, not how HTML ought to evolve.
   <li> 2016-07-05 -- Rephrased the wait/wake mutual exclusion in terms of critical sections named by (G,i), as the old specification was too strong.
@@ -1350,11 +1351,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.FetchOp" aoid="AtomicFetchOp">
       <h1>AtomicFetchOp( _typedArray_, _index_, _value_, _op_ )</h1>
-      <p> AtomicFetchOp is a semantic function that atomically loads
-        a value, combines it with another value, and stores the result
-        of the combination.  It returns the loaded value.  It is
-        parameterized by the (pure) combining operation.  The following
-        steps are taken: </p>
+      <p> AtomicFetchOp is a semantic function that atomically loads a value, combines it with another value, and stores the result of the combination.  It returns the loaded value.  It is parameterized by the (pure) combining operation _op_ that takes two Number arguments and returns a Number.  The following steps are taken: </p>
       <emu-alg>
         1. Let _buffer_ be ? ValidateSharedIntegerTypedArray(_typedArray_).
         1. Let _i_ be ? ValidateAtomicAccess(_typedArray_, _index_).
@@ -1370,6 +1367,9 @@ These call AllocateTypedArray with a specified length:
           1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_).
         1. Return _r_.
       </emu-alg>
+
+      <emu-note>
+        <p> The combining operation is restricted to addition, subtraction, bitwise and, or, and xor, and argument selection, and the element types are exclusively integer types.  The store in step 9.c truncates any overflowed result by discarding the overflowed bits.  The combined effect is that the computation in step 9.b is a simple integer operation with ignored overflow, and the entire atomic operation in step 9 can be executed with maximal efficiency on all platforms. </p>
     </emu-clause>
   </emu-clause> <!-- runtime semantics -->
 
@@ -1378,7 +1378,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.add">
       <h1>Atomics.add( _typedArray_, _index_, _value_ )</h1>
-      <p> Let `add` denote a semantic function of two Integer arguments that computes the same result as the ECMAScript function `(a,b) => a+b`. </p>
+      <p> Let `add` denote a semantic function of two Number arguments that applies the addition operation to the arguments and returns the result of that operation. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `add`).
@@ -1387,7 +1387,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.and">
       <h1>Atomics.and( _typedArray_, _index_, _value_ )</h1>
-      <p> Let `and` denote a semantic function of two Integer arguments that computes the same result as the ECMASCript function `(a,b) => a&amp;b`. </p>
+      <p> Let `and` denote a semantic function of two Number arguments that converts both arguments to Int32 by the ToInt32 operation, then applies the bitwise-and operation to the converted values, and returns the result of that operation.</p>
       <p> The following steps are taken: </p>
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `and`).
@@ -1420,7 +1420,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.exchange">
       <h1>Atomics.exchange( _typedArray_, _index_, _value_ )</h1>
-      <p> Let `second` denote a semantic function of two Integer arguments that computes the same result as the ECMAScript function `(a,b)=>b`. </p>
+      <p> Let `second` denote a semantic function of two Number arguments that returns its second argument. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `second`).
@@ -1480,7 +1480,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.or">
       <h1>Atomics.or( _typedArray_, _index_, _value_ )</h1>
-      <p> Let `or` denote a semantic function of two Integer arguments that computes the same result as the ECMASCript function `(a,b) => a|b`. </p>
+      <p> Let `or` denote a semantic function of two Number arguments that converts both arguments to Int32 by the ToInt32 operation, then applies the bitwise-or operation to the converted values, and returns the result of that operation.</p>
       <p> The following steps are taken: </p>
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `or`).
@@ -1507,7 +1507,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.sub">
       <h1>Atomics.sub( _typedArray_, _index_, _value_ )</h1>
-      <p> Let `subtract` denote a semantic function of two Integer arguments that computes the same result as the ECMAScript function `(a,b) => a-b`. </p>
+      <p> Let `subtract` denote a semantic function of two Number arguments that applies the subtraction operation to the arguments and returns the result of that operation. </p>
       <p> The following steps are taken: </p>
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `subtract`).
@@ -1576,7 +1576,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.xor">
       <h1>Atomics.xor( _typedArray_, _index_, _value_ )</h1>
-      <p> Let `xor` denote a semantic function of two Integer arguments that computes the same result as the ECMASCript function `(a,b) => a^b`. </p>
+      <p> Let `xor` denote a semantic function of two Number arguments that converts both arguments to Int32 by the ToInt32 operation, then applies the bitwise-xor operation to the converted values, and returns the result of that operation.</p>
       <p> The following steps are taken: </p>
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `xor`).
