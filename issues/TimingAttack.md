@@ -85,7 +85,9 @@ questionable (most users run all plugins always when prompted).  It's
 also not clear how the need to opt in would be communicated to the
 page.
 
-(Also, as discussed above, affinity is not necessarily controllable.)
+(Also, as discussed above, thread affinity is not necessarily controllable,
+and in practice the default might need to be that the shared-memory feature
+is not available, or that it is available in some attenuated form.)
 
 ## How bad is it?
 
