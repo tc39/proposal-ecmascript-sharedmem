@@ -102,13 +102,29 @@ TC39 discussed the memory model at several meetings and some desiderata were enu
 
 #### Correcness
 
-The call for "correctness" means that instead of informal prose and/or pseudocode there should be a formalization of the memory model that we can trust.  We're currently far away from having that.
+The call for "correctness" means that instead of informal prose and/or pseudocode there should be a formalization of the memory model that we can trust because it's mathematical and we have proven its correctness.  We're currently far away from having that.
 
 As described above, the spec attempts to layer the specification by defining what it means for a program to be data race free (at which point the program appears sequentially consistent), and then add operational details about programs with data races.  However, the definition of data race freedom is itself somewhat complicated in that it calls for atomics to be used in a consistent way within regions of the program.  That amounts to a kind of dynamic type discipline, but it is not established that that condition is sufficient or necessary for data race freedom - it's probably sufficient but probably not quite necessary.  The operational details that are then layered on top of that to specify the kinds of reorderings that might be observed in racy programs, and the outcomes of races, are commonsensical but not in any way formal.
 
 At this point it is also not clear what form the formalization should take.  Axiomatic formalizations are traditional but have known problems with races; recent attempts have a more operational flavor, so as to incorporate reordering in the compiler and hardware (write buffers, speculation).
 
 Presently (July 2016) Google is pursuing a research project with the goal of formalizing the memory model.
+
+#### Races "leaking" into the semantics of the rest of the language
+
+The characterization of "semantic leak" is informal but the intuition here is that the necessity to give a safe semantic meaning to data races complicates the semantics of "the rest of" the language (itself an informal idea).
+
+I think this is a non-problem for ES as things stand, primarily because shared memory is disjoint from non-shared memory, is distinguishable from non-shared memory at run-time, is never object memory but always flat (ArrayBuffer-like) memory, and there is separate semantic machinery for accessing it.  The memory model also provides rules on legal program reorderings that apply only to shared accesses; if it is known that an access is not to shared memory those rules can be ignored.
+
+It is true that if the compiler does not know whether an access is to shared memory or not it must assume the memory is shared.  The rules on reorderings will not cause semantic problems for accesses to non-shared memory.  If the compiler assumes the memory may be shared but does not know then it must also implement certain non-atomic accesses as if they might be racy, but this imposes no particular hardship and does not change semantics, it only (potentially) curtails some optimization opportunities.
+
+For most JITs, simply assuming that all TypedArray accesses are to shared memory and having a single compilation policy will suffice.  However, for a sophisticated tiered JIT, the most likely implementation strategy is to observe whether a function is invoked on shared memory or not, test the observation at run-time, and choose a compilation strategy based on the observation.  In this case the presence of shared memory does not affect code compiled for private memory.
+
+#### Races leaking private data at run-time
+
+At one stage the spec called for the effect of a race to be that data written in the race could be read back as "any value whatsoever".  It was pointed out that returning unknown register or memory contents could result in leaking secrets, such as fragments of passwords previously stored in those registers or locations.
+
+Races are now more defined than that, and the problem no longer exists.
 
 #### Quantum garbage
 
@@ -127,3 +143,22 @@ The "out of thin air" problem can be characterized as one where the compiler or 
 (The problem also presupposes the ability of the compiler to simultaneously inspect the code of two concurrent threads but it's not clear whether that matters one way or the other; on the one hand, ES will generally run threads in separate agents, which are strongly separated from each other; on the other hand, there's no rule saying a JIT can't observe multiple agent programs.)
 
 In the present proposal, data race free programs can't manufacture values out of thin air since the absence of races makes reorderings irrelevant, but programs with races could have the problem.  However, the shared memory proposal does not have this problem because it explicitly prohibits reorderings that would cause the problem to exist.  (This is lame but it's what everyone does, more or less.)
+
+#### Compatibility with WebAssembly
+
+Compatibility with WebAssembly (which will have shared memory at some point) was discussed [at some length](https://github.com/tc39/ecmascript_sharedmem/issues/59).  Some high points of that discussion (along with the champion's comments) are:
+
+* Nobody wants different "modes" for shared memory and atomics for the two languages; the languages must be compatible, with ES (initially) a subset of Wasm.  Compatibility requires some alignment at the implementation level (agreement on lock-freedom, agreement on how atomics are implemented) but nothing onerous.
+* The current design for ECMAScript is very likely compatible with the forthcoming WebAssembly design, because ES is more restrictive along every dimension than WebAssembly might be.  WebAssembly will certainly have sequentially consistent atomics compatible with those of ES, and "safe" data race semantics compatible with those of ES, but will in addition have acquire-release and relaxed atomics.  Given compatible atomics, Wasm code intended to be compatible with ES code (because one calls the other) can use sequentially consistent atomics where the interaction has an impact on shared memory semantics.
+* WebAssembly has unaligned memory accesses, but ES does not, so ES is strictly a subset of what WebAssembly might need.  (It will in the champion's opinion be wrong for WebAssembly to allow unaligned atomic access, but this aspect does not impact compatibility, and should WebAssembly go down that path we can expose unaligned atomics in ES through atomic operations on DataView.)
+* When the WebAssembly group starts specifying shared memory we should look into a shared memory model specification for the two languages, probably based on an operational model (and probably in large part compatible with the operational level of ES's proposed model).  That may result in some tweaks to the ES model, but the ES model is currently conservative and the tweaks are not expected to be fatal.
+
+#### Introducing new races
+
+We can't outright ban introducing new races since racy programs may become racy in a different way when they are transformed (legally), but we'd like to guarantee that races are not introduced where there previously were none.
+
+It is probably the case that the rules on reorderings are strong enough that any legal reordering will not introduce a new data race (where a data race is understood as a potential conflict at run-time, not necessarily an observed conflict) in any interesting sense (ie, the race becomes observable):
+
+* In the case where the program is data race free to begin with this result is obvious, since it is  claimed already that data race freedom frees one from reasoning about reorganization.
+* We can (informally, for now) talk about sections of the program that are data race free, and perhaps even subclusters of the agent cluster that are data race free (in sections), and the reasoning extends to those cases, provided we can sufficiently formalize the idea of race-free "section" and "subcluster".
+* Sections of the program or subclusters that are not data race free might see additional races introduced, but these sections are already racy, and it's not obvious anyone cares: non-predictability at run-time is the expected effect of a race anyway.  (Compiler writer's motto: It's no sin to make a bad program worse.)
