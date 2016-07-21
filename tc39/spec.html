@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-07-21 -- Replace [[SharedArrayBufferData]] and [[SharedArrayBufferByteLength]] with [[ArrayBufferData]] and [[ArrayBufferByteLength]]; remove specialization that was based on the removed properties and instead use type checks with IsSharedArrayBuffer in ArrayBuffer, SharedArrayBuffer, and Atomics methods; spec that Shared Data Blocks are distinguishable (by unspecified means) from regular Data Blocks and use this to defined IsSharedArrayBuffer.
   <li>2016-07-20 -- Editorial fix: clarify the operator passed to AtomicFetchOp.
   <li>2016-07-13 -- Editorial fixes.
   <li>2016-07-11 -- Rewrote the memory model section, which introduced separate access functions for shared memory, and caused many other changes.
@@ -115,7 +116,7 @@ comments.</p>
           1. Let _toSize_ be the number of bytes in _toBlock_.
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
-            1. <del> Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_]. </del> <br> <ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_].</ins>
+            1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_].</ins>
             1. <ins>If _toBlock_ is a Shared Data Block then perform WriteSharedMemory(_toBlock_, _toIndex_, *true*, 1, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_.</ins>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
             1. Decrement _count_ by 1.
@@ -525,10 +526,10 @@ These call AllocateTypedArray with a specified length:
             1. ...
           1. Else,
             1. ...
-          1. <del>Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</del><br> <ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true*, then:</ins>
+          1. <del>Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true*, then:</ins>
             1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.</ins>
             1. <ins>Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_).</ins>
-          1. <ins> Else, Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</ins>
+          1. <ins>Else, Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</ins>
           1. Return NormalCompletion(*undefined*).
         </emu-alg>
       </emu-clause>
@@ -546,7 +547,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _O_ be the *this* value.
           1. If Type(_O_) is not Object, throw a *TypeError* exception.
           1. If _O_ does not have an [[ArrayBufferData]] internal slot, throw a *TypeError* exception.
-          1. <ins>If IsSharedArrayBuffer(_O_), throw a *TypeError* exception.</ins>
+          1. <ins>If IsSharedArrayBuffer(_O_) is *true*, throw a *TypeError* exception.</ins>
           1. ...
         </emu-alg>
       </emu-clause>
@@ -559,7 +560,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _O_ be the *this* value.
           1. If Type(_O_) is not Object, throw a *TypeError* exception.
           1. If _O_ does not have an [[ArrayBufferData]] internal slot, throw a *TypeError* exception.
-          1. <ins>If IsSharedArrayBuffer(_O_), throw a *TypeError* exception.</ins>
+          1. <ins>If IsSharedArrayBuffer(_O_) is *true*, throw a *TypeError* exception.</ins>
           1. ...
         </emu-alg>
       </emu-clause>
@@ -1067,7 +1068,7 @@ These call AllocateTypedArray with a specified length:
             data reads from different locations, introducing
             speculative data reads, merging multiple data writes to
             the same location, and reordering data writes to different
-            locations. </p>
+            locations.</p>
         </emu-note>
 
         <p>The subroutines ReadSharedMemory and WriteSharedMemory
@@ -1225,7 +1226,7 @@ These call AllocateTypedArray with a specified length:
       <h1>GetWaiterList( _block_, _i_ )</h1>
       <p>A <dfn>WaiterList</dfn> is a semantic object that contains an ordered list of those agents that are waiting on a location (_block_, _i_) in shared memory; _block_ is a Shared Data Block and _i_ a byte offset into the memory of _block_.</p>
       <p>The agent cluster has a store of WaiterList objects; the store is indexed by (_block_, _i_).  WaiterLists are agent-independent: a lookup in the store of WaiterLists by (_block_, _i_) will result in the same WaiterList object in any agent in the agent cluster.</p>
-      <p>Operations on a WaiterList -- adding and removing waiting agents, traversing the list of agents, suspending and waking agents on the list -- may only be performed by agents that have entered the WaiterList's critical section. </p>
+      <p>Operations on a WaiterList -- adding and removing waiting agents, traversing the list of agents, suspending and waking agents on the list -- may only be performed by agents that have entered the WaiterList's critical section.</p>
       <p>When GetWaiterList is called with Shared Data Block _block_ and nonnegative integer _i_, then the following steps are taken.</p>
       <emu-alg>
         1. Assert: _block_ is a Shared Data Block.
@@ -1561,7 +1562,7 @@ These call AllocateTypedArray with a specified length:
   <p>This section outlines how the Shared Memory and Atomics
     specification fits into the current web ecosystem with the minimum
     amount of change to that ecosystem.  This section is not part of
-    the proposal, it is informative only. </p>
+    the proposal, it is informative only.</p>
 
   <p>In a web browser an <em>agent</em> is an HTML <em>event
     loop</em> <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loops">[here]</a>.
