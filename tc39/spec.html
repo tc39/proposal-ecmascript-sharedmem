@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-07-22 -- Editorial fixes.
   <li>2016-07-21 -- Replace [[SharedArrayBufferData]] and [[SharedArrayBufferByteLength]] with [[ArrayBufferData]] and [[ArrayBufferByteLength]]; remove specialization that was based on the removed properties and instead use type checks with IsSharedArrayBuffer in ArrayBuffer, SharedArrayBuffer, and Atomics methods; spec that Shared Data Blocks are distinguishable (by unspecified means) from regular Data Blocks and use this to defined IsSharedArrayBuffer.
   <li>2016-07-20 -- Editorial fix: clarify the operator passed to AtomicFetchOp.
   <li>2016-07-13 -- Editorial fixes.
@@ -1292,7 +1293,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.Suspend" aoid="Suspend">
       <h1>Suspend( _WL_, _W_, _timeout_ )</h1>
-      <p>When Suspend is called with WaiterList _WL_, agent signifier _W_, and nonnegative number _timeout_, then the following steps are taken.</p>
+      <p>When Suspend is called with WaiterList _WL_, agent signifier _W_, and nonnegative, non-*NaN* Number _timeout_, then the following steps are taken.</p>
       <emu-alg>
         1. Assert: The calling agent is in the critical section for _WL_.
         1. Assert: _W_ is equal to AgentSignifier().
