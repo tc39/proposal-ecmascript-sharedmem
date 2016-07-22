@@ -117,8 +117,8 @@ comments.</p>
           1. Let _toSize_ be the number of bytes in _toBlock_.
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
-            1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *true*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_].</ins>
-            1. <ins>If _toBlock_ is a Shared Data Block then perform WriteSharedMemory(_toBlock_, _toIndex_, *true*, 1, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_.</ins>
+            1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *false*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_].</ins>
+            1. <ins>If _toBlock_ is a Shared Data Block then perform WriteSharedMemory(_toBlock_, _toIndex_, *false*, *1*, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_.</ins>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
             1. Decrement _count_ by 1.
           1. Return NormalCompletion(~empty~).
@@ -131,7 +131,7 @@ comments.</p>
         <emu-alg>
           1. Assert: _size_ >= 0.
           1. Let _db_ be a new Shared Data Block value consisting of _size_ bytes. If it is impossible to create such a Shared Data Block, throw a *RangeError* exception.
-          1. Set all of the bytes of _db_ to 0 as if by calls to WriteSharedMemory(_db_, _i_, *true*, 1, 0) for each index _i_ in _db_.
+          1. Set all of the bytes of _db_ to 0 as if by calls to WriteSharedMemory(_db_, _i_, *false*, *1*, *0*) for each index _i_ in _db_.
           1. Return _db_.
         </emu-alg>
       </emu-clause>
