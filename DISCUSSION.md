@@ -88,7 +88,7 @@ A greater concern for those who are porting code from other languages is that th
 
 #### No atomics on DataView
 
-Atomics are only available on integer TypedArrays, not on DataView objects.  This is a practical consideration; DataView objects are frequently accessed at unaligned addresses while atomic accesses must be aligned on most platforms.  One could perhaps fix that by always making DataView atomics non-lock-free, but that seems to create complications as the DataView memory can be aliased by other DataViews and by TypedArrays (where atomics can't all be non-lock-free).  There is also no obvious use case for atomics on DataViews, which are fairly slow compared to TypedArrays due to their generality.  It seemed better to leave this to user code, which can construct its own (non-lockfree) DataView atomics from existing mechanisms, when it knows that there are no aliasing issues.
+Atomics are only available on integer TypedArrays, not on DataView objects.  This is a practical consideration; DataView objects are frequently accessed at unaligned addresses while atomic accesses must be aligned on most platforms.  One could perhaps fix that by always making DataView atomics non-lock-free, but that seems to create complications as the DataView memory can be aliased by other DataViews and by TypedArrays (where atomics can't all be non-lock-free).  There is also no obvious use case for atomics on DataViews, which are fairly slow compared to TypedArrays due to their generality.  It seemed better to leave this to user code, which can construct its own (non-lock-free) DataView atomics from existing mechanisms, when it knows that there are no aliasing issues.
 
 ### Data races
 
