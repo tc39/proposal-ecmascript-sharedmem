@@ -68,11 +68,13 @@ Finally, even if we were to adopt synchronic objects there would be a need for t
 
 ### Only sequentially consistent atomics
 
-At the moment the spec provides only sequentially consistent atomics, as this simplifies the memory model.
+At the moment the proposal provides only sequentially consistent atomics, as this is thought to simplify the memory model significantly and to increase the chance that TC39 will adopt the proposal.
 
-There are several use cases for "relaxed" or "unordered" atomics, ie, loads and stores that are not optimized out, don't tear the datum, and don't create race conditions, but also don't create guarantees about their ordering relative to other memory operations as observed from other CPUs.  Relaxed atomics are a somewhat reasonable mapping (within our domain) of C++ volatile accesses, and can (probably) be used to implement non-tearing loads and stores as required by the JVM memory model.
+The proposal has been written with the intent that a later iteration can add weaker atomics: "acquire-release" and "relaxed" (unordered).  Weaker atomics are important for good performance in some algorithms because they reduce the number of synchronization operations the CPU must perform against the memory and provide flexibility to the CPU in reordering memory operations.
 
-It is desirable to provide relaxed atomics eventually, just not for the initial version of the specification.
+A program that uses a weak atomic can normally be rewritten as one that uses a stronger atomic, so programmability does not suffer by leaving out the weak atomics, but the performance difference can sometimes be significant.  (Compiler optimizations can reduce the additional cost in some cases, but not in general.)
+
+Note that even though the proposal specifies reasonably well-understood behavior for some races -- for example, two int32 stores that race will store one value before the other, not an interleaving -- programs cannot in general use those types of racy accesses as a substitute for relaxed atomics.  Racy accesses can be reordered (by the compiler) in ways that relaxed atomic accesses would not be, for example, racy accesses can (and will!) be hoisted out of loops.  In contrast, reordering of relaxed atomic accesses would normally be more tightly constrained.
 
 ### A limited set of atomic operations
 
