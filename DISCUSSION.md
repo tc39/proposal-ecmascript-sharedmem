@@ -74,6 +74,20 @@ There are several use cases for "relaxed" or "unordered" atomics, ie, loads and 
 
 It is desirable to provide relaxed atomics eventually, just not for the initial version of the specification.
 
+### A limited set of atomic operations
+
+#### Only integer atomics
+
+As the present proposal was being developed, there was no obvious argument to be made for atomics on floating point numbers except generality.  It's clear that some use cases exists, and indeed C++ has floating-point atomics, and indeed some versions of the proposal included support for atomics on Float32Array, Float64Array, and even Uint8ClampedArray.  However, in the end there was consensus to remove that support (as a complexity-reducing measure), and to add it later should a definite need develop.  In the mean time, user code can construct its own (non-lock-free) floating point atomics from existing mechanisms.
+
+#### No 8-byte atomics
+
+A greater concern for those who are porting code from other languages is that there are no 8-byte integer atomics.  ES has no 8-byte integer type at this time.  Thus, the API for 8-byte atomics would have to be quite different than the API for atomics of other sizes.  That would be OK if ES were never to get an 8-byte integer type, but that is not actually likely, indeed 8-byte integers are highly desired and may be added soon.  Adding an API for 8-byte atomics now would thus create a soon-to-be-orphaned API, not a desirable situation.  In the mean time, user code can construct its own (non-lock-free) 8-byte integer atomics from existing mechanisms.
+
+#### No atomics on DataView
+
+Atomics are only available on integer TypedArrays, not on DataView objects.  This is a practical consideration; DataView objects are frequently accessed at unaligned addresses while atomic accesses must be aligned on most platforms.  One could perhaps fix that by always making DataView atomics non-lock-free, but that seems to create complications as the DataView memory can be aliased by other DataViews and by TypedArrays (where atomics can't all be non-lock-free).  There is also no obvious use case for atomics on DataViews, which are fairly slow compared to TypedArrays due to their generality.  It seemed better to leave this to user code, which can construct its own (non-lockfree) DataView atomics from existing mechanisms, when it knows that there are no aliasing issues.
+
 ### Data races
 
 The meaning of data races is currently semi-specified: data races are allowed, and the bytes affected by a race are limited to the union of the byte ranges accessed by the racing accesses, and the values that are stored in memory after a race are predictable to a limited extent.  Exactly what to guarantee, if anything, has been contentious.
