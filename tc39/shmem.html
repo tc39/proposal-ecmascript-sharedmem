@@ -970,6 +970,10 @@ These call AllocateTypedArray with a specified length:
         of bytes starting with <var>block</var>[<var>byteIndex</var>], using
         <var>accessAtomic</var> to guide the operation, as follows:</p>
 
+      <emu-note><span class="note">Note</span>
+        <p>The parameter <var>accessAtomic</var> requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
+      </emu-note>
+
       <ol>
         <li>If the read has a data race with any number of writes where
           the read and the writes all access the exact same access
@@ -1005,6 +1009,10 @@ These call AllocateTypedArray with a specified length:
         individual bytes of <var>rawBytes</var> into <var>block</var>, in order, starting
         at <var>block</var>[<var>byteIndex</var>], using <var>accessAtomic</var> to guide the
         operation, as follows:</p>
+
+      <emu-note><span class="note">Note</span>
+        <p>The parameter <var>accessAtomic</var> requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
+      </emu-note>
 
       <ol>
         <li>If the write has a data race with any number of other writes
