@@ -760,47 +760,28 @@ These call AllocateTypedArray with a specified length:
       <h1>Memory model</h1>
 
       <p>The memory model determines when a particular read from
-        shared memory may observe a particular write to shared memory.
-        This is straight-forward in the case when the program has no
-        data races, as all shared memory reads and writes are then
-        clearly ordered and reads can only see writes that happened
-        before them in the order.  When the program has data races,
-        however, reads may observe writes that appear to come out of
-        the past, the future, or should not have happened, as some of
-        the reads and writes (to the same location) that are unordered
-        relative to each other may access the same memory without
-        coordination.  This section provides rules that determine when
-        a data race is not present in the program and also provides a
-        conventional model that determines event ordering in data race
-        free programs; it then provides additional rules that
-        determine the allowable effects of data races.</p>
-
-      <p>ECMAScript shared memory obeys very weak type discipline, in
+        shared memory may observe a particular write to shared
+        memory. Programs <em>synchronize</em> to ensure that reads and
+        writes to shared memory happen in a meaningful
+        order. Synchronization happens chiefly by means of <em>atomic
+          accesses</em> to shared memory; under conditions described
+        below, atomic accesses are executed in a well-defined order,
+        and the well-defined order allows us to reason about program behavior.</p>
+        
+      <p>However, ECMAScript shared memory obeys very weak type discipline, in
         that the byte array of a Shared Data Block can be aliased by
         TypedArrays of different types and accessed without natural
         alignment via DataViews, and also in that atomic operations
         must be applied to cells that are not exclusively atomic.  (In
         this it is similar to the "low-level atomics" of C.)  In
-        contrast, correct synchronization to achieve data race freedom
-        requires a stronger type discipline where a location used for
+        contrast, the well-defined order of atomic accesses required for predictable synchronization 
+        requires a stronger type discipline, where a location used for
         synchronization during some segment of the program's lifetime
         is used only for synchronization and where all atomic
         operations that touch the location during that segment use the
-        exact same access range.  The weak type discipline thus
-        complicates the description of synchronization.</p>
-
-      <emu-note>
-        <p>(spec draft note) Acknowledgement: The description of many
-          fundamentals and sequentially consistent execution owes much
-          to the Java memory model.</p>
-
-        <p>This section provides an axiomatic model that it then
-          augments with operational details to specify what might
-          happen during data races.  If review indicates that this
-          model has problems that are not easily fixable it is
-          probable that we should move in an operational direction for
-          the whole model, even if that makes it less nice to use.</p>
-      </emu-note>
+        exact same access range.  We create the concept of <em>viable</em> atomic
+        accesses that obey the stronger type discipline, but this 
+        complicates the description of synchronization significantly.</p>
 
       <emu-clause id="AtomicsObject.Fundamentals">
         <h1>Fundamentals</h1>
@@ -818,7 +799,7 @@ These call AllocateTypedArray with a specified length:
         <emu-note>
           <p>Examples of embedding-specific synchronizing events that
             should be accounted for are: sending a SharedArrayBuffer
-            from one agent to another (e.g., by `postMessage` in a
+            from one agent and receiving it in another (e.g., by `postMessage` in a
             browser), starting and stopping agents, and communicating
             within the agent cluster via channels other than shared
             memory.</p>
@@ -834,14 +815,12 @@ These call AllocateTypedArray with a specified length:
             stronger than in most mainstream concurrent languages.</p>
         </emu-note>
 
-        <p>The <em>program order</em> of an agent is a total ordering
-          of the agent's events that is consistent with the semantics
-          of the ECMAScript program running in that agent.</p>
+        <p>A <em>program order</em> of an agent is a total ordering of
+          the agent's events that is consistent with the semantics of
+          the ECMAScript program running in that agent.  There are
+          usually many possible legal program orders for a program.</p>
 
-        <p>The <em>execution order</em> of an agent cluster is a
-          total order of the events of an execution of the programs in
-          the cluster; the execution order must be consistent with
-          each agent's program order.</p>
+        <p>An <em>execution</em> of an agent cluster is a partial ordering of the agents' events that is consistent with each agent's program order.</p>
 
         <p>Shared memory access is always performed by two primitive
           subroutines, ReadSharedMemory and WriteSharedMemory.  These
@@ -868,62 +847,30 @@ These call AllocateTypedArray with a specified length:
           are always consecutive and within a single Shared Data
           Block.)</p>
 
-        <p>A candidate atomic read R is <em>viable</em> in an
-          execution order E if it reads the value written by a
-          candidate atomic write W that precedes R in E, W and R have
-          identical access ranges, and there exists no write V in E
-          s.t. W precedes V and V precedes R and V writes to any byte
-          in the access range of R.</p>
+        <p>Informally, a candidate atomic read R is <em>viable</em> in some execution of an agent cluster if it sees the value written by a candidate atomic write W, where:</p>
+        <ol>
+          <li> W and R access the same sequence of bytes in the shared memory
+          <li> R does not see a value for any of those bytes written by some other write V
+        </ol>
 
-        <p>If a candidate atomic read _R_ is not viable in some
-          execution order, then _R_ is simply <em>not viable</em>.</p>
+        <p>The notion of an atomic read seeing a compatible atomic write is operationalized in the definitions of ReadSharedMemory and WriteSharedMemory.</p>
 
-        <p>Finally, let the <em>atomic accesses</em> of the program
-          be those candidate atomic accesses that are viable, and let
+        <p>Let the <em>atomic accesses</em> of an execution be those
+          candidate atomic accesses that are viable, and let
           the <em>data accesses</em> be the union of the candidate
           data accesses and the non-viable candidate atomic
           accesses.</p>
-
-        <emu-note>
-          <p>One goal of this section is to define data races, which
-            means defining happens-before, which means defining
-            synchronization order.  Synchronization order depends on
-            well-defined atomic accesses: An atomic read is
-            well-defined for synchronization only if it reads from an
-            atomic write to the same access range, where that write
-            does not race with any data writes or with atomic writes
-            to an overlapping but not-equal access range.  We can't
-            use the definition of data races directly to determine
-            well-definedness (or the definition would be circular),
-            and instead use the notion of visibility of writes in the
-            execution order.</p>
-        </emu-note>
-
-        <emu-note>
-          <p>(Spec draft notes)</p>
-
-          <p>Claim: After requiring atomic reads to be viable there
-            may still be data races (by the definition below) that
-            involve atomic writes, but none of them will be observed
-            by atomic reads.  Hence synchronization order is not
-            affected by data races on atomics.</p>
-
-          <p>Without a working notion of viability it is not clear how
-            we can salvage an axiomatic formalization of the memory model.</p>
-
-          <p>The notion of viability used here is fairly strong.  It
-            would be interesting to try to loosen it up.</p>
-        </emu-note>
 
         <p>Similarly, the `wait` event is viable (and thus considered
           as a synchronizing event) only if the atomic read it
           performs is viable.</p>
 
-        <p>Synchronizing events are then performed in a single total
-          order -- known as the <em>synchronization order</em> -- that
-          is a sub-sequence of the execution order (and hence
-          consistent with each agent's program order).  This induces
-          a <em>synchronized-with</em> relation on actions:</p>
+        <p>Synchronizing events in an execution shall be performed in a total
+          order -- known as the <em>synchronization order</em> for the execution -- that
+          is consistent with each agent's program order.</p>
+
+        <p>The synchronization order induces
+          a <em>synchronized-with</em> relation on actions for the execution:</p>
 
         <ul>
           <li>An atomic write of a location synchronizes-with all
@@ -939,10 +886,10 @@ These call AllocateTypedArray with a specified length:
 
         <p>We can now define the happens-before relation, which gives
           rise to definitions of data races.  An event A <em>happens
-          before</em> another event B if either:</p>
+          before</em> another event B in an execution if either:</p>
 
         <ul>
-          <li>A precedes B in the agent's program order,
+          <li>A precedes B in an agent's program order,
           <li>A synchronizes-with B, or
           <li>A happens before C and C happens before B (transitivity).
        </ul>
@@ -956,54 +903,21 @@ These call AllocateTypedArray with a specified length:
           both atomic writes to the same access range.</p>
 
         <p>If an atomic access is not in a data race, then the shared
-          memory reads and writes issued by the atomic access must be
-          performed indivisibly (following the rules of
+          memory reads and writes issued by the atomic access shall be
+          performed indivisibly (while also following the rules of
           ReadSharedMemory and WriteSharedMemory), and in a
-          read-modify-write atomic access no write by another agent must
+          read-modify-write atomic access no write by another agent shall
           be allowed to execute between the read and the write.</p>
       </emu-clause>
 
-      <emu-clause id="AtomicsObject.SeqCst">
-        <h1>Sequential consistency</h1>
+      FIXME: Very unfortunate confusion about whether the "atomic access" is the read and write individually or the rmw all together.  Cleaning that up is fairly major surgery, but if we have to do surgery to operationalize "R sees W" anyway, is it perhaps not best?
 
-        <p>An execution of a set of events is <em>sequentially
-            consistent</em> if the events occur in an execution order,
-            and a read R of a location L sees a write W s.t. W
-            precedes R in the execution order, and there is no other
-            write V to L s.t. W precedes V and V precedes R.</p>
-
-        <emu-note>
-          <p>Observe that a sequentially consistent execution can still
-            have a data race since sequential consistency only requires
-            a certain execution behavior for a specific ordering of an
-            event set.</p>
-        </emu-note>
-
-        <p>The program will appear to be sequentially consistent if
-          all sequentially consistent executions of the program have
-          no data races.  In that case, the following hold:</p>
-
-        <ul>
-          <li>A data access read R only sees a write W that happens
-            before R, where there is no write V such that V happens
-            before R and W happens before V.
-
-          <li>An atomic read R sees either the last preceding (in
-            synchronization order) atomic write U to the same
-            location, or a non-atomic write W that happens before R,
-            where there is no write V such that V happens before R and
-            W happens before V.
-       </ul>
-      </emu-clause>
-
+      It would mean introducing a RMW algorithm to go with GetValueFromBuffer / SetValueInBuffer.  It would be better, then, to package things up.
+      
       <emu-clause id="AtomicsObject.DataRaces">
         <h1>Data races</h1>
 
-        <p>In a data race the write-to-read visibility guarantees
-          provided by sequential consistency do not hold; an atomic
-          access in a data race is not indivisible; and generally
-          programs with data races do not behave as if they were
-          sequentially consistent.  Data races expose the effects of
+        <p>Data races expose the effects of
           program transformations in the compiler and in the hardware,
           which are unintuitive and platform-specific.  ECMAScript
           programs with data races are safe (races cannot subvert the
@@ -1016,7 +930,7 @@ These call AllocateTypedArray with a specified length:
           from the future (because they should have been written after
           other values, which have not been seen), or which should not
           exist at all (because some conflicting writes may interleave
-          the bytes being written).</p>
+          the bytes being written)</p>
 
         <p>When an atomic access that is in a data race performs a
           read-write pair of memory accesses, those accesses are
@@ -1055,6 +969,12 @@ These call AllocateTypedArray with a specified length:
             it was read from.  Note that byte interleavings resulting
             from races, described below, is within program semantics.)
 
+            FIXME: This third rule is really very similar to the second one so it is
+            useful to maybe elaborate on that.  But the previous rule is about
+            side effects more than values, and the third rule is about invented garbage.
+            It may be that the note, above, about byte interleavings belongs with
+            the third rule.
+            
           <li>Any given read must only observe values that have been
             produced by the program's execution.  (For example, the
             compiler or hardware may not speculate about a value and
@@ -1107,6 +1027,10 @@ These call AllocateTypedArray with a specified length:
         <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
       </emu-note>
 
+      FIXME: accessAtomic must be true for all the accesses, not just for this one.
+
+      FIXME: operationalize an atomic read "seeing" an atomic write
+      
       <ol>
         <li>If the read has a data race with any number of writes where
           the read and the writes all access the exact same access
@@ -1146,6 +1070,10 @@ These call AllocateTypedArray with a specified length:
         <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
       </emu-note>
 
+      FIXME: accessAtomic must be true for all the accesses, not just for this one.
+
+      FIXME: operationalize an atomic read "seeing" an atomic write
+      
       <ol>
         <li>If the write has a data race with any number of other writes
           where all the writes access the exact same access range, and
