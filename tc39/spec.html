@@ -764,7 +764,8 @@ These call AllocateTypedArray with a specified length:
         memory. Programs <em>synchronize</em> to ensure that reads and
         writes to shared memory happen in a meaningful
         order. Synchronization happens chiefly by means of <em>atomic
-          accesses</em> to shared memory; under conditions described
+          accesses</em> to shared memory wherein an atomic read observes the
+        value written by an atomic write; under conditions described
         below, atomic accesses are executed in a well-defined order,
         and the well-defined order allows us to reason about program behavior.</p>
         
@@ -774,7 +775,8 @@ These call AllocateTypedArray with a specified length:
         alignment via DataViews, and also in that atomic operations
         must be applied to cells that are not exclusively atomic.  (In
         this it is similar to the "low-level atomics" of C.)  In
-        contrast, the well-defined order of atomic accesses required for predictable synchronization 
+        contrast, the well-defined order of atomic accesses required for
+        predictable synchronization 
         requires a stronger type discipline, where a location used for
         synchronization during some segment of the program's lifetime
         is used only for synchronization and where all atomic
@@ -832,10 +834,8 @@ These call AllocateTypedArray with a specified length:
           in the algorithms in subsequent sections, ie, the simple
           `load` and `store` operations and the read-modify-write
           operations `add`, `sub`, `and`, `or`, `xor`, `exchange`, and
-          `compareExchange`; the accesses will ultimately be performed
-          by ReadSharedMemory and WriteSharedMemory.  A
-          read-modify-write atomic access is considered a read
-          followed by a write.</p>
+          `compareExchange`; memory read and write operations will ultimately be performed
+          by ReadSharedMemory and WriteSharedMemory.</p>
 
         <p>Let the <em>candidate data accesses</em> (candidate data
           reads, candidate data writes) be those invocations of
@@ -847,16 +847,9 @@ These call AllocateTypedArray with a specified length:
           are always consecutive and within a single Shared Data
           Block.)</p>
 
-        <p>Informally, a candidate atomic read R is <em>viable</em> in some execution of an agent cluster if it sees the value written by a candidate atomic write W, where:</p>
-        <ol>
-          <li> W and R access the same sequence of bytes in the shared memory
-          <li> R does not see a value for any of those bytes written by some other write V
-        </ol>
-
-        <p>The notion of an atomic read seeing a compatible atomic write is operationalized in the definitions of ReadSharedMemory and WriteSharedMemory.</p>
-
         <p>Let the <em>atomic accesses</em> of an execution be those
-          candidate atomic accesses that are viable, and let
+          candidate atomic accesses that are <em>viable</em> (as
+          defined in the next section), and let
           the <em>data accesses</em> be the union of the candidate
           data accesses and the non-viable candidate atomic
           accesses.</p>
@@ -865,9 +858,82 @@ These call AllocateTypedArray with a specified length:
           as a synchronizing event) only if the atomic read it
           performs is viable.</p>
 
-        <p>Synchronizing events in an execution shall be performed in a total
+        <p>Synchronizing events in an execution shall then be performed in a total
           order -- known as the <em>synchronization order</em> for the execution -- that
           is consistent with each agent's program order.</p>
+      </emu-clause>
+
+      <emu-clause id="AtomicsObject.Viability>
+        <h1>Viability</h1>
+
+        <emu-note>
+          <p>(Spec draft note)</p>
+
+          <p>Some of the exposition here does not belong in the final spec,
+            but is here to aid review.</p>
+        </emu-note>
+
+        <p>The synchronization order defined above is a total order,
+          and having it will lead to guarantees of sequentially consistent
+          behavior for data race free programs.  But the total order is
+          only implementable with good performance if atomics are
+          well-behaved in the following sense:</p>
+
+        <ol>
+          <li> Two candidate atomic writes that interact with memory at the same
+            time (ie one write attempts to start before the other is finished) must
+            either write to the same byte range or must write to disjoint byte
+            ranges.
+
+          <li> A candidate atomic read only reads the value written by a viable
+            candidate atomic write to the same bytes that the read reads from.
+        </ol>
+
+        <p>(We're at the level of the memory interface here.  But for seq_cst atomics that should not matter since data accesses must be ordered before and after it, ie, for an atomic, write buffering and speculation are effectively disabled.)</p>
+          
+        <p>The reason for the first rule is that non-lock-free and lock-free atomics are implemented differently and the former is not atomic on the hardware in the same sense as the latter.  Suppose an eight-byte non-lock-free candidate atomic write E attempts to interact with the memory system at the same time as a four-byte lock-free candidate atomic write F.  (We don't have eight-byte atomics at present but we may have them in the future, and there are 32-bit platforms, such as MIPS, that do not support 64-bit atomics.)  E acquires a lock, then writes the data bytes in some arbitrary order, then releases the lock.  While E holds the lock, F interacts directly with the memory system to write its four bytes as a unit.  The result may easily be that some of the bytes written for E are written before the four bytes of F, and some after.  As a result, the bytes in memory at the location of F may be a jumble of the two values, contrary to the desire that atomics execute in a total order.</p>
+
+        <p>The reason for the second rule is that it is possible to perform candidate data writes (and non-viable candidate atomic writes) to the same locations that we perform candidate atomic reads to.  Such writes are not properly ordered with the candidate atomic reads -- in the case of candidate data writes this is obvious, in the case of candidate atomic writes the same argument about lock-free and non-lock-free atomics as for the first rule can be adapted -- and do not give rise to reliable synchronization.</p>
+
+        <p>("Ordering" is the correct explanation above but is sort of nebulous.  Can we do better?)</p>
+
+        <p>We want to reserve the notion of a "data race" for the conventional higher-level concept below, so what we do with viability is to create a dynamic type system that (in the semantics, though not in the implementation) checks that candidate atomic writes do not interfere and that candidate atomic reads only read from compatible candidate atomic writes.  From this we get the synchronization order, as desired.</p>
+
+        <p>Operationally, viability can be established through two mechanism, a reservation system for atomic accesses and a tagging system for memory contents.  These are specification mechanisms: they are not intended to be implemented.  They simply allow us to separate synchronizing events from non-synchronizing events.</p>
+
+        <p>The tagging scheme associates a triplet (Kind,N,J) with each byte where Kind is Atomic, Regular or Init, N is a byte count, and J is a number between 0 and N-1 inclusive.  The tag (Atomic,4,1) means that the byte was written as part of an atomic write of width 4, and this is byte 1 (ie the second byte). The tag (Regular,0,0) means the byte was written by a regular write (of some unknown width). The tag (Init,0,0) means the byte was written by a special initializing write (of some unknown width).</p>
+          
+        <p>A candidate atomic write to a sequence of locations i..j creates a reservation for i..j; if a reservation for i..j exists it waits until that reservation has been cleared.  It then writes the data bytes with the tags (Atomic,j-i+1,k) where k is 0, 1, up to j-i+1, and finally clears the reservation.  If the reservation was already cleared by another instruction then the candidate atomic write is not viable.</p>
+
+        FIXME: What about the total order?  Is that a side condition?  (Probably best, but if so worth a note here.)  Above we only have a partial order.
+
+        <p>A data write to a sequence of locations i..j clears any reservation for i..j and writes the data bytes with tags (Regular,0,0).</p>
+
+        <p>An initializing write to a sequence of locations i..j clears any reservation for i..j and writes the data bytes with tags (Init,0,0).  Initializing writes are performed by the constructor of the SharedArrayBuffer, and may be performed by mechanisms outside this proposal.</p>
+
+        <emu-note>
+          <p>In the case of translation from C/C++, program semantics may require fresh objects to be read by atomic reads without first being initialized by atomic writes.  Initializing writes add a complication, because we're creating an "as-if" situation where the semantics say that if your program blessed a memory area as newly-initialized by some unspecified means then an atomic read from the area is viable. </p>
+        </emu-note>
+            
+        <p>A candidate atomic read to a sequence of locations i..j waits until there is no longer any reservation for i..j then reads the locations.  If the tags of the locations are not of the form (Atomic,j-i+1,k) for k in the sequence 0, 1, j-i+1, or all of the form (Init,0,0), then the read is not viable.</p>
+
+        FIXME: Viability can be made more flexible by allowing an atomic read to read the non-atomic write of the same thread.
+
+        <p>A candidate atomic write (including the write operation of a read-modify-write) W is <em>viable</em> in some execution of an agent cluster if it does not interfere with another candidate atomic write V, where:</p>
+        <ol>
+          <li> W and V access overlapping but non-identical sequences of bytes in the shared memory
+        </ol>
+
+        <p>A candidate atomic read (including the read operation of a read-modify-write) R is <em>viable</em> in some execution of an agent cluster if it sees the value written by a viable candidate atomic write W, where:</p>
+        <ol>
+          <li> W and R access the same sequence of bytes in the shared memory, and
+          <li> R does not see a value for any of those bytes written by some other write V
+        </ol>
+
+      </emu-clause>
+
+      <emu-clause id="AtomicsObject.HappensBefore">
+        <h1>Synchronization, Happens-before, data races, and atomicity</h1>
 
         <p>The synchronization order induces
           a <em>synchronized-with</em> relation on actions for the execution:</p>
@@ -910,10 +976,6 @@ These call AllocateTypedArray with a specified length:
           be allowed to execute between the read and the write.</p>
       </emu-clause>
 
-      FIXME: Very unfortunate confusion about whether the "atomic access" is the read and write individually or the rmw all together.  Cleaning that up is fairly major surgery, but if we have to do surgery to operationalize "R sees W" anyway, is it perhaps not best?
-
-      It would mean introducing a RMW algorithm to go with GetValueFromBuffer / SetValueInBuffer.  It would be better, then, to package things up.
-      
       <emu-clause id="AtomicsObject.DataRaces">
         <h1>Data races</h1>
 
@@ -932,8 +994,10 @@ These call AllocateTypedArray with a specified length:
           exist at all (because some conflicting writes may interleave
           the bytes being written)</p>
 
-        <p>When an atomic access that is in a data race performs a
-          read-write pair of memory accesses, those accesses are
+        <p><b>FIXME:</b> Why only a read-modify-write access next?</p>
+
+        <p>When an atomic read-modify-write access is in a data race, then
+          those accesses are
           performed as if the qualifier "With atomic access to shared
           memory" were omitted from the algorithms below.</p>
 
@@ -950,6 +1014,12 @@ These call AllocateTypedArray with a specified length:
 
         <p>The following rules restrict program behavior in the
           presence of data races:</p>
+
+        <p><b>FIXME:</b> This third rule is really very similar to the second one so it is
+            useful to maybe elaborate on that.  But the previous rule is about
+            side effects more than values, and the third rule is about invented garbage.
+            It may be that the note, above, about byte interleavings belongs with
+            the third rule.</p>
 
         <ul>
           <!-- Deoptimization (maybe, unlikely); rematerialization -->
@@ -969,12 +1039,6 @@ These call AllocateTypedArray with a specified length:
             it was read from.  Note that byte interleavings resulting
             from races, described below, is within program semantics.)
 
-            FIXME: This third rule is really very similar to the second one so it is
-            useful to maybe elaborate on that.  But the previous rule is about
-            side effects more than values, and the third rule is about invented garbage.
-            It may be that the note, above, about byte interleavings belongs with
-            the third rule.
-            
           <li>Any given read must only observe values that have been
             produced by the program's execution.  (For example, the
             compiler or hardware may not speculate about a value and
@@ -1027,9 +1091,9 @@ These call AllocateTypedArray with a specified length:
         <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
       </emu-note>
 
-      FIXME: accessAtomic must be true for all the accesses, not just for this one.
-
-      FIXME: operationalize an atomic read "seeing" an atomic write
+      <p><b>FIXME:</b> accessAtomic must be true for all the accesses, not just for this one.</p>
+      
+      <p><b>FIXME:</b> operationalize an atomic read "seeing" an atomic write</p>
       
       <ol>
         <li>If the read has a data race with any number of writes where
@@ -1070,9 +1134,9 @@ These call AllocateTypedArray with a specified length:
         <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
       </emu-note>
 
-      FIXME: accessAtomic must be true for all the accesses, not just for this one.
+      <p><b>FIXME:</b> accessAtomic must be true for all the accesses, not just for this one.</p>
 
-      FIXME: operationalize an atomic read "seeing" an atomic write
+      <p><b>FIXME:</b> operationalize an atomic read "seeing" an atomic write</p>
       
       <ol>
         <li>If the write has a data race with any number of other writes
