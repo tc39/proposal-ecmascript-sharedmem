@@ -11,3 +11,7 @@ The easiest place to start might be src/buffer.js, which implements a classical 
 A more elaborate take on the same idea is in src/intqueue.js, which is a queue of bundles of integers, built on the Synchronic abstraction in src/synchronic.js and also on a simple memory allocator.  IntQueue is then used, along with value marshaling code in src/marshaler.js, to build a *synchronous inter-worker communication channel* in src/channel.js.  The test program in test/test-sendmsg.html uses this system to send values back and forth between agents.
 
 Finally, the data-parallel framework in src/par.js provides a simple perform-work-in-parallel abstraction, with automatic work queue management and marshaling of arguments.  Simple demonstrations of this facility are in demo/mandelbrot-animation2 and demo/mandelbrot-animation-simd.
+
+## Web applications using shared memory
+
+* http://statebuilder.com/ - 4X strategy game, built with custom C++ engine, ported to the web using Emscripten.
