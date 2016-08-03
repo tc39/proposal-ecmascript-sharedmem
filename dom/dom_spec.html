@@ -1,0 +1,126 @@
+<!-- -*- indent-tabs-mode: nil -*-
+
+     Process this file with ../format.sh to produce shmem.html.  See comments in that file.
+-->
+<!doctype html>
+<meta charset="utf8">
+<title>ECMAScript Shared Memory and Atomics - DOM addenda</title>
+<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<h1>ECMAScript Shared Memory and Atomics - DOM addenda</h1>
+<p> Revised: 2016-08-03 </p>
+
+<emu-intro id="intro">
+<h1>Introduction</h1>
+
+<p>For Shared Memory and Atomics to be useful in the browser we must modify some DOM APIs to work with shared memory.  At a minimum we need a method for sharing a SharedArrayBuffer among agents, but it is also useful to allow some WebGL APIs to operate on shared memory so as to avoid the overhead of copying large data arrays.</p>
+
+<p>TODO - mine information from older spec docs and tickets and discussions to go here</p>
+
+</emu-intro>
+
+<emu-clause id="clusters">
+  <h1>Agents and Agent Clusters</h1>
+
+  <emu-clause id="clusters.types">
+    <h1>Agent Cluster Types</h1>
+    
+    <p>A <em>normal agent cluster</em> shall comprise a single HTML document and its direct (and indirect, if nested workers are supported) Web Worker children.</p>
+
+    <emu-note>
+      <p>Thus a document within a frame element is never in the same agent cluster as its parent document.  The reason for this is partly that it is a conservative design that can be loosened later, and also that it is possible for the outer and inner documents to be in different content processes, making sharing memory difficult.</p>
+    </emu-note>
+
+    <p>A <em>special agent cluster</em> is any agent cluster other than a normal agent cluster.  Every special agent cluster shall comprise only a single agent.</p>
+
+    <emu-note>
+      <p>Thus SharedWorkers and ServiceWorkers are agent clusters by themselves.  The reason for this is largely that a normal agent cluster can be suspended or removed without SharedWorkers and ServiceWorkers being aware of that, and if the latter share memory with the cluster a deadlock can ensue as a shared-memory communication from the cluster is forever delayed.  A secondary reason is that eg a ServiceWorker can be in a different content process from the documents using it, making sharing memory difficult.</p>
+    </emu-note>
+
+    <emu-note>
+      <p>(Spec draft note) If an agent like a SharedWorker can create its own WebWorkers then we really would like those to be within the agent cluster of the SharedWorker.  But the WHATWG spec seems mum on nested workers in general.</p>
+    </emu-note>
+    
+  </emu-clause>
+
+  <emu-clause id="clusters.creation">
+    <h1>Worker creation</h1>
+
+    <p>When a web worker is created the embedding may delay actually starting the worker until the creating agent returns to its event loop.</p>
+
+    <emu-note>
+      <p>Firefox has that constraint, and the architecture is unlikely to change.  It is a possible source of non-portability that other browsers may be able to start the worker immediately.</p>
+      <p>In contrast, the WHATWG spec requires the worker to be started immediately (steps 10 and 11 of the worker creation algorithm).</p>
+    </emu-note>
+
+    <p>If a web worker cannot be created (for example, because a thread cannot be created for it) then an error must be signaled by firing an Error event at the creating agent (as for failing to load the URL for the worker).</p>
+  </emu-clause>
+
+  <emu-clause id="clusters.progress">
+    <h1>Worker forward progress</h1>
+    
+    <p>Each web worker shall run on a dedicated preemptable thread ("real thread") in order to guarantee forward progress.</p>
+
+  </emu-clause>
+
+  <emu-clause id="clusters.termination">
+    <h1>Worker termination</h1>
+
+    <p>If an agent in a cluster is terminated by the implementation then the entire agent cluster it is part of shall be terminated.</p>
+
+    <emu-note>
+      <p>That behavior is chosen as there exists no reliable termination signaling mechanism today.  The SAB proposal requires either termination <em>en masse</em> or a signaling mechanism.</p>
+
+      <p>Current browsers probably do not randomly terminate workers, but terminate them only when the page they belong to is removed from the browser (purged from the tab's history, or the tab is closed).  Thus current browsers probably get this right already.</p>
+    </emu-note>
+  </emu-clause>
+</emu-cluse>
+
+<emu-clause id="postMessage">
+  <h1>postMessage and structured cloning</h1>
+
+  <p>The exclusive method for causing memory to be shared between agents shall be to send a SharedArrayBuffer from one agent in the cluster to another using `postMessage` and structured cloning.</p>
+
+  <p>The structured clone algorithm accepts SharedArrayBuffers and TypedArrays mapped onto SharedArrayBuffers.  In both cases, the SharedArrayBuffer object is transmitted to the receiver resulting in a new, private SharedArrayBuffer object in the receiving agent (just as for ArrayBuffer).  However, the Shared Data Block referenced by the two SharedArrayBuffer objects is the same data block, and a side effect to the block in one agent will eventually become visible in the other agent, following the semantics in the ES262 proposal.</p>
+
+  <p>A SharedArrayBuffer is not a Transferable object in the sense of HTML.</p>
+
+  <emu-note>
+    <p>Thus if a SharedArrayBuffer object is present in the transfer list then `postMessage` will throw a DataCloneError.</p>
+
+    <p>In draft versions of the Shared Memory and Atomics spefification the SharedArrayBuffer was required to be present in the transfer list in the `postMessage` call.</p>
+  </emu-note>
+
+  <p>If the sender and receiver are not part of the same agent cluster then then the receiver shall receive a SharedArrayBuffer object that references a new Shared Data Block with byte length zero and not the Shared Data Block that was sent.</p>
+
+  <emu-note>
+    <p>The sender can't tell if the message is sent to a valid receiver since it may be sending on a MessageChannel that is not connected with a receiver.</p>
+
+    <p>(Spec draft note) Instead of receiving a zero-length block the receiver could receive some sort of error.</p>
+  </emu-note>
+
+</emu-clause>
+
+<emu-clause id="webgl">
+  <h1>WebGL APIs</h1>
+
+  <p>Modify <a href="https://www.khronos.org/registry/webgl/specs/latest/1.0/">the WebGL 1.0 spec</a> as follows.</p>
+
+  <p>Change the type of `ArrayBufferView` to be a view whose buffer is exclusively an ArrayBuffer, ie, <em>not</em> a SharedArrayBuffer.</p>
+
+  <emu-note>
+    <p>That probably depends on some kind of predicate mechanism, TBD, but the concept is easy enough, it is just an additional run-time check.  A reasonable implementation of the check is just a load/compare/conditional branch triplet.</p>
+  </emu-note>
+
+  <p>Introduce a type `ArrayBufferViewMaybeShared` to be any view type, ie, equivalent to the old definition of `ArrayBufferView`.</p>
+  
+  <p>Introduce a type `BufferDataSourceMaybeShared`:</p>
+  <p>`typedef (ArrayBuffer or SharedArrayBuffer or ArrayBufferViewMaybeShared) BufferDataSourceMaybeShared`</p>
+
+  <p>Replace every occurrence of `BufferDataSource` in signatures with `BufferDataSourceMaybeShared`, ie, in the signatures of these functions: `bufferData`, `bufferSubData`.</p>
+
+  <p>Replace every occurrence of `ArrayBufferView` in signatures with `ArrayBufferViewMaybeShared`, ie in the signatures of these functions: `compressedTexImage2D`, `compressedTexSubImage2D`, `readPixels`, `texImage2D`, `texSubImage2D`.</p>
+
+</emu-clause>

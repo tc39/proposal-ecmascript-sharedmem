@@ -10,5 +10,6 @@
 #
 # ecmarkup 1.6 or greater is required.
 
-ecmarkup tc39/spec.html tc39/shmem.html    
-ecmarkup asmjs/asmjs_spec.html asmjs/asmjs_shmem.html    
+ecmarkup tc39/spec.html tc39/shmem.html
+ecmarkup asmjs/asmjs_spec.html asmjs/asmjs_shmem.html
+ecmarkup dom/dom_spec.html dom/dom_shmem.html
