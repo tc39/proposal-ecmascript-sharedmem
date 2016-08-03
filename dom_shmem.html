@@ -1,0 +1,123 @@
+<!doctype html>
+<head><meta charset="utf-8">
+<title>ECMAScript Shared Memory and Atomics - DOM addenda</title>
+<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<script type="application/json" id="menu-search-biblio">[{"type":"clause","id":"intro","aoid":null,"title":"Introduction","number":"","namespace":"<no location>","location":"","key":"Introduction"},{"type":"clause","id":"clusters","aoid":null,"title":"Agents and Agent Clusters","number":"1","namespace":"<no location>","location":"","key":"Agents and Agent Clusters"},{"type":"clause","id":"clusters.types","aoid":null,"title":"Agent Cluster Types","number":"1.1","namespace":"<no location>","location":"","key":"Agent Cluster Types"},{"type":"clause","id":"clusters.creation","aoid":null,"title":"Worker creation","number":"1.2","namespace":"<no location>","location":"","key":"Worker creation"},{"type":"clause","id":"clusters.progress","aoid":null,"title":"Worker forward progress","number":"1.3","namespace":"<no location>","location":"","key":"Worker forward progress"},{"type":"clause","id":"clusters.termination","aoid":null,"title":"Worker termination","number":"1.4","namespace":"<no location>","location":"","key":"Worker termination"},{"type":"clause","id":"postMessage","aoid":null,"title":"postMessage and structured cloning","number":"1.5","namespace":"<no location>","location":"","key":"postMessage and structured cloning"},{"type":"clause","id":"webgl","aoid":null,"title":"WebGL APIs","number":"1.6","namespace":"<no location>","location":"","key":"WebGL APIs"}]</script></head><body><div id="menu-toggle">☰</div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#intro" title="Introduction"><span class="secnum"></span> Introduction</a></li><li><span class="item-toggle">◢</span><a href="#clusters" title="Agents and Agent Clusters"><span class="secnum">1</span> Agents and Agent Clusters</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#clusters.types" title="Agent Cluster Types"><span class="secnum">1.1</span> Agent Cluster Types</a></li><li><span class="item-toggle-none"></span><a href="#clusters.creation" title="Worker creation"><span class="secnum">1.2</span> Worker creation</a></li><li><span class="item-toggle-none"></span><a href="#clusters.progress" title="Worker forward progress"><span class="secnum">1.3</span> Worker forward progress</a></li><li><span class="item-toggle-none"></span><a href="#clusters.termination" title="Worker termination"><span class="secnum">1.4</span> Worker termination</a></li><li><span class="item-toggle-none"></span><a href="#postMessage" title="postMessage and structured cloning"><span class="secnum">1.5</span> postMessage and structured cloning</a></li><li><span class="item-toggle-none"></span><a href="#webgl" title="WebGL APIs"><span class="secnum">1.6</span> WebGL APIs</a></li></ol></li></ol></div></div><h1>ECMAScript Shared Memory and Atomics - DOM addenda</h1>
+<p> Revised: 2016-08-03 </p>
+
+<emu-intro id="intro">
+<h1><span class="secnum"></span>Introduction<span class="utils"><span class="anchor"><a href="#intro">#</a></span></span></h1>
+
+<p>For Shared Memory and Atomics to be useful in the browser we must modify some DOM APIs to work with shared memory.  At a minimum we need a method for sharing a SharedArrayBuffer among agents, but it is also useful to allow some WebGL APIs to operate on shared memory so as to avoid the overhead of copying large data arrays.</p>
+
+<p>TODO - mine information from older spec docs and tickets and discussions to go here</p>
+
+</emu-intro>
+
+<emu-clause id="clusters">
+  <h1><span class="secnum">1</span>Agents and Agent Clusters<span class="utils"><span class="anchor"><a href="#clusters">#</a></span></span></h1>
+
+  <emu-clause id="clusters.types">
+    <h1><span class="secnum">1.1</span>Agent Cluster Types<span class="utils"><span class="anchor"><a href="#clusters.types">#</a></span></span></h1>
+    
+    <p>A  <em>normal agent cluster</em> shall comprise a single HTML document and its direct (and indirect, if nested workers are supported) Web Worker children.</p>
+
+    <emu-note><span class="note">Note 1</span>
+      <p>Thus a document within a frame element is never in the same agent cluster as its parent document.  The reason for this is partly that it is a conservative design that can be loosened later, and also that it is possible for the outer and inner documents to be in different content processes, making sharing memory difficult.</p>
+    </emu-note>
+
+    <p>A  <em>special agent cluster</em> is any agent cluster other than a normal agent cluster.  Every special agent cluster shall comprise only a single agent.</p>
+
+    <emu-note><span class="note">Note 2</span>
+      <p>Thus SharedWorkers and ServiceWorkers are agent clusters by themselves.  The reason for this is largely that a normal agent cluster can be suspended or removed without SharedWorkers and ServiceWorkers being aware of that, and if the latter share memory with the cluster a deadlock can ensue as a shared-memory communication from the cluster is forever delayed.  A secondary reason is that eg a ServiceWorker can be in a different content process from the documents using it, making sharing memory difficult.</p>
+    </emu-note>
+
+    <emu-note><span class="note">Note 3</span>
+      <p>(Spec draft note) If an agent like a SharedWorker can create its own WebWorkers then we really would like those to be within the agent cluster of the SharedWorker.  But the WHATWG spec seems mum on nested workers in general.</p>
+    </emu-note>
+    
+  </emu-clause>
+
+  <emu-clause id="clusters.creation">
+    <h1><span class="secnum">1.2</span>Worker creation<span class="utils"><span class="anchor"><a href="#clusters.creation">#</a></span></span></h1>
+
+    <p>When a web worker is created the embedding may delay actually starting the worker until the creating agent returns to its event loop.</p>
+
+    <emu-note><span class="note">Note</span>
+      <p>Firefox has that constraint, and the architecture is unlikely to change.  It is a possible source of non-portability that other browsers may be able to start the worker immediately.</p>
+      <p>In contrast, the WHATWG spec requires the worker to be started immediately (steps 10 and 11 of the worker creation algorithm).</p>
+    </emu-note>
+
+    <p>If a web worker cannot be created (for example, because a thread cannot be created for it) then an error must be signaled by firing an Error event at the creating agent (as for failing to load the URL for the worker).</p>
+  </emu-clause>
+
+  <emu-clause id="clusters.progress">
+    <h1><span class="secnum">1.3</span>Worker forward progress<span class="utils"><span class="anchor"><a href="#clusters.progress">#</a></span></span></h1>
+    
+    <p>Each web worker shall run on a dedicated preemptable thread ("real thread") in order to guarantee forward progress.</p>
+
+  </emu-clause>
+
+  <emu-clause id="clusters.termination">
+    <h1><span class="secnum">1.4</span>Worker termination<span class="utils"><span class="anchor"><a href="#clusters.termination">#</a></span></span></h1>
+
+    <p>If an agent in a cluster is terminated by the implementation then the entire agent cluster it is part of shall be terminated.</p>
+
+    <emu-note><span class="note">Note</span>
+      <p>That behavior is chosen as there exists no reliable termination signaling mechanism today.  The SAB proposal requires either termination  <em>en masse</em> or a signaling mechanism.</p>
+
+      <p>Current browsers probably do not randomly terminate workers, but terminate them only when the page they belong to is removed from the browser (purged from the tab's history, or the tab is closed).  Thus current browsers probably get this right already.</p>
+    </emu-note>
+  </emu-clause>
+
+
+<emu-clause id="postMessage">
+  <h1><span class="secnum">1.5</span>postMessage and structured cloning<span class="utils"><span class="anchor"><a href="#postMessage">#</a></span></span></h1>
+
+  <p>The exclusive method for causing memory to be shared between agents shall be to send a SharedArrayBuffer from one agent in the cluster to another using <code>postMessage</code> and structured cloning.</p>
+
+  <p>The structured clone algorithm accepts SharedArrayBuffers and TypedArrays mapped onto SharedArrayBuffers.  In both cases, the SharedArrayBuffer object is transmitted to the receiver resulting in a new, private SharedArrayBuffer object in the receiving agent (just as for ArrayBuffer).  However, the Shared <emu-xref href="#sec-data-blocks"><a href="https://tc39.github.io/ecma262/#sec-data-blocks">Data Block</a></emu-xref> referenced by the two SharedArrayBuffer objects is the same data block, and a side effect to the block in one agent will eventually become visible in the other agent, following the semantics in the ES262 proposal.</p>
+
+  <p>A SharedArrayBuffer is not a Transferable object in the sense of HTML.</p>
+
+  <emu-note><span class="note">Note 1</span>
+    <p>Thus if a SharedArrayBuffer object is present in the transfer list then <code>postMessage</code> will throw a DataCloneError.</p>
+
+    <p>In draft versions of the Shared Memory and Atomics spefification the SharedArrayBuffer was required to be present in the transfer list in the <code>postMessage</code> call.</p>
+  </emu-note>
+
+  <p>If the sender and receiver are not part of the same agent cluster then then the receiver shall receive a SharedArrayBuffer object that references a new Shared <emu-xref href="#sec-data-blocks"><a href="https://tc39.github.io/ecma262/#sec-data-blocks">Data Block</a></emu-xref> with byte length zero and not the Shared <emu-xref href="#sec-data-blocks"><a href="https://tc39.github.io/ecma262/#sec-data-blocks">Data Block</a></emu-xref> that was sent.</p>
+
+  <emu-note><span class="note">Note 2</span>
+    <p>The sender can't tell if the message is sent to a valid receiver since it may be sending on a MessageChannel that is not connected with a receiver.</p>
+
+    <p>(Spec draft note) Instead of receiving a zero-length block the receiver could receive some sort of error.</p>
+  </emu-note>
+
+</emu-clause>
+
+<emu-clause id="webgl">
+  <h1><span class="secnum">1.6</span>WebGL APIs<span class="utils"><span class="anchor"><a href="#webgl">#</a></span></span></h1>
+
+  <p>Modify  <a href="https://www.khronos.org/registry/webgl/specs/latest/1.0/">the WebGL 1.0 spec</a> as follows.</p>
+
+  <p>Change the type of <code>ArrayBufferView</code> to be a view whose buffer is exclusively an ArrayBuffer, ie,  <em>not</em> a SharedArrayBuffer.</p>
+
+  <emu-note><span class="note">Note</span>
+    <p>That probably depends on some kind of predicate mechanism, TBD, but the concept is easy enough, it is just an additional run-time check.  A reasonable implementation of the check is just a load/compare/conditional branch triplet.</p>
+  </emu-note>
+
+  <p>Introduce a type <code>ArrayBufferViewMaybeShared</code> to be any view type, ie, equivalent to the old definition of <code>ArrayBufferView</code>.</p>
+  
+  <p>Introduce a type <code>BufferDataSourceMaybeShared</code>:</p>
+  <p><code>typedef (ArrayBuffer or SharedArrayBuffer or ArrayBufferViewMaybeShared) BufferDataSourceMaybeShared</code></p>
+
+  <p>Replace every occurrence of <code>BufferDataSource</code> in signatures with <code>BufferDataSourceMaybeShared</code>, ie, in the signatures of these functions: <code>bufferData</code>, <code>bufferSubData</code>.</p>
+
+  <p>Replace every occurrence of <code>ArrayBufferView</code> in signatures with <code>ArrayBufferViewMaybeShared</code>, ie in the signatures of these functions: <code>compressedTexImage2D</code>, <code>compressedTexSubImage2D</code>, <code>readPixels</code>, <code>texImage2D</code>, <code>texSubImage2D</code>.</p>
+
+</emu-clause>
+</emu-clause></body>
