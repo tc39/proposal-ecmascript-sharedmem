@@ -1162,6 +1162,57 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
 
+    <emu-clause id="Atomics.AtomicRead" aoid="AtomicRead">
+      <h1>AtomicRead(_buffer_, _indexedPosition_, _elementType_)</h1>
+
+      <p>AtomicRead takes three arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, and a string _elementType_.  The following steps are taken:</p>
+
+      <emu-alg>
+        1. With atomic access to shared memory, do:
+          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. Return _r_.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.AtomicWrite" aoid="AtomicWrite">
+      <h1>AtomicWrite(_buffer_, _indexedPosition_, _elementType_, _v_)</h1>
+
+      <p>AtomicWrite takes four arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, a string _elementType_, and a Number _v_.  The following steps are taken:</p>
+
+      <emu-alg>
+        1. With atomic access to shared memory, do:
+          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.AtomicReadModifyWrite" aoid="AtomicReadModifyWrite">
+      <h1>AtomicReadModifyWrite(_buffer_, _indexedPosition_, _elementType_, _op_, _v_)</h1>
+
+      <p>AtomicReadModifyWrite takes five arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, a string _elementType_, a semantic function _op_, and a Number _v_.  The following steps are taken:</p>
+
+      <emu-alg>
+        1. With atomic access to shared memory, do:
+          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. Compute: Let _w_ be _op_(_r_, _v_).
+          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_).
+          1. Return _r_.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.AtomicCompareExchange" aoid="AtomicCompareExchange">
+      <h1>AtomicCompareExchange(_buffer_, _indexedPosition_, _elementType_, _x_, _replacement_)</h1>
+
+      <p>AtomicCompareExchange takes five arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, a string _elementType_, and two Numbers _x_ and _replacement_.  The following steps are taken:</p>
+
+      <emu-alg>
+        1. With atomic access to shared memory, do:
+          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. If _r_ is the same as _x_ then:
+            1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_).
+          1. Return _r_
+      </emu-alg>
+    </emu-clause>
+
     <emu-clause id="Atomics.ValidateSharedIntegerTypedArray" aoid="ValidateSharedIntegerTypedArray">
       <h1>ValidateSharedIntegerTypedArray(_typedArray_ [, _onlyInt32_] )</h1>
       <emu-alg>
@@ -1333,10 +1384,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
-        1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
-          1. Compute: Let _w_ be _op_(_r_, _v_).
-          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_).
+        1. Let _r_ be AtomicReadModifyWrite(_buffer_, _indexedPosition_, _elementType_, _op_, _v_)
         1. Return _r_.
       </emu-alg>
 
@@ -1381,10 +1429,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
-        1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
-          1. If _r_ is the same as _x_ then:
-            1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_).
+        1. Let _r_ be AtomicCompareExchange(_buffer_, _indexedPosition_, _elementType_, _x_, _replacement_)
         1. Return _r_.
       </emu-alg>
 
@@ -1444,8 +1489,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
-        1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+        1. Let _r_ be AtomicRead(_buffer_, _indexedPosition_, _elementType_).
         1. Return _r_.
       </emu-alg>
     </emu-clause>
@@ -1471,8 +1515,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
-        1. With atomic access to shared memory, do:
-          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_).
+        1. Perform AtomicWrite(_buffer_, _indexedPosition_, _elementType_, _v_).
         1. Return _v_.
       </emu-alg>
     </emu-clause>
