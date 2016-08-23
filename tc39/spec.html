@@ -1547,7 +1547,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _indexedPosition_ be (_i_ &times; 4) + _offset_.
         1. Let _WL_ be GetWaiterList(_block_, _indexedPosition_).
         1. Perform EnterCriticalSection(_WL_).
-        1. Let _w_ be Atomics.load(_typedArray_, _i_).
+        1. Let _w_ be AtomicRead(_buffer_, _indexedPosition_, `"Int32"`).
         1. If _v_ does not equal _w_ then:
           1. Perform LeaveCriticalSection(_WL_).
           1. Return the string `"not-equal"`.
