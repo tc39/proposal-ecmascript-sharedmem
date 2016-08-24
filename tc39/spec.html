@@ -756,6 +756,21 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="AtomicsObjectFunctionProps.semantics">
     <h1>Runtime semantics</h1>
 
+<!--
+    Notes from meeting with Shu
+
+    Pre-notes:
+    - what do we really want with the memory model?  what do we need to express?
+    - do we have to operationalize the total order
+
+
+    Notes:
+    - semantics need to make clear that reordering prohibition (on syntactic level) is wrt to candidate atomics, compiler must assume all candidate atomics are viable atomics.
+    - reservations have identity (in addition to range), could be a timestamp or id (depending on whether we need just identity or ordering)
+    - non-atomic writes need to kill reservations at the beginning and the end because it does not prevent an atomic write to start after the non-atomic write startes. seems complex but is probably what we need to deal with lock-free vs non-lock-free atomics (which hw does need to worry about)
+
+  -->
+
     <emu-clause id="AtomicsObject.MemoryModel">
       <h1>Memory model</h1>
 
@@ -1163,53 +1178,82 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.AtomicRead" aoid="AtomicRead">
-      <h1>AtomicRead(_buffer_, _indexedPosition_, _elementType_)</h1>
+      <h1>AtomicRead(_buffer_, _byteIndex_, _type_)</h1>
 
-      <p>AtomicRead takes three arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, and a string _elementType_.  The following steps are taken:</p>
+      <p>AtomicRead takes three arguments, a SharedArrayBuffer _buffer_, an integer _byteIndex_, and a String _type_.  The following steps are taken:</p>
 
       <emu-alg>
+        1. Assert: _byteIndex_ is an integer value &ge; 0.
+        1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
+        1. Let _block_ be _buffer_.[[ArrayBufferData]].
+        1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
-          1. Return _r_.
+          1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+        1. Assert: _rawValue_ is a List of size _elementSize_.
+        1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
+        1. Return _r_.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.AtomicWrite" aoid="AtomicWrite">
-      <h1>AtomicWrite(_buffer_, _indexedPosition_, _elementType_, _v_)</h1>
+      <h1>AtomicWrite(_buffer_, _byteIndex_, _type_, _v_)</h1>
 
-      <p>AtomicWrite takes four arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, a string _elementType_, and a Number _v_.  The following steps are taken:</p>
+      <p>AtomicWrite takes four arguments, a SharedArrayBuffer _buffer_, an integer _byteIndex_, a String _type_, and a Number _v_.  The following steps are taken:</p>
 
       <emu-alg>
+        1. Assert: _byteIndex_ is an integer value &ge; 0.
+        1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
+        1. Assert: Type(_v_) is Number.
+        1. Let _block_ be _buffer_.[[ArrayBufferData]].
+        1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
+        1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _v_ as for SetValueInBuffer. (TODO: Elucidate.)
         1. With atomic access to shared memory, do:
-          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_).
+          1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.AtomicReadModifyWrite" aoid="AtomicReadModifyWrite">
-      <h1>AtomicReadModifyWrite(_buffer_, _indexedPosition_, _elementType_, _op_, _v_)</h1>
+      <h1>AtomicReadModifyWrite(_buffer_, _byteIndex_, _type_, _op_, _v_)</h1>
 
-      <p>AtomicReadModifyWrite takes five arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, a string _elementType_, a semantic function _op_, and a Number _v_.  The following steps are taken:</p>
+      <p>AtomicReadModifyWrite takes five arguments, a SharedArrayBuffer _buffer_, an integer _byteIndex_, a String _type_, a semantic function _op_, and a Number _v_.  The following steps are taken:</p>
 
       <emu-alg>
+        1. Assert: _byteIndex_ is an integer value &ge; 0.
+        1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
+        1. Assert: Type(_v_) is Number.
+        1. Let _block_ be _buffer_.[[ArrayBufferData]].
+        1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
+          1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+          1. Assert: _rawValue_ is a List of size _elementSize_.
+          1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
           1. Compute: Let _w_ be _op_(_r_, _v_).
-          1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _w_).
-          1. Return _r_.
+          1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _w_ as for SetValueInBuffer. (TODO: Elucidate.)
+          1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Return _r_.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.AtomicCompareExchange" aoid="AtomicCompareExchange">
-      <h1>AtomicCompareExchange(_buffer_, _indexedPosition_, _elementType_, _x_, _replacement_)</h1>
+      <h1>AtomicCompareExchange(_buffer_, _byteIndex_, _type_, _expected_, _replacement_)</h1>
 
-      <p>AtomicCompareExchange takes five arguments, a SharedArrayBuffer _buffer_, an integer _indexedPosition_, a string _elementType_, and two Numbers _x_ and _replacement_.  The following steps are taken:</p>
+      <p>AtomicCompareExchange takes five arguments, a SharedArrayBuffer _buffer_, an integer _byteIndex_, a String _type_, and two Numbers _expected_ and _replacement_.  The following steps are taken:</p>
 
       <emu-alg>
+        1. Assert: _byteIndex_ is an integer value &ge; 0.
+        1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
+        1. Assert: Type(_expected_) is Number.
+        1. Assert: Type(_replacement_) is Number.
+        1. Let _block_ be _buffer_.[[ArrayBufferData]].
+        1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. With atomic access to shared memory, do:
-          1. Let _r_ be GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_).
-          1. If _r_ is the same as _x_ then:
-            1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_).
-          1. Return _r_
+          1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+          1. Assert: _rawValue_ is a List of size _elementSize_.
+          1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
+          1. If _r_ is the same as _expected_ then:
+            1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _replacement_ as for SetValueInBuffer. (TODO: Elucidate.)
+            1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Return _r_
       </emu-alg>
     </emu-clause>
 
