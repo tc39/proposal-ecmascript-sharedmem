@@ -117,8 +117,8 @@ comments.</p>
           1. Let _toSize_ be the number of bytes in _toBlock_.
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
-            1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be ReadSharedMemory(_fromBlock_, _fromIndex_, *false*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_].</ins>
-            1. <ins>If _toBlock_ is a Shared Data Block then perform WriteSharedMemory(_toBlock_, _toIndex_, *false*, *1*, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_.</ins>
+            1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block  then let _byte_ be NonAtomicRead(_fromBlock_, _fromIndex_, *false*, *1*), otherwise let _byte_ be _fromBlock_[_fromIndex_].</ins>
+            1. <ins>If _toBlock_ is a Shared Data Block then perform NonAtomicWrite(_toBlock_, _toIndex_, *false*, *1*, _byte_), otherwise set _toBlock_[_toIndex_] to _byte_.</ins>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
             1. Decrement _count_ by 1.
           1. Return NormalCompletion(~empty~).
@@ -131,7 +131,7 @@ comments.</p>
         <emu-alg>
           1. Assert: _size_ >= 0.
           1. Let _db_ be a new Shared Data Block value consisting of _size_ bytes. If it is impossible to create such a Shared Data Block, throw a *RangeError* exception.
-          1. Set all of the bytes of _db_ to 0 as if by calls to WriteSharedMemory(_db_, _i_, *false*, *1*, *0*) for each index _i_ in _db_.
+          1. Set all of the bytes of _db_ to 0 as if by calls to NonAtomicWrite(_db_, _i_, *false*, *1*, *0*) for each index _i_ in _db_.
           1. Return _db_.
         </emu-alg>
       </emu-clause>
@@ -207,8 +207,8 @@ comments.</p>
         not imply anything about the (perceived) atomicity of
         non-atomic accesses of size <em>n</em>, specifically,
         non-atomic accesses may still be performed as a sequence of
-        several separate memory accesses.  See ReadSharedMemory and
-        WriteSharedMemory for details.</p>
+        several separate memory accesses.  See the memory model
+        section for details.</p>
     </emu-note>
 
   </emu-clause>
@@ -501,7 +501,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true* then:</ins>
             1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.</ins>
-            1. <ins>Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_).</ins>
+            1. <ins>Let _rawValue_ be NonAtomicRead(_block_, _byteIndex_, _accessAtomic_, _elementSize_).</ins>
             1. <ins>Assert: _rawValue_ is a List of size _elementSize_.</ins>
           1. <ins>Else, let _rawValue_ be a List containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the SetValueInBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
@@ -529,7 +529,7 @@ These call AllocateTypedArray with a specified length:
             1. ...
           1. <del>Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true*, then:</ins>
             1. <ins>Let _accessAtomic_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.</ins>
-            1. <ins>Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_).</ins>
+            1. <ins>Perform NonAtomicWrite(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_).</ins>
           1. <ins>Else, Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</ins>
           1. Return NormalCompletion(*undefined*).
         </emu-alg>
@@ -839,23 +839,19 @@ These call AllocateTypedArray with a specified length:
 
         <p>An <em>execution</em> of an agent cluster is a partial ordering of the agents' events that is consistent with each agent's program order.</p>
 
-        <p>Shared memory access is always performed by two primitive
-          subroutines, ReadSharedMemory and WriteSharedMemory.  These
-          subroutines never perform non-shared-memory access.</p>
+        <p>Shared memory access is always performed by designated
+          subroutines, AtomicRead, AtomicWrite, AtomicReadModifyWrite,
+          AtomicCompareExchange, NonAtomicRead, and NonAtomicWrite.
+          These subroutines never perform non-shared-memory
+          access.</p>
 
-        <p>Let the <em>candidate atomic accesses</em> (candidate
-          atomic reads, candidate atomic writes) be those algorithm
-          steps that are labeled "With atomic access to shared memory"
-          in the algorithms in subsequent sections, ie, the simple
-          `load` and `store` operations and the read-modify-write
-          operations `add`, `sub`, `and`, `or`, `xor`, `exchange`, and
-          `compareExchange`; memory read and write operations will ultimately be performed
-          by ReadSharedMemory and WriteSharedMemory.</p>
+        <p>Let the <em>candidate atomic accesses</em> be the algorithm
+          steps that invoke AtomicRead, AtomicWrite,
+          AtomicReadModifyWrite, and AtomicCompareExchange.</p>
 
         <p>Let the <em>candidate data accesses</em> (candidate data
-          reads, candidate data writes) be those invocations of
-          ReadSharedMemory and WriteSharedMemory that are not part of
-          the candidate atomic accesses.</p>
+          reads, candidate data writes) be the algorithm steps that
+          invoke NonAtomicRead and NonAtomicWrite.</p>
 
         <p>Let the <em>access range</em> of a shared memory access be
           the memory cells read or written by the access.  (These cells
@@ -983,7 +979,7 @@ These call AllocateTypedArray with a specified length:
           the other, at least one of them is a write, and they are not
           both atomic writes to the same access range.</p>
 
-        <p>If an atomic access is not in a data race, then the shared
+        <p>[Semi-obsolete prose] If an atomic access is not in a data race, then the shared
           memory reads and writes issued by the atomic access shall be
           performed indivisibly (while also following the rules of
           ReadSharedMemory and WriteSharedMemory), and in a
@@ -1017,7 +1013,7 @@ These call AllocateTypedArray with a specified length:
           memory" were omitted from the algorithms below.</p>
 
         <emu-note>
-          <p>Hence, a write access from another agent may be allowed
+          <p>[Semi-obsolete prose] Hence, a write access from another agent may be allowed
             to execute between the read and the write of the pair,
             and, as defined by ReadSharedMemory and
             WriteSharedMemory, even the individual accesses in the
@@ -1177,6 +1173,123 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
 
+    <emu-clause id="Atomics.BeginAtomic" aoid="BeginAtomic">
+      <h1>BeginAtomic(_block_, _byteIndex_, _elementSize_)</h1>
+
+      <p>The memory system comprises some memory (which is accessed racily with byte-level interleaving) and a critical section with a cluster-wide lock that protects a timestamp, an atomic reservation slot, and a set of non-atomic transaction slots.  The lock has is a specification device that exists outside the shared memory, it does not have effects beyond mutual exclusion.  We use these semantic data structures to filter out non-viable atomic operations and to express the total ordering of viable atomic operations.  The value *NoSuchTimestamp* is a value that can be treated as a timestamp but does not mach any value obtained from the global timestamp counter.</p>
+
+      <emu-note>
+        <p>The intent is that BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic can be used to model an implementation where we have lock-free and non-lock-free atomic operations, where atomic operations execute atomically and in a total order only if they do not conflict in the execution with atomic operations that overlap but do not match the access range or with non-atomic operations.</p>
+      </emu-note>
+
+      <emu-note>
+        <p>It may be possible to use these to more formally specify all races, so that those can be put on a firmer footing; doing so would mean BeginAtomic, BeginNonAtomic, and EndAtomic would need to remove values from the non-atomic transaction set when found to conflict.</p>
+      </emu-note>
+
+      <emu-alg>
+        1. Wait for any delayed non-atomic writes to complete (locally).
+        1. Acquire the memory system lock.
+        1. If the atomic reservation either matches or does not overlap (_block_, _byteIndex_, _elementSize_) then:
+          1. Wait (releasing the memory system lock) until the reservation changes.
+        1. If the atomic reservation overlaps (_block_, _byteIndex_, _elementSize_) then:
+          1. Clear the atomic reservation.
+          1. Release the memory system lock.
+          1. Return *NoSuchTimestamp*.
+        1. Assert: there is no atomic reservation.
+        1. If (_block_, _byteIndex_, _elementSize_) overlaps any entry in the non-atomic transaction set then:
+          1. Release the memory system lock.
+          1. Return *NoSuchTimestamp*.
+        1. Let _t_ be the current timestamp.
+        1. Increment the timestamp.
+        1. Set the atomic reservation to (_t_, _block_, _byteIndex_, _elementSize_).
+        1. Release the memory system lock.
+        1. Return _t_.
+      </emu-alg>
+
+      <p>We might formalize "overlap", but it means that the blocks are the same and that the access ranges have a non-empty intersection but are not equal.  "Match" means that the blocks are the same and that the access ranges are equal.  In both cases, the transaction ID in the reservation or in the transaction buffer are ignored unless explicitly shown.</p>
+
+      <p>We might also formalize what it means to "clear" the reservation, but storing *NoSuchTimestamp* in the reservation's timestamp field and 0 in the _elementSize_ field is sufficient.</p>
+    </emu-clause>
+
+    <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
+      <h1>EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_)</h1>
+      <emu-alg>
+        1. Assert: there will be no delayed non-atomic writes (locally).
+        1. Acquire the memory system lock.
+        1. Let (_t_, _b_, _i_, _s_) be the atomic reservation.
+        1. Clear the atomic reservation.
+        1. If (_t_, _b_, _i_, _s_) does not match (_transaction_, _block_, _byteIndex_, _elementSize_) then:
+          1. Release the memory system lock.
+          1. Return *false*.
+        1. If (block, byteIndex, elementSize) overlaps any entry in the non-atomic transaction set then:
+          1. Release the memory system lock.
+          1. Return *false*.
+        1. Release the memory system lock.
+        1. Discard any speculated reads
+        1. Return *true*.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.BeginNonAtomic" aoid="BeginNonAtomic">
+      <h1>BeginNonAtomic(block, byteIndex, elementSize)</h1>
+      <emu-alg>
+        1. Acquire the memory system lock
+        1. Let _t_ be the current timestamp.
+        1. Increment the timestamp.
+        1. Add a transaction (_t_, block, byteIndex, elementSize) to the non-atomic transaction set
+        1. If the atomic reservation overlaps (block, byteIndex, elementSize) then
+          1. Clear the atomic reservation
+        1. Release the memory system lock
+        1. Return _t_
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.EndNonAtomic" aoid="EndNonAtomic">
+      <h1>EndNonAtomic(_t_, _block_, _byteIndex_, _elementSize_)</h1>
+      <emu-alg>
+        1. Acquire the memory system lock
+        1. Remove (_t_, _block_, _byteIndex_, _elementSize_) from the non-atomic transaction set
+        1. If the atomic reservation overlaps (block, byteIndex, elementSize) then
+          1. Clear the atomic reservation
+        1. Release the memory system lock
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="Atomics.NonAtomicRead" aoid="NonAtomicRead">
+      <h1>NonAtomicRead(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
+
+      <p>NonAtomicRead takes four arguments, a Shared Data Block
+        _block_, a nonnegative integer _byteIndex_, a Boolean
+        _accessAtomic_, and a nonnegative integer _numBytes_, and
+        returns a List containing, in order, the _numBytes_ sequence
+        of bytes starting with _block_[_byteIndex_], using
+        _accessAtomic_ to guide the operation, as follows:</p>
+
+      <emu-alg>
+        1. Let _transaction_ be BeginNonAtomic(_block_, _byteIndex_, _numBytes_)
+        1. Perform ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)
+        1. Perform EndNonAtomic(_transaction_, _block_, _byteIndex_, _numBytes_)
+      </emu-alg>
+
+    </emu-clause>
+
+    <emu-clause id="Atomics.NonAtomicWrite" aoid="NonAtomicWrite">
+      <h1>NonAtomicWrite(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)</h1>
+
+      <p>NonAtomicWrite takes five arguments, a Shared Data Block _block_,
+        a nonnegative integer _byteIndex_, a Boolean
+        _accessAtomic_, a nonnegative integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the
+        individual bytes of _rawBytes_ into _block_, in order, starting
+        at _block_[_byteIndex_], using _accessAtomic_ to guide the
+        operation, as follows:</p>
+
+      <emu-alg>
+        1. Let _transaction_ be BeginNonAtomic(_block_, _byteIndex_, _numBytes_)
+        1. Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)
+        1. Perform EndNonAtomic(_transaction_, _block_, _byteIndex_, _numBytes_)
+      </emu-alg>
+    </emu-clause>
+
     <emu-clause id="Atomics.AtomicRead" aoid="AtomicRead">
       <h1>AtomicRead(_buffer_, _byteIndex_, _type_)</h1>
 
@@ -1187,8 +1300,10 @@ These call AllocateTypedArray with a specified length:
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-        1. With atomic access to shared memory, do:
-          1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Note: If _success_ is *true* then the AtomicRead is viable: it executed atomically in the cluster-wide total order.
         1. Assert: _rawValue_ is a List of size _elementSize_.
         1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
         1. Return _r_.
@@ -1207,8 +1322,10 @@ These call AllocateTypedArray with a specified length:
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _v_ as for SetValueInBuffer. (TODO: Elucidate.)
-        1. With atomic access to shared memory, do:
-          1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Note: If _success_ is *true* then the AtomicWrite is viable: it executed atomically in the cluster-wide total order.
       </emu-alg>
     </emu-clause>
 
@@ -1223,13 +1340,15 @@ These call AllocateTypedArray with a specified length:
         1. Assert: Type(_v_) is Number.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-        1. With atomic access to shared memory, do:
-          1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
-          1. Assert: _rawValue_ is a List of size _elementSize_.
-          1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
-          1. Compute: Let _w_ be _op_(_r_, _v_).
-          1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _w_ as for SetValueInBuffer. (TODO: Elucidate.)
-          1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+        1. Assert: _rawValue_ is a List of size _elementSize_.
+        1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
+        1. Compute: Let _w_ be _op_(_r_, _v_).
+        1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _w_ as for SetValueInBuffer. (TODO: Elucidate.)
+        1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Note: If _success_ is *true* then the AtomicReadModifyWrite is viable: it executed atomically in the cluster-wide total order.
         1. Return _r_.
       </emu-alg>
     </emu-clause>
@@ -1246,13 +1365,15 @@ These call AllocateTypedArray with a specified length:
         1. Assert: Type(_replacement_) is Number.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-        1. With atomic access to shared memory, do:
-          1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
-          1. Assert: _rawValue_ is a List of size _elementSize_.
-          1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
-          1. If _r_ is the same as _expected_ then:
-            1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _replacement_ as for SetValueInBuffer. (TODO: Elucidate.)
-            1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
+        1. Assert: _rawValue_ is a List of size _elementSize_.
+        1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
+        1. If _r_ is the same as _expected_ then:
+          1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _replacement_ as for SetValueInBuffer. (TODO: Elucidate.)
+          1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
+        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Note: If _success_ is *true* then the AtomicCompareExchange is viable: it executed atomically in the cluster-wide total order.
         1. Return _r_
       </emu-alg>
     </emu-clause>
