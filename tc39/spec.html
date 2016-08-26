@@ -928,7 +928,7 @@ These call AllocateTypedArray with a specified length:
             
         <p>A candidate atomic read to a sequence of locations i..j waits until there is no longer any reservation for i..j then reads the locations.  If the tags of the locations are not of the form (Atomic,j-i+1,k) for k in the sequence 0, 1, j-i+1, or all of the form (Init,0,0), then the read is not viable.</p>
 
-        FIXME: Viability can be made more flexible by allowing an atomic read to read the non-atomic write of the same thread.
+        <p><b>FIXME:</b> Viability can be made more flexible by allowing an atomic read to read the non-atomic write of the same thread.</p>
 
         <p>A candidate atomic write (including the write operation of a read-modify-write) W is <em>viable</em> in some execution of an agent cluster if it does not interfere with another candidate atomic write V, where:</p>
         <ol>
@@ -940,6 +940,8 @@ These call AllocateTypedArray with a specified length:
           <li> W and R access the same sequence of bytes in the shared memory, and
           <li> R does not see a value for any of those bytes written by some other write V
         </ol>
+
+        <p><b>FIXME:</b> operationalize an atomic read "seeing" an atomic write.  This need not be hard.  Viable atomic read R sees viable atomic write W if W is before R in the total order, the access ranges of R and W overlap, and there are no other writes between W and R that scribble on all the bytes read by R.  This would be a lot cleaner with a restriction as introduced by tagging, since without tagging you can have the situation that a single read R sees multiple atomic writes if those writes wrote to different parts of the datum accessed by R.</p>
 
       </emu-clause>
 
@@ -1088,6 +1090,52 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
 
+    <emu-clause id="Atomics.Viability2">
+      <h1>Viability (take 2)</h1>
+
+      <p>The memory system comprises some memory (which is accessed racily with byte-level interleaving) and a critical section with a cluster-wide lock that protects a timestamp, an atomic reservation slot, and a set of non-atomic transaction slots.  The lock is a specification device that exists outside the shared memory, it does not have effects beyond mutual exclusion.  We use these semantic data structures to filter out non-viable atomic operations and to express the total ordering of viable atomic operations.  The value *NoSuchTimestamp* is a value that can be treated as a timestamp but does not mach any value obtained from the global timestamp counter.</p>
+
+      <emu-note>
+        <p>The intent is that BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic can be used to model an implementation where we have lock-free and non-lock-free atomic operations, where atomic operations execute atomically and in a total order only if they do not conflict in the execution with atomic operations that overlap but do not match the access range or with non-atomic operations.</p>
+      </emu-note>
+
+      <emu-note>
+        <p>It may be possible to use these to more formally specify all races, so that those can be put on a firmer footing; doing so would mean BeginAtomic, BeginNonAtomic, and EndAtomic would need to remove values from the non-atomic transaction set when found to conflict.</p>
+      </emu-note>
+
+      <p>Two memory transactions (_block1_, _byteIndex1_, _elementSize1_) and (_block2_, _byteIndex2_, _elementSize2_) are said to <em>overlap</em> if _block1_ and _block2_ are the same, and the range [_byteIndex1_, _byteIndex1_+_elementSize1_) overlaps with but is not equal to the range [_byteIndex2_,_byteIndex2_+_elementSize2_).  Two transactions are said to <em>match</em> if their fields are pairwise equal.</p>
+
+      <p>Two memory operations (AtomicRead, AtomicWrite, AtomicReadModifyWrite, AtomicCompareExchange, NonAtomicRead, NonAtomicWrite) are said to <em>conflict</em> if one operation's Begin operation happens between the other's Begin and End operations.  A memory operation A is said to <em>cover</em> another operation B if A's Begin operation happens before B's Begin operation and B's End operation happens before A's End operation.  (If A covers B then A and B also conflict.)</p>
+
+      <p>We might also formalize what it means to "clear" the reservation, but storing *NoSuchTimestamp* in the reservation's timestamp field and 0 in the _elementSize_ field is sufficient.</p>
+
+      <p>We might try to prove (informally) the following about this system (always in the absence of other matching, overlapping, or conflicting operations):</p>
+
+      <ul>
+        <li>The system of memory operations always makes progress (does not deadlock).
+        <li>If two candidate atomic operations conflict and overlap then neither is viable.  (Also see below.)
+        <li>If a non-atomic write overlaps and conflicts with an atomic operation then the atomic operation is not viable.
+        <li>If two candidate atomic operations conflict and one is not viable then the other is also not viable.
+      </ul>
+
+      <p>OPEN QUESTION: Right now two atomic reads that conflict and overlap are flagged as not viable, but is that sensible?  I almost think so, we don't need to support that for any kind of meaningful use, and we must have our total atomic order.  (Note we do support the case where an atomic read conflicts and overlaps with a non-atomic read.)  Suppose one is lock-free and the other not... then?</p>
+
+      <p>That non-viability of one operation implies the non-viability of a conflicting operation is probably not obvious.</p>
+
+<!--
+        <li>If two candidate atomic operations do not conflict then they are both viable.
+        <li>If two candidate atomic operations match and conflict  then they are executed one after the other, and both are viable.  
+          <li>
+        <li>If two atomic operations overlap but do not conflict then both are viable.  NOTE: this is a problem in some sense if the first is a write and the second is a read, because the read will read from some memory that was written by something other than an atomic operation.  This is why we have tagging.  So here we see that we don't need tagging for (simple) viability but we need tagging for synchronizes-with.
+        <li>If a non-atomic read overlaps and conflicts with an atomic operation then the atomic operation is viable.  NOTE: The normal definition of a race is that two operations conflict and at least one of them is a write, so it's arguable that the atomic operation should be not viable here.
+        <li>(Something about operations that cover others, notably with three operations.)
+      </ul>
+-->
+
+      <p>A major concern is whether this notion of viability is sufficient for synchronization.</p>
+
+    </emu-clause>
+
     <emu-clause id="Atomics.ReadSharedMemory" aoid="ReadSharedMemory">
       <h1>ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
 
@@ -1099,18 +1147,14 @@ These call AllocateTypedArray with a specified length:
         _accessAtomic_ to guide the operation, as follows:</p>
 
       <emu-note>
-        <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
+        <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access, described next, are met; the parameter has no bearing on the ordering of accesses to memory.</p>
       </emu-note>
 
-      <p><b>FIXME:</b> accessAtomic must be true for all the accesses, not just for this one.</p>
-      
-      <p><b>FIXME:</b> operationalize an atomic read "seeing" an atomic write</p>
-      
       <ol>
         <li>If the read has a data race with any number of writes where
           the read and the writes all access the exact same access
           range, and the read has no data race with any other writes,
-          and _accessAtomic_ is *true*, then the bytes that are returned
+          and _accessAtomic_ is *true* for all the accesses, then the bytes that are returned
           are the bytes in memory before any of the writes occurred or
           the bytes written by one of the writes.
 
@@ -1142,18 +1186,14 @@ These call AllocateTypedArray with a specified length:
         operation, as follows:</p>
 
       <emu-note>
-        <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access are met (as detailed below); the parameter has no bearing on the ordering of accesses to memory.</p>
+        <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access, described next, are met; the parameter has no bearing on the ordering of accesses to memory.</p>
       </emu-note>
 
-      <p><b>FIXME:</b> accessAtomic must be true for all the accesses, not just for this one.</p>
-
-      <p><b>FIXME:</b> operationalize an atomic read "seeing" an atomic write</p>
-      
       <ol>
         <li>If the write has a data race with any number of other writes
           where all the writes access the exact same access range, and
           the write has no data race with any other writes, and
-          _accessAtomic_ is *true*, then each write writes all of its
+          _accessAtomic_ is *true* for all the accesses, then each write writes all of its
           bytes before the next write occurs, and the writes occur in
           some arbitrary order.
 
@@ -1173,55 +1213,20 @@ These call AllocateTypedArray with a specified length:
 
     </emu-clause>
 
-    <emu-clause id="Atomics.Viability2">
-      <h1>Viability (take 2)</h1>
-
-      <p>The memory system comprises some memory (which is accessed racily with byte-level interleaving) and a critical section with a cluster-wide lock that protects a timestamp, an atomic reservation slot, and a set of non-atomic transaction slots.  The lock is a specification device that exists outside the shared memory, it does not have effects beyond mutual exclusion.  We use these semantic data structures to filter out non-viable atomic operations and to express the total ordering of viable atomic operations.  The value *NoSuchTimestamp* is a value that can be treated as a timestamp but does not mach any value obtained from the global timestamp counter.</p>
-
-      <emu-note>
-        <p>The intent is that BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic can be used to model an implementation where we have lock-free and non-lock-free atomic operations, where atomic operations execute atomically and in a total order only if they do not conflict in the execution with atomic operations that overlap but do not match the access range or with non-atomic operations.</p>
-      </emu-note>
-
-      <emu-note>
-        <p>It may be possible to use these to more formally specify all races, so that those can be put on a firmer footing; doing so would mean BeginAtomic, BeginNonAtomic, and EndAtomic would need to remove values from the non-atomic transaction set when found to conflict.</p>
-      </emu-note>
-
-      <p>Two memory transactions (_block1_, _byteIndex1_, _elementSize1_) and (_block2_, _byteIndex2_, _elementSize2_) are said to <em>overlap</em> if _block1_ and _block2_ are the same, and the range [_byteIndex1_, _byteIndex1_+_elementSize1_) overlaps with but is not equal to the range [_byteIndex2_,_byteIndex2_+_elementSize2_).  Two transactions are said to <em>match</em> if their fields are pairwise equal.</p>
-
-      <p>Two memory operations (AtomicRead, AtomicWrite, AtomicReadModifyWrite, AtomicCompareExchange, NonAtomicRead, NonAtomicWrite) are said to <em>conflict</em> if one operation's Begin operation happens between the other's Begin and End operations.  A memory operation A is said to <em>cover</em> another operation B if A's Begin operation happens before B's Begin operation and B's End operation happens before A's End operation.  (If A covers B then A and B also conflict.)</p>
-
-      <p>We might also formalize what it means to "clear" the reservation, but storing *NoSuchTimestamp* in the reservation's timestamp field and 0 in the _elementSize_ field is sufficient.</p>
-
-      <p>We might try to prove (informally) the following about this system (always in the absence of other matching, overlapping, or conflicting operations):</p>
-
-      <ul>
-        <li>If two candidate atomic operations conflict and overlap then neither is viable.  (Also see below.)
-        <li>If a non-atomic write overlaps and conflicts with an atomic operation then the atomic operation is not viable.
-        <li>If two candidate atomic operations conflict and one is not viable then the other is also not viable.
-      </ul>
-
-      <p>OPEN QUESTION: Right now two atomic reads that conflict and overlap are flagged as not viable, but is that sensible?  I almost think so, we don't need to support that for any kind of meaningful use, and we must have our total atomic order.  (Note we do support the case where an atomic read conflicts and overlaps with a non-atomic read.)  Suppose one is lock-free and the other not... then?</p>
-
-<!--
-        <li>If two candidate atomic operations do not conflict then they are both viable.
-        <li>If two candidate atomic operations match and conflict  then they are executed one after the other, and both are viable.  
-          <li>
-        <li>If two atomic operations overlap but do not conflict then both are viable.  NOTE: this is a problem in some sense if the first is a write and the second is a read, because the read will read from some memory that was written by something other than an atomic operation.  This is why we have tagging.  So here we see that we don't need tagging for (simple) viability but we need tagging for synchronizes-with.
-        <li>If a non-atomic read overlaps and conflicts with an atomic operation then the atomic operation is viable.  NOTE: The normal definition of a race is that two operations conflict and at least one of them is a write, so it's arguable that the atomic operation should be not viable here.
-        <li>(Something about operations that cover others, notably with three operations.)
-      </ul>
--->
-
-      <p>A major concern is whether this notion of viability is sufficient for synchronization.</p>
-
+    <emu-clause id="Atomics.MemoryFence" aoid="MemoryFence">
+      <h1>MemoryFence()</h1>
+      <emu-alg>
+        1. Discard any unconsumed reads speculated by ReadSharedMemory.
+        1. Wait for any writes delayed by WriteSharedMemory to complete.
+      </emu-alg>
     </emu-clause>
-
+    
     <emu-clause id="Atomics.BeginAtomic" aoid="BeginAtomic">
       <h1>BeginAtomic(_block_, _byteIndex_, _elementSize_)</h1>
       <emu-alg>
-        1. Wait for any delayed non-atomic writes to complete (locally).
+        1. Perform MemoryFence().
         1. Acquire the memory system lock.
-        1. If the atomic reservation either matches or does not overlap (_block_, _byteIndex_, _elementSize_) then:
+        1. While the atomic reservation either matches or does not overlap (_block_, _byteIndex_, _elementSize_):
           1. Wait (releasing the memory system lock) until the reservation changes.
         1. If the atomic reservation overlaps (_block_, _byteIndex_, _elementSize_) then:
           1. Clear the atomic reservation.
@@ -1243,7 +1248,6 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
       <h1>EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_)</h1>
       <emu-alg>
-        1. Assert: there will be no delayed non-atomic writes (locally).
         1. Acquire the memory system lock.
         1. Let (_t_, _b_, _i_, _s_) be the atomic reservation.
         1. Clear the atomic reservation.
@@ -1254,7 +1258,7 @@ These call AllocateTypedArray with a specified length:
           1. Release the memory system lock.
           1. Return *false*.
         1. Release the memory system lock.
-        1. Discard any speculated reads (locally).
+        1. Perform MemoryFence().
         1. Return *true*.
       </emu-alg>
     </emu-clause>
@@ -1285,37 +1289,37 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.NonAtomicRead" aoid="NonAtomicRead">
-      <h1>NonAtomicRead(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
+      <h1>NonAtomicRead(_block_, _byteIndex_, _accessAtomic_, _elementSize_)</h1>
 
       <p>NonAtomicRead takes four arguments, a Shared Data Block
         _block_, a nonnegative integer _byteIndex_, a Boolean
-        _accessAtomic_, and a nonnegative integer _numBytes_, and
-        returns a List containing, in order, the _numBytes_ sequence
+        _accessAtomic_, and a nonnegative integer _elementSize_, and
+        returns a List containing, in order, the _elementSize_ sequence
         of bytes starting with _block_[_byteIndex_], using
         _accessAtomic_ to guide the operation, as follows:</p>
 
       <emu-alg>
-        1. Let _transaction_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _numBytes_)
-        1. Perform ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)
-        1. Perform EndNonAtomic(_transaction_, `"Read"`, _block_, _byteIndex_, _numBytes_)
+        1. Let _transaction_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _elementSize_)
+        1. Perform ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_)
+        1. Perform EndNonAtomic(_transaction_, `"Read"`, _block_, _byteIndex_, _elementSize_)
       </emu-alg>
 
     </emu-clause>
 
     <emu-clause id="Atomics.NonAtomicWrite" aoid="NonAtomicWrite">
-      <h1>NonAtomicWrite(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)</h1>
+      <h1>NonAtomicWrite(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)</h1>
 
       <p>NonAtomicWrite takes five arguments, a Shared Data Block _block_,
         a nonnegative integer _byteIndex_, a Boolean
-        _accessAtomic_, a nonnegative integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the
+        _accessAtomic_, a nonnegative integer _elementSize_, and a List _rawBytes_ of _elementSize_, and stores the
         individual bytes of _rawBytes_ into _block_, in order, starting
         at _block_[_byteIndex_], using _accessAtomic_ to guide the
         operation, as follows:</p>
 
       <emu-alg>
-        1. Let _transaction_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _numBytes_)
-        1. Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)
-        1. Perform EndNonAtomic(_transaction_, `"Write"`, _block_, _byteIndex_, _numBytes_)
+        1. Let _transaction_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _elementSize_)
+        1. Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)
+        1. Perform EndNonAtomic(_transaction_, `"Write"`, _block_, _byteIndex_, _elementSize_)
       </emu-alg>
     </emu-clause>
 
