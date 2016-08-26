@@ -150,3 +150,62 @@
     </emu-clause>
 
       
+
+
+        <ol>
+          <li> Two candidate atomic writes that interact with memory at the same
+            time (ie one write attempts to start before the other is finished) must
+            either write to the same byte range or must write to disjoint byte
+            ranges.
+
+          <li> A candidate atomic read only reads the value written by a viable
+            candidate atomic write to the same bytes that the read reads from.
+        </ol>
+          
+        <p>The reason for the first rule is that non-lock-free and lock-free atomics are implemented differently and the former is not atomic on the hardware in the same sense as the latter.  Suppose an eight-byte non-lock-free candidate atomic write E attempts to interact with the memory system at the same time as a four-byte lock-free candidate atomic write F.  (We don't have eight-byte atomics at present but we may have them in the future, and there are 32-bit platforms, such as MIPS, that do not support 64-bit atomics.)  E acquires a lock, then writes the data bytes in some arbitrary order, then releases the lock.  While E holds the lock, F interacts directly with the memory system to write its four bytes as a unit.  The result may easily be that some of the bytes written for E are written before the four bytes of F, and some after.  As a result, the bytes in memory at the location of F may be a jumble of the two values, contrary to the desire that atomics execute in a total order.</p>
+
+        <p>The reason for the second rule is that it is possible to perform candidate data writes (and non-viable candidate atomic writes) to the same locations that we perform candidate atomic reads to.  Such writes are not properly ordered with the candidate atomic reads -- in the case of candidate data writes this is obvious, in the case of candidate atomic writes the same argument about lock-free and non-lock-free atomics as for the first rule can be adapted -- and do not give rise to reliable synchronization.</p>
+
+        <p>("Ordering" is the correct explanation above but is sort of nebulous.  Can we do better?)</p>
+
+        <p>We want to reserve the notion of a "data race" for the conventional higher-level concept below, so what we do with viability is to create a dynamic type system that (in the semantics, though not in the implementation) checks that candidate atomic writes do not interfere and that candidate atomic reads only read from compatible candidate atomic writes.  From this we get the synchronization order, as desired.</p>
+
+        <p>Operationally, viability can be established through two mechanism, a reservation system for atomic accesses and a tagging system for memory contents.  These are specification mechanisms: they are not intended to be implemented.  They simply allow us to separate synchronizing events from non-synchronizing events.</p>
+
+        <p>The tagging scheme associates a triplet (Kind,N,J) with each byte where Kind is Atomic, Regular or Init, N is a byte count, and J is a number between 0 and N-1 inclusive.  The tag (Atomic,4,1) means that the byte was written as part of an atomic write of width 4, and this is byte 1 (ie the second byte). The tag (Regular,0,0) means the byte was written by a regular write (of some unknown width). The tag (Init,0,0) means the byte was written by a special initializing write (of some unknown width).</p>
+          
+        <p>A candidate atomic write to a sequence of locations i..j creates a reservation for i..j; if a reservation for i..j exists it waits until that reservation has been cleared.  It then writes the data bytes with the tags (Atomic,j-i+1,k) where k is 0, 1, up to j-i+1, and finally clears the reservation.  If the reservation was already cleared by another instruction then the candidate atomic write is not viable.</p>
+
+        FIXME: What about the total order?  Is that a side condition?  (Probably best, but if so worth a note here.)  Above we only have a partial order.
+
+        <p>A data write to a sequence of locations i..j clears any reservation for i..j and writes the data bytes with tags (Regular,0,0).</p>
+
+        <p>An initializing write to a sequence of locations i..j clears any reservation for i..j and writes the data bytes with tags (Init,0,0).  Initializing writes are performed by the constructor of the SharedArrayBuffer, and may be performed by mechanisms outside this proposal.</p>
+
+        <emu-note>
+          <p>In the case of translation from C/C++, program semantics may require fresh objects to be read by atomic reads without first being initialized by atomic writes.  Initializing writes add a complication, because we're creating an "as-if" situation where the semantics say that if your program blessed a memory area as newly-initialized by some unspecified means then an atomic read from the area is viable. </p>
+        </emu-note>
+            
+        <p>A candidate atomic read to a sequence of locations i..j waits until there is no longer any reservation for i..j then reads the locations.  If the tags of the locations are not of the form (Atomic,j-i+1,k) for k in the sequence 0, 1, j-i+1, or all of the form (Init,0,0), then the read is not viable.</p>
+
+        <p><b>FIXME:</b> Viability can be made more flexible by allowing an atomic read to read the non-atomic write of the same thread.</p>
+
+        <p>A candidate atomic write (including the write operation of a read-modify-write) W is <em>viable</em> in some execution of an agent cluster if it does not interfere with another candidate atomic write V, where:</p>
+        <ol>
+          <li> W and V access overlapping but non-identical sequences of bytes in the shared memory
+        </ol>
+
+        <p>A candidate atomic read (including the read operation of a read-modify-write) R is <em>viable</em> in some execution of an agent cluster if it sees the value written by a viable candidate atomic write W, where:</p>
+        <ol>
+          <li> W and R access the same sequence of bytes in the shared memory, and
+          <li> R does not see a value for any of those bytes written by some other write V
+        </ol>
+
+
+        <emu-note>
+          <p> ... can be used to model an implementation where we have lock-free and non-lock-free atomic operations, where atomic operations execute atomically and in a total order only if they do not conflict in the execution with atomic operations that overlap but do not match the access range or with non-atomic operations.</p>
+
+          <p>It may be possible to use these to more formally specify all races, so that those can be put on a firmer footing; doing so would mean BeginAtomic, BeginNonAtomic, and EndAtomic would need to remove values from the non-atomic transaction set when found to conflict.</p>
+        </emu-note>
+
+	

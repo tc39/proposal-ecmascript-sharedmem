@@ -904,6 +904,8 @@ These call AllocateTypedArray with a specified length:
 
           <p>For example, suppose an eight-byte non-lock-free candidate atomic write E attempts to interact with the memory system at the same time as a four-byte lock-free candidate atomic write F, and that the access ranges overlap.  (We don't have eight-byte atomics at present but we may have them in the future, and there are 32-bit platforms, such as MIPS, that do not support 64-bit atomics.)  E acquires a lock, then writes the data bytes in some arbitrary order, then releases the lock.  While E holds the lock, F interacts directly with the memory system to write its four bytes as a unit.  The result may easily be that some of the bytes written for E are written before the four bytes of F, and some after.  As a result, the bytes in memory at the location of F may be a jumble of the two values, contrary to the desire that atomics execute in a total order.</p>
 
+          <p>In the case of a non-lock-free atomic in a practical implementation, the lock and unlock operations are atomic operations (AtomicCompareExchange and AtomicWrite, minimally) that enter into the global atomic order on behalf of the non-lock-free atomic access.  In the semantics, the difference between lock-free and non-lock free is not visible.</p>
+
           <p>The idea of viability is therefore to define conditions under which the implementation of atomic accesses must not concern itself with the problems listed above.</p>
 
           <p>Ours is a lightweight notion of viability in that it is strictly per operation.  If what is syntactically a single atomic operation in the program is executed more than once, the operation can be viable in one case and non-viable in another.  It is also per execution: even if two programs execute the same atomic operations in the same order, an operation may be viable in one execution and not in another.  We also do not consider the provenance of the bytes read by an atomic read -- they could have been written by an atomic write to the access range, an atomic write to a larger access range, a non-atomic write, or a combination of those.  A stronger notion of viability could have required a viable atomic read to see only a value that was written by a single atomic write to the same access range (but would then need to add some mechanism for dealing with non-atomic initializing writes).</p>
@@ -923,20 +925,39 @@ These call AllocateTypedArray with a specified length:
 
         <p>Two memory transactions (_x_, _block1_, _byteIndex1_, _elementSize1_) and (_y_, _block2_, _byteIndex2_, _elementSize2_) are said to <em>overlap</em> if _block1_ and _block2_ are the same, and the range [_byteIndex1_, _byteIndex1_+_elementSize1_) overlaps with but is not equal to the range [_byteIndex2_,_byteIndex2_+_elementSize2_).  Two transactions are said to <em>match</em> if their fields are pairwise equal.</p>
 
-        <p>Two memory operations are said to <em>conflict</em> if one operation's Begin step happens between the other's Begin and End steps.  A memory operation A is said to <em>cover</em> another operation B if A's Begin step happens before B's Begin step and B's End step happens before A's End step.  (If A covers B then A and B also conflict.)</p>
+        <p>Two memory operations that overlap or match are said to <em>conflict</em> if one operation's Begin step happens between the other's Begin and End steps (as determined by the order they enter the Memory Critical Section).  A memory operation A is said to <em>cover</em> another operation B if A's Begin step happens before B's Begin step and B's End step happens before A's End step.</p>
 
-        <p>The following properties must hold (always in the absence of other matching, overlapping, or conflicting operations):</p>
+        <emu-note>
+          <p>A conflict is the result of two threads accessing overlapping memory at the same time.  If A covers B then A and B also conflict.</p>
+        </emu-note>
 
+        <p>The following properties must hold (always in the absence of other matching, overlapping, or conflicting operations; these assertions are about AtomicRead, etc, which are indicated by the word "operations"):</p>
+
+        <p>Forward progress:</p>
         <ul>
           <li>The system of memory operations always makes progress (does not deadlock).
-          <li>If two candidate atomic operations conflict and overlap then neither is viable.  (Also see below.)
-          <li>If a non-atomic write overlaps and conflicts with an atomic operation then the atomic operation is not viable.
+          <li>Viable atomic operations are executed in a total order.
+        </ul>
+
+        <p>Cases where things are not viable:</p>
+        <ul>
+          <li>If two candidate atomic operations conflict but don't match then neither is viable.  (OPEN QUESTION 1)
+          <li>If a non-atomic write conflicts with an atomic operation then the atomic operation is not viable.
           <li>If two candidate atomic operations conflict and one is not viable then the other is also not viable.
         </ul>
 
-        <p>OPEN QUESTION: Right now two atomic reads that conflict and overlap are flagged as not viable, but is that sensible?  I almost think so, we don't need to support that for any kind of meaningful use, and we must have our total atomic order.  (Note we do support the case where an atomic read conflicts and overlaps with a non-atomic read.)  Suppose one is lock-free and the other not... then?</p>
+        <p>Cases where things are viable:</p>
+        <ul>
+          <li>If a non-atomic read conflicts with an atomic operation then the atomic operation is viable.
+          <li>If two atomic operations conflict and match then they are viable.
+          <li>If two atomic operations don't conflict then they are viable.
+        </ul>
 
-        <p>OPEN QUESTION: Surely there are more properties to prove.</p>
+        <p>OPEN QUESTION 1: Right now two atomic reads that conflict but don't match are flagged as not viable.  This may be too harsh.  (Note we do support the case where an atomic read conflicts with a non-atomic read.)  In a practical implementation, if the two are lock-free they'll be properly ordered PROVIDED THE HARDWARE SUPPORTS THIS.  If one is lock-free and the other not, then the lock-free access will be ordered before, between, or after the lock/unlock pair for the non-lock-free access (the lock location does not overlap the accessed location).  If both are non-lock-free, the lock will take care of ordering the accesses.</p>
+
+        <p>I actually wonder about ARM in this regard but it's probably OK.  For 64-bit atomics we'll need to use LDREXD to load 8 bytes followed by CLREX.  A conflicting LDR or even LDREX, say, on another core does not affect this.  There are no indications that garbage would be returned anywhere for loads (stores may flip out but that's a different issue).</p>
+
+        <p>TODO: Surely there are more properties to prove above?  Notably about three accesses.</p>
 
 <!--
     Clippings.  Not sure how everything fits in.
@@ -953,7 +974,7 @@ These call AllocateTypedArray with a specified length:
         <emu-note>
           <p>(Spec draft note)</p>
 
-          <p>It will be useful to prove informally here that those properties hold.  The first three properties are probably fairly obvious.</p>
+          <p>It will be useful to prove informally here that those properties hold.  Forward progress and the first two properties of non-viability are probably fairly obvious.</p>
 
           <p>That non-viability of one operation implies the non-viability of a conflicting operation is probably not obvious.</p>
 
