@@ -224,3 +224,24 @@
 -->
 
 	
+
+      <!--
+      <p>The <em>atomic accesses</em> of an execution are those atomic memory operations that are viable in that execution; the <em>data accesses</em> are all the other memory operations.</p>
+
+      We need to pin down what reordering can do because compilers do reordering above and beyond what the hardware will do with speculation and write buffering, and data races will expose these reorderings as well as the reorderings done by the hardware.
+
+      We need to pin down what the synchronizing events are in order to see the complete total order of atomic operations, including non-access events.  Non-access events can and probably should be modeled in terms of accesses: when an event pair creates a synchronizes-with edge, it is as if the source is a write to a hidden shared location just(?) before the call to the source operation returns and the sink is a read from that location just(!) before the sink operation returns.
+      -->
+
+
+            <!-- From ReadSharedMemory
+      , provided such speculation does not violate
+        transformation rules described earlier (notably rules about
+        reordering with respect to synchronizing events) -->
+
+      <!-- From WriteSharedMemory
+           provided such delay does not violate transformation rules
+           described earlier (notably rules about reordering with
+           respect to synchronizing events). -->
+
+

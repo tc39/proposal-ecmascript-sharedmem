@@ -812,7 +812,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>In the semantics, the difference between lock-free and non-lock free is not visible, but some of the choices in the semantics are a consequence of having to deal with both implementation strategies.</p>
 
-        <p>For example, suppose an eight-byte non-lock-free atomic write operation E attempts to interact with the memory system at the same time as a four-byte lock-free atomic write operation F, and that the access ranges overlap.  (We don't have eight-byte atomics at present but we may have them in the future, and there are 32-bit platforms, such as MIPS, that do not support 64-bit atomics.)  E acquires a lock, then writes the data bytes in some arbitrary order, then releases the lock.  While E holds the lock, F interacts directly with the memory system to write its four bytes as a unit.  The result may easily be that some of the bytes written for E are written before the four bytes of F, and some after.  As a result, the bytes in memory at the location of F may be a jumble of the two values, contrary to the desire that atomic operations execute in a total order.</p>
+        <p>For example, suppose an eight-byte non-lock-free atomic write operation E attempts to interact with the memory system at the same time as a four-byte lock-free atomic write operation F, and that the access ranges overlap.  (We don't have eight-byte atomics at present but we may have them in the future, and there are 32-bit platforms, such as MIPS, that do not support 64-bit atomics.)  E acquires a lock, then writes the data bytes in some arbitrary order, then releases the lock.  While E holds the lock, F interacts directly with the memory system to write its four bytes as a unit.  The result may easily be that some of the bytes written for E are written before the four bytes of F, and some after.  As a result, the bytes in memory at the location of F may be a jumble of the two values, contrary to the desire that atomic operations execute atomically.</p>
 
         <p>(In the case of a non-lock-free atomic in a practical implementation, the lock and unlock operations may themselves not be atomic operations in the sense used here; the only requirement is that the combination of the lock and the unlock should enter into the global atomic order on behalf of the non-lock-free atomic access.)</p>
 
@@ -823,7 +823,7 @@ These call AllocateTypedArray with a specified length:
         <p>The term "viable" was chosen in preference to e.g. "non-racy" since we want to preserve the term "data race" for the conventional notion of operations unordered by the happens-before relation, see later.</p>
       </emu-note>
 
-      <p>The memory system for the agent cluster comprises a byte-addressable memory and a critical section (the <em>Memory Critical Section</em>) that protects a timestamp, an atomic-reservation, and a non-atomic-transaction set.  The critical section is a specification device that exists outside the program-visible shared memory; it does not have effects beyond mutual exclusion.  We use these semantic data structures to determine viability of atomic operations and to express the total ordering of viable atomic operations.</p>
+      <p>The memory system for the agent cluster comprises a byte-addressable memory and a critical section (the <em>Memory Critical Section</em>) that protects a timestamp, an atomic-reservation, and a non-atomic-transaction set.  The critical section is a specification device that exists outside the program-visible shared memory; it does not have effects beyond mutual exclusion.  We use these semantic data structures to determine viability of atomic operations and to express the ordering of viable atomic operations.</p>
 
       <p>The semantic operations BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic operate on the memory system and denote the start and end of atomic and non-atomic operations, respectively.  The memory operations are defined in terms of these abstract operations and of the memory access primitives ReadSharedMemory, WriteSharedMemory, and MemoryFence.</p>
 
@@ -1103,68 +1103,33 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="AtomicsObject.EventsAndSync">
-      <h1>Events, event order, synchronization, causality, and data races</h1>
+      <h1>Events, event order, synchronization, causality, reordering, and data races</h1>
 
-      <p>An <em>event</em> in an agent is a either a data access (a
-        <em>non-synchronizing event</em>), or an atomic access or a call to
-        Atomics.wake or Atomics.wait (<em>synchronizing events</em>).
-        Synchronizing events can additionally be embedding-specific.</p>
-
-      <p>The <em>atomic accesses</em> of an execution are those atomic memory
-        operations that are viable in that execution; the <em>data
-        accesses</em> are all the other memory operations.</p>
+      <p>Inter-agent communication events that are not memory operations (such as Atomics.wake and Atomics.wait, or host-specific communication events) are in the following considered to be memory operations, with an AtomicWrite (to some hidden location in shared memory, with an arbitrary value) occuring as part of the event that sends a communication and an AtomicRead (to the same location) occuring as part of the event that receives a communication when the communication arrives.  These synthesized atomic operations are always viable.</p>
 
       <emu-note>
-        <p>Examples of embedding-specific synchronizing events that should be
-          accounted for are: sending a SharedArrayBuffer from one agent and
-          receiving it in another (e.g., by `postMessage` in a browser),
-          starting and stopping agents, and communicating within the agent
-          cluster via channels other than shared memory.</p>
+        <p>Examples of host-specific inter-agent communication events are: sending a SharedArrayBuffer from one agent and receiving it in another (e.g., by `postMessage` in a browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory.</p>
       </emu-note>
 
-      <p><b>NOTE</b>: I'm not convinced the following is good enough; we want to be sure it does not open up the possibility that the compiler can reorder some non-viable atomic operations so as to make subsequent would-have-been viable atomic operations non-viable.  It is possible that we want to move this to the level of atomic <em>operations</em> (but we also want to encompass wake and wait, and we want to allow for embedding-specific events).  With operations we can at least talk about what the implementation should have done.</p>
-
-      <p>Really, this needs to be a syntactic-ish property: we don't want atomics hoisted out of loops, for example.  If the implementation could prove those atomics are not viable, then perhaps... but ...</p>
-
-      <p>Program transformations by a compiler or the hardware must not reorder
-        an agent's non-synchronizing events with its synchronizing events, nor
-        reorder its synchronizing events with each other.</p>
+      <p>Program transformations by a compiler or the hardware must not reorder an agent's atomic operations with its non-atomic operations, nor reorder its atomic operations with each other.</p>
 
       <emu-note>
-        <p>The prohibition on reordering synchronizing events is stronger than
-          in most mainstream concurrent languages.</p>
+        <p>Reorderings may be observable in multi-agent programs that have data races (defined below).</p>
+
+        <p>In principle it is sufficient to prohibit reorderings with respect to viable atomic operations, but viability is an inter-agent per-execution property.  In practice, the prohibition on reorderings simply forces a compiler to assume that every atomic operation is viable.</p>
       </emu-note>
 
-      <p>A <em>program order</em> of an agent is a total ordering of the
-        agent's events that is consistent with the semantics of the ECMAScript
-        program running in that agent.  There are usually many possible legal
-        program orders for a program.</p>
+      <p>An <em>event</em> in an agent is then either a <em>synchronizing event</em> (a viable atomic operation or the communication event it represents) or a <em>non-synchronizing event</em> (a non-viable atomic operation or a non-atomic operation).</p>
 
-      <p>An <em>execution</em> of an agent cluster is a partial ordering of the
-        agents' events that is consistent with each agent's program order.</p>
+      <p>A <em>program order</em> of an agent is a total ordering of the agent's events that is consistent with the semantics of the ECMAScript program running in that agent.  There are usually many possible legal program orders for a program.</p>
 
-      <p>Similarly, the `wait` event is viable (and thus considered as a
-        synchronizing event) only if the atomic read it performs is viable.</p>
+      <p>An <em>execution</em> of an agent cluster is a partial ordering of the agents' events that is consistent with each agent's program order.</p>
 
-      <p>Synchronizing events in an execution shall then be performed in a
-        total order -- known as the <em>synchronization order</em> for the
-        execution -- that is consistent with each agent's program order.</p>
+      <p>Synchronizing events in an execution will be performed in a total order -- known as the <em>synchronization order</em> for the execution -- that is consistent with each agent's program order.</p>
 
       <emu-note>
-          <p>For atomic accesses the total order is provided by the definition of viability.  The `wait` and `wake` events can be considered to perform atomic reads (in Suspend) and writes (in WakeWaiter) on a hidden shared-memory location that will insert them into the total atomic order.</p>
-          <p>(Spec draft note)  Clearly can formalize that further if we feel it is necessary.</p>
+        <p>The total order exists by construction: viable atomic operations are executed in a total order, and only viable atomic operations are part of the synchronization order.</p>
       </emu-note>
-
-      <!-- From ReadSharedMemory
-      , provided such speculation does not violate
-        transformation rules described earlier (notably rules about
-        reordering with respect to synchronizing events) -->
-
-      <!-- From WriteSharedMemory
-           provided such delay does not violate transformation rules
-           described earlier (notably rules about reordering with
-           respect to synchronizing events). -->
-
 
       <p>The synchronization order induces a <em>synchronized-with</em> relation on actions for the execution:</p>
 
