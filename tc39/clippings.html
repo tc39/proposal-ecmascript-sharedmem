@@ -209,3 +209,18 @@
         </emu-note>
 
 	
+
+
+<!--
+    Clippings.  Not sure how everything fits in.
+
+        <li>If two candidate atomic operations do not conflict then they are both viable.
+        <li>If two candidate atomic operations match and conflict  then they are executed one after the other, and both are viable.
+          <li>
+        <li>If two atomic operations overlap but do not conflict then both are viable.  NOTE: this is a problem in some sense if the first is a write and the second is a read, because the read will read from some memory that was written by something other than an atomic operation.  This is why we have tagging.  So here we see that we don't need tagging for (simple) viability but we need tagging for synchronizes-with.
+        <li>If a non-atomic read overlaps and conflicts with an atomic operation then the atomic operation is viable.  NOTE: The normal definition of a race is that two operations conflict and at least one of them is a write, so it's arguable that the atomic operation should be not viable here.
+        <li>(Something about operations that cover others, notably with three operations.)
+      </ul>
+-->
+
+	
