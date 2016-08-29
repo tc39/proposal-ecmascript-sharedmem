@@ -1287,15 +1287,16 @@ These call AllocateTypedArray with a specified length:
 
       <p>NonAtomicRead takes four arguments, a Shared Data Block
         _block_, a nonnegative integer _byteIndex_, a Boolean
-        _accessAtomic_, and a nonnegative integer _elementSize_, and
-        returns a List containing, in order, the _elementSize_ sequence
-        of bytes starting with _block_[_byteIndex_], using
-        _accessAtomic_ to guide the operation, as follows:</p>
+        _accessAtomic_, and a nonnegative integer _elementSize_.
+        The following steps are taken:</p>
 
       <emu-alg>
         1. Let _transaction_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _elementSize_)
-        1. Perform ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_)
+        1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_).
         1. Perform EndNonAtomic(_transaction_, `"Read"`, _block_, _byteIndex_, _elementSize_)
+        1. Assert: _rawValue_ is a List of size _elementSize_.
+        1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
+        1. Return _r_.
       </emu-alg>
 
     </emu-clause>
@@ -1305,10 +1306,8 @@ These call AllocateTypedArray with a specified length:
 
       <p>NonAtomicWrite takes five arguments, a Shared Data Block _block_,
         a nonnegative integer _byteIndex_, a Boolean
-        _accessAtomic_, a nonnegative integer _elementSize_, and a List _rawBytes_ of _elementSize_, and stores the
-        individual bytes of _rawBytes_ into _block_, in order, starting
-        at _block_[_byteIndex_], using _accessAtomic_ to guide the
-        operation, as follows:</p>
+        _accessAtomic_, a nonnegative integer _elementSize_, and a List _rawBytes_ of _elementSize_.
+        The following steps are taken:</p>
 
       <emu-alg>
         1. Let _transaction_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _elementSize_)
@@ -1345,7 +1344,6 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Assert: _byteIndex_ is an integer value &ge; 0.
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
-        1. Assert: Type(_v_) is Number.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _v_ as for SetValueInBuffer. (TODO: Elucidate.)
@@ -1364,7 +1362,6 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Assert: _byteIndex_ is an integer value &ge; 0.
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
-        1. Assert: Type(_v_) is Number.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
@@ -1388,8 +1385,6 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Assert: _byteIndex_ is an integer value &ge; 0.
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
-        1. Assert: Type(_expected_) is Number.
-        1. Assert: Type(_replacement_) is Number.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
