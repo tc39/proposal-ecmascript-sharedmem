@@ -756,32 +756,17 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="AtomicsObjectFunctionProps.semantics">
     <h1>Runtime semantics</h1>
 
-<!--
-    Notes from meeting with Shu
-
-    Pre-notes:
-    - what do we really want with the memory model?  what do we need to express?
-    - do we have to operationalize the total order
-
-
-    Notes:
-    - semantics need to make clear that reordering prohibition (on syntactic level) is wrt to candidate atomics, compiler must assume all candidate atomics are viable atomics.
-    - reservations have identity (in addition to range), could be a timestamp or id (depending on whether we need just identity or ordering)
-    - non-atomic writes need to kill reservations at the beginning and the end because it does not prevent an atomic write to start after the non-atomic write startes. seems complex but is probably what we need to deal with lock-free vs non-lock-free atomics (which hw does need to worry about)
-
-  -->
-
     <emu-clause id="AtomicsObject.MemoryModel">
       <h1>Memory model introduction</h1>
 
       <p>The memory model determines when a particular read from shared memory may observe a particular write to shared memory.  Programs <em>synchronize</em> to ensure that reads and writes to shared memory happen in a meaningful order.  Synchronization happens chiefly by means of <em>atomic accesses</em> to shared memory wherein an atomic read observes the value written by an atomic write.</p>
 
-      <p>However, ECMAScript shared memory obeys very weak type discipline, in that the byte array of a Shared Data Block can be aliased by TypedArrays of different types and accessed without natural alignment via DataViews, and also in that atomic operations must be applied to cells that are not exclusively atomic.  For atomic accesses to be useful for synchronization they must not be interfered with by incompatible atomic accesses or by non-atomic accesses, and this specification therefore provides a <em>shared memory access model</em> that describes the conditions under which memory accesses interfere (in an execution) as well as the observable effects of interfering and non-interfering accesses.</p>
+      <p>ECMAScript shared memory obeys very weak type discipline, in that the byte array of a Shared Data Block can be aliased by TypedArrays of different types and accessed without natural alignment via DataViews, and also in that atomic operations must be applied to cells that are not exclusively atomic.  For atomic accesses to be useful for synchronization they must not be interfered with by incompatible atomic accesses or by non-atomic accesses, and this specification therefore provides a <em>shared memory access model</em> that describes the conditions under which memory accesses interfere (in an execution) as well as the observable effects of interfering and non-interfering accesses.</p>
 
       <p>Non-interfering atomic accesses are executed in a well-defined order, and that order will allow programmers to reason about program synchronization, causality, and data races in a conventional way.</p>
 
       <emu-note>
-        <p>As a rule of thumb, if the program accesses locations used for synchronization only with atomic operations and always with the same data width, its atomic operations will be non-interfering.  The program can safely initialize the memory for the atomic locations using non-atomic operations so long as other synchronization in the program is used to reveal the just-initialized object to other agents.</p>
+        <p>(Programming advice)  As a rule of thumb, if the program accesses locations used for synchronization only with atomic operations and always with the same data width, its atomic operations will be non-interfering.  The program can safely initialize the memory for the atomic locations using non-atomic operations so long as other synchronization in the program is used to create a happens-before relation between the code that initializes the memory and the code that uses it for synchronization.</p>
     </emu-clause>
 
     <emu-clause id="AtomicsObject.Fundamentals">
@@ -820,12 +805,12 @@ These call AllocateTypedArray with a specified length:
 
         <p>Ours is a lightweight notion of viability in that it is strictly per atomic operation.  If what is syntactically a single atomic operation in the program is executed more than once, the operation can be viable in one case and non-viable in another.  It is also per execution: even if two programs execute the same atomic operations in the same order, an operation may be viable in one execution and not in another.  We also do not consider the provenance of the bytes read by an atomic read -- they could have been written by an atomic write to the access range, an atomic write to a larger access range, a non-atomic write, or a combination of those.  A stronger notion of viability could have required a viable atomic read to see only a value that was written by a single atomic write to the same access range (but would then need to add some mechanism for dealing with non-atomic initializing writes).</p>
 
-        <p>The term "viable" was chosen in preference to e.g. "non-racy" since we want to preserve the term "data race" for the conventional notion of operations unordered by the happens-before relation, see later.</p>
+        <p>The term "viable" is used in preference to e.g. "non-racy" since we want to preserve the term "data race" for the conventional notion of operations unordered by the happens-before relation, see later.</p>
       </emu-note>
 
       <p>The memory system for the agent cluster comprises a byte-addressable memory and a critical section (the <em>Memory Critical Section</em>) that protects a timestamp, an atomic-reservation, and a non-atomic-transaction set.  The critical section is a specification device that exists outside the program-visible shared memory; it does not have effects beyond mutual exclusion.  We use these semantic data structures to determine viability of atomic operations and to express the ordering of viable atomic operations.</p>
 
-      <p>The semantic operations BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic operate on the memory system and denote the start and end of atomic and non-atomic operations, respectively.  The memory operations are defined in terms of these abstract operations and of the memory access primitives ReadSharedMemory, WriteSharedMemory, and MemoryFence.</p>
+      <p>The semantic operations BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic operate on the memory system and denote the start and end of atomic and non-atomic operations, respectively.  The memory operations are defined in terms of these abstract operations and of the memory access primitives ReadSharedMemory and WriteSharedMemory.</p>
 
       <p>A <dfn>transaction</dfn> on shared memory is a quadruple (_id_, _block_, _byteIndex_, _elementSize_).  The atomic-reservation and the non-atomic-transaction set store transactions.  The _id_ is taken as the next value of the global timestamp.  *NoSuchTimestamp* is a timestamp value that does not mach any value obtained from the global timestamp.</p>
 
@@ -878,7 +863,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.ReadSharedMemory" aoid="ReadSharedMemory">
       <h1>ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
 
-      <p>ReadSharedMemory takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a nonnegative integer _numBytes_, and returns a List containing, in order, the _numBytes_ sequence of bytes starting with _block_[_byteIndex_], using _accessAtomic_ to guide the operation, as follows:</p>
+      <p>ReadSharedMemory takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a nonnegative integer _numBytes_, and returns a List containing, in order, the _numBytes_ sequence of bytes starting with _block_[_byteIndex_], using _accessAtomic_ to guide the operation, as follows.</p>
 
       <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access, described next, are met; the parameter has no bearing on the ordering of accesses to memory.</p>
 
@@ -888,14 +873,15 @@ These call AllocateTypedArray with a specified length:
         <li>Otherwise, the read may conflict with any number of writes (and with arbitrary reads), and the bytes that are returned from ReadSharedMemory are selected individually in arbitrary order as follows. For each location in the access range of the read, select either the byte in memory at that location or a byte from one of the values to be written if it provides a byte for that location.
       </ol>
 
-      <p>ReadSharedMemory may contain machinery that speculates whether a read request will be made.  If so, it may read (according to the preceding rules) the value before the request is made.</p>
-
+      <emu-note>
+        <p>The special provisions around _accessAtomic_ are present here and in WriteSharedMemory even for non-atomic accesses because all hardware supports the specialized behavior and because that behavior is valuable to programs in practice.</p>
+      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.WriteSharedMemory" aoid="WriteSharedMemory">
       <h1>WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)</h1>
 
-      <p>WriteSharedMemory takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a nonnegative integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_], using _accessAtomic_ to guide the operation, as follows:</p>
+      <p>WriteSharedMemory takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a nonnegative integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_], using _accessAtomic_ to guide the operation, as follows.</p>
 
       <p>The parameter _accessAtomic_ requests that the access be non-tearing if other conditions for such an access, described next, are met; the parameter has no bearing on the ordering of accesses to memory.</p>
 
@@ -905,56 +891,46 @@ These call AllocateTypedArray with a specified length:
         <li>Otherwise, the write may conflict with any number of writes (and with arbitrary reads), and each write writes the bytes of its value individually in some arbitrary order, and the byte writes of all the writes can be interleaved in some arbitrary order.
      </ol>
 
-      <p>WriteSharedMemory may contain machinery that delays the write request, and if so it may hold the bytes for later writing (according to the preceding rules).</p>
-
     </emu-clause>
 
-    <emu-clause id="Atomics.MemoryFence" aoid="MemoryFence">
-      <h1>MemoryFence()</h1>
-      <emu-alg>
-        1. Discard any unconsumed reads speculated by ReadSharedMemory.
-        1. Wait for any writes delayed by WriteSharedMemory to complete.
-      </emu-alg>
-    </emu-clause>
-    
     <emu-clause id="Atomics.BeginAtomic" aoid="BeginAtomic">
       <h1>BeginAtomic(_block_, _byteIndex_, _elementSize_)</h1>
       <emu-alg>
-        1. Perform MemoryFence().
-        1. Enter the Memory Critical Section
+        1. Wait for any writes delayed by NonAtomicWrite to complete.
+        1. Discard any reads speculated by NonAtomicRead and disable further speculation.
+        1. Enter the Memory Critical Section.
         1. While the atomic-reservation either matches or does not overlap (_block_, _byteIndex_, _elementSize_):
           1. Wait (leaving the critical section) until the atomic-reservation changes.
         1. If the atomic-reservation overlaps (_block_, _byteIndex_, _elementSize_) then:
           1. Clear the atomic-reservation.
-          1. Leave the Memory Critical Section
+          1. Leave the Memory Critical Section.
           1. Return *NoSuchTimestamp*.
         1. Assert: there is no atomic-reservation.
         1. If (`"Write"`, _block_, _byteIndex_, _elementSize_) overlaps any entry in the non-atomic-transaction set then:
-          1. Leave the Memory Critical Section
+          1. Leave the Memory Critical Section.
           1. Return *NoSuchTimestamp*.
         1. Let _t_ be the current timestamp.
         1. Increment the timestamp.
         1. Set the atomic-reservation to (_t_, _block_, _byteIndex_, _elementSize_).
-        1. Leave the Memory Critical Section
+        1. Leave the Memory Critical Section.
         1. Return _t_.
       </emu-alg>
-
     </emu-clause>
 
     <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
       <h1>EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_)</h1>
       <emu-alg>
-        1. Enter the Memory Critical Section
+        1. Enter the Memory Critical Section.
         1. Let (_t_, _b_, _i_, _s_) be the atomic-reservation.
         1. Clear the atomic-reservation.
         1. If (_t_, _b_, _i_, _s_) does not match (_transaction_, _block_, _byteIndex_, _elementSize_) then:
-          1. Leave the Memory Critical Section
+          1. Leave the Memory Critical Section.
           1. Return *false*.
         1. If (`"Write"`, _block_, _byteIndex_, _elementSize_) overlaps any entry in the non-atomic-transaction set then:
-          1. Leave the Memory Critical Section
+          1. Leave the Memory Critical Section.
           1. Return *false*.
-        1. Leave the Memory Critical Section
-        1. Perform MemoryFence().
+        1. Leave the Memory Critical Section.
+        1. Re-enable speculation in NonAtomicRead.
         1. Return *true*.
       </emu-alg>
     </emu-clause>
@@ -962,60 +938,67 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="Atomics.BeginNonAtomic" aoid="BeginNonAtomic">
       <h1>BeginNonAtomic(_op_, _block_, _byteIndex_, _elementSize_)</h1>
       <emu-alg>
-        1. Enter the Memory Critical Section
+        1. Enter the Memory Critical Section.
         1. Let _t_ be the current timestamp.
         1. Increment the timestamp.
-        1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the non-atomic-transaction set
-        1. If _op_ equals `"Write"` and the atomic-reservation overlaps (block, byteIndex, elementSize) then
-          1. Clear the atomic-reservation
-        1. Leave the Memory Critical Section
-        1. Return _t_
+        1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the non-atomic-transaction set.
+        1. If _op_ equals `"Write"` and the atomic-reservation overlaps (block, byteIndex, elementSize) then:
+          1. Clear the atomic-reservation.
+        1. Leave the Memory Critical Section.
+        1. Return _t_.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.EndNonAtomic" aoid="EndNonAtomic">
       <h1>EndNonAtomic(_t_, _op_, _block_, _byteIndex_, _elementSize_)</h1>
       <emu-alg>
-        1. Enter the Memory Critical Section
-        1. Remove (_t_, _op_, _block_, _byteIndex_, _elementSize_) from the non-atomic-transaction set
-        1. If _op_ equals `"Write"` and the atomic-reservation overlaps (block, byteIndex, elementSize) then
-          1. Clear the atomic-reservation
-        1. Leave the Memory Critical Section
+        1. Enter the Memory Critical Section.
+        1. Remove (_t_, _op_, _block_, _byteIndex_, _elementSize_) from the non-atomic-transaction set.
+        1. If _op_ equals `"Write"` and the atomic-reservation overlaps (block, byteIndex, elementSize) then:
+          1. Clear the atomic-reservation.
+        1. Leave the Memory Critical Section.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.NonAtomicRead" aoid="NonAtomicRead">
       <h1>NonAtomicRead(_block_, _byteIndex_, _accessAtomic_, _elementSize_)</h1>
 
-      <p>NonAtomicRead takes four arguments, a Shared Data Block
-        _block_, a nonnegative integer _byteIndex_, a Boolean
-        _accessAtomic_, and a nonnegative integer _elementSize_.
-        The following steps are taken:</p>
+      <p>NonAtomicRead takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a nonnegative integer _elementSize_. The following steps are taken:</p>
 
       <emu-alg>
-        1. Let _transaction_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _elementSize_)
+        1. Let _transaction_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _elementSize_).
         1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_).
-        1. Perform EndNonAtomic(_transaction_, `"Read"`, _block_, _byteIndex_, _elementSize_)
+        1. Perform EndNonAtomic(_transaction_, `"Read"`, _block_, _byteIndex_, _elementSize_).
         1. Assert: _rawValue_ is a List of size _elementSize_.
         1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
         1. Return _r_.
       </emu-alg>
 
+      <p>The ECMAScript implementation may speculate that a read request is going to be made: It may execute the preceding algorithm with some parameter values before a call to NonAtomicRead with those parameters occurs, resulting in some value _v_.  If so, the call to NonAtomicRead may return _v_.</p>
+
+      <p>Speculation may not happen across atomic operations; it is disabled by BeginAtomic and re-enabled by EndAtomic.</p>
     </emu-clause>
 
     <emu-clause id="Atomics.NonAtomicWrite" aoid="NonAtomicWrite">
       <h1>NonAtomicWrite(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)</h1>
 
-      <p>NonAtomicWrite takes five arguments, a Shared Data Block _block_,
-        a nonnegative integer _byteIndex_, a Boolean
-        _accessAtomic_, a nonnegative integer _elementSize_, and a List _rawBytes_ of _elementSize_.
-        The following steps are taken:</p>
+      <p>NonAtomicWrite takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a nonnegative integer _elementSize_, and a List _rawBytes_ of _elementSize_. The following steps are taken:</p>
 
       <emu-alg>
-        1. Let _transaction_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _elementSize_)
-        1. Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_)
-        1. Perform EndNonAtomic(_transaction_, `"Write"`, _block_, _byteIndex_, _elementSize_)
+        1. Let _transaction_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _elementSize_).
+        1. Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_).
+        1. Perform EndNonAtomic(_transaction_, `"Write"`, _block_, _byteIndex_, _elementSize_).
       </emu-alg>
+
+      <p>The ECMAScript implementation may delay the write request: It may execute the preceding algorithm with the parameters passed to NonAtomicWrite after NonAtomicWrite has returned to its caller.</p>
+
+      <p>Writes may not be delayed across atomic operations; outstanding writes are flushed by BeginAtomic.</p>
+
+      <p><b>FIXME:</b> Constraints here?  For example, can two writes to the same location be reordered?  I think generally not.</p>
+
+      <p><b>FIXME:</b> Now that buffering and speculation are only applicable to non-atomic reads, and atomic reads even when not viable use a different algorithm, can we dispense with it, since the rules on transformations shown later will allow for the same effects?</p>
+
+      <p><b>FIXME:</b> Indeed, now that the atomic operations cannot perform speculation and buffering, have we not thrown the baby out with the bathwater?</p>
     </emu-clause>
 
     <emu-clause id="Atomics.AtomicRead" aoid="AtomicRead">
@@ -1103,25 +1086,33 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="AtomicsObject.EventsAndSync">
-      <h1>Events, event order, synchronization, causality, reordering, and data races</h1>
-
-      <p>Inter-agent communication events that are not memory operations (such as Atomics.wake and Atomics.wait, or host-specific communication events) are in the following considered to be memory operations, with an AtomicWrite (to some hidden location in shared memory, with an arbitrary value) occuring as part of the event that sends a communication and an AtomicRead (to the same location) occuring as part of the event that receives a communication when the communication arrives.  These synthesized atomic operations are always viable.</p>
+      <h1>Events, reordering, synchronization, and data races</h1>
 
       <emu-note>
-        <p>Examples of host-specific inter-agent communication events are: sending a SharedArrayBuffer from one agent and receiving it in another (e.g., by `postMessage` in a browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory.</p>
+        <p>(Spec draft note)  The purpose of this section is primarily to state the rules on reordering, secondarily to assert that data-race-free programs are sequentially consistent.</p>
       </emu-note>
 
-      <p>Program transformations by a compiler or the hardware must not reorder an agent's atomic operations with its non-atomic operations, nor reorder its atomic operations with each other.</p>
+      <p>Inter-agent communication actions that are not memory operations (such as Atomics.wake and Atomics.wait, or host-specific communication actions) are in the following considered to be memory operations, with an AtomicWrite (to some hidden location in shared memory, with an arbitrary value) occuring as part of the action that sends a communication and an AtomicRead (to the same location) occuring as part of the action that receives a communication when the communication arrives.  These synthesized atomic operations are always viable.</p>
 
       <emu-note>
-        <p>Reorderings may be observable in multi-agent programs that have data races (defined below).</p>
-
-        <p>In principle it is sufficient to prohibit reorderings with respect to viable atomic operations, but viability is an inter-agent per-execution property.  In practice, the prohibition on reorderings simply forces a compiler to assume that every atomic operation is viable.</p>
+        <p>Examples of host-specific inter-agent communication actions are: sending a SharedArrayBuffer from one agent and receiving it in another (e.g., by `postMessage` in a web browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory.</p>
       </emu-note>
 
-      <p>An <em>event</em> in an agent is then either a <em>synchronizing event</em> (a viable atomic operation or the communication event it represents) or a <em>non-synchronizing event</em> (a non-viable atomic operation or a non-atomic operation).</p>
+      <p>Program transformations (by a compiler or the hardware) must not reorder an agent's atomic operations with its non-atomic operations, nor reorder its atomic operations with each other.</p>
 
-      <p>A <em>program order</em> of an agent is a total ordering of the agent's events that is consistent with the semantics of the ECMAScript program running in that agent.  There are usually many possible legal program orders for a program.</p>
+      <emu-note>
+        <p>(Spec draft note)  In principle it is probably sufficient to prohibit reorderings with respect to viable atomic operations, not all atomic operations, but viability is an inter-agent per-execution property.  In practice, the prohibition on reorderings simply forces a compiler to assume that every atomic operation is viable, which it would usually have to assume in the absence of inter-agent program analysis.</p>
+      </emu-note>
+
+      <p>An <em>event</em> in an agent is then either a <em>synchronizing event</em> (a viable atomic operation or the communication action it represents) or a <em>non-synchronizing event</em> (a non-viable atomic operation or a non-atomic operation).</p>
+
+      <p>A <em>program order</em> of an agent is a total ordering of the agent's events that is consistent with the semantics of the ECMAScript program running in that agent.</p>
+
+      <emu-note>
+        <p>There are usually many possible legal program orders for a program, representing legal transformations of the program.  Note that transformations may be dynamic, and multiple executions of a program fragment may give rise to different sequences of events.</p>
+
+        <p>Transformations that affect the program order are discussed below.</p>
+      </emu-note>
 
       <p>An <em>execution</em> of an agent cluster is a partial ordering of the agents' events that is consistent with each agent's program order.</p>
 
@@ -1131,15 +1122,9 @@ These call AllocateTypedArray with a specified length:
         <p>The total order exists by construction: viable atomic operations are executed in a total order, and only viable atomic operations are part of the synchronization order.</p>
       </emu-note>
 
-      <p>The synchronization order induces a <em>synchronized-with</em> relation on actions for the execution:</p>
+      <p>The synchronization order induces a <em>synchronized-with</em> relation on actions for the execution: A viable atomic write of a location synchronizes-with all subsequent (later in the synchronization order) viable atomic reads of that location.</p>
 
-      <ul>
-        <li>An atomic write of a location synchronizes-with all subsequent (later in the synchronization order) atomic reads of that location.
-        <li>A `wake` call synchronizes-with a `wait` call that returns as a result of the `wake`.
-        <li>In an embedding-specific synchronizing event that has a sender and a receiver (such as sending a SharedArrayBuffer from one agent to another), the sending action synchronizes-with the receiving action.
-      </ul>
-
-      <p>We can now define the happens-before relation, which gives rise to definitions of data races.  An event A <em>happens before</em> another event B in an execution if either:</p>
+      <p>An event A <em>happens before</em> another event B in an execution if either:</p>
 
       <ul>
         <li>A precedes B in an agent's program order,
@@ -1149,105 +1134,44 @@ These call AllocateTypedArray with a specified length:
 
       <p>Executions must be such that <em>happens before</em> is irreflexive (acyclic).</p>
 
-      <p>Two shared memory accesses whose access ranges intersect constitute a <em>data race</em> if neither happens before the other, at least one of them is a write, and they are not both atomic writes to the same access range.</p>
+      <p>Two memory operations constitute a <em>data race</em> if neither happens before the other, at least one of them is a write, and either they overlap, or they match but are not both viable atomic writes.</p>
 
-      <p>[Semi-obsolete prose] If an atomic access is not in a data race, then the shared memory reads and writes issued by the atomic access shall be performed indivisibly (while also following the rules of ReadSharedMemory and WriteSharedMemory), and in a read-modify-write atomic access no write by another agent shall be allowed to execute between the read and the write.</p>
+      <emu-note>
+        <p>Two accesses can be in a data race without actually conflicting during any particular execution.</p>
 
-      <p>[Probably obsolete now] <b>FIXME:</b> operationalize an atomic read "seeing" an atomic write.  This need not be hard.  Viable atomic read R sees viable atomic write W if W is before R in the total order, the access ranges of R and W overlap, and there are no other writes between W and R that scribble on all the bytes read by R.  This would be a lot cleaner with a restriction as introduced by tagging, since without tagging you can have the situation that a single read R sees multiple atomic writes if those writes wrote to different parts of the datum accessed by R.</p>
+        <p>Viable atomic operations that are in a data race and are not conflicting can be used for synchronization (in that execution); two racing atomic writes will happen in some order and a subsequent read will happen after both of them.  In some other execution the two writes may actually conflict, and though the read may be executed after both writes the writes (being non-viable) will not happen-before the read.</p>
 
-      <p>Data races expose the effects of
-          program transformations in the compiler and in the hardware,
-          which are unintuitive and platform-specific.  ECMAScript
-          programs with data races are safe (races cannot subvert the
-          language implementation, they affect only the memory
-          locations in Shared Data Blocks), but the values resulting
-          from a data race are often hard to predict.  The effects of
-          data races include observing values that, within limits,
-          appear to come from the past (because they should have been
-          written before other values, which have not been seen) or
-          from the future (because they should have been written after
-          other values, which have not been seen), or which should not
-          exist at all (because some conflicting writes may interleave
-          the bytes being written)</p>
+        <p>An execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable).</p>
+      </emu-note>
 
-        <p><b>FIXME:</b> Why only a read-modify-write access next?</p>
+      <p>If every execution of an agent cluster is free of data races then the agent cluster will appear to be sequentially consistent.</p>
 
-        <p>When an atomic read-modify-write access is in a data race, then
-          those accesses are
-          performed as if the qualifier "With atomic access to shared
-          memory" were omitted from the algorithms below.</p>
+      <emu-note>
+        <p>If the agent cluster appears sequentially consistent it is not necessary for the programmer to reason about program transformations.</p>
 
-        <emu-note>
-          <p>[Semi-obsolete prose] Hence, a write access from another agent may be allowed
-            to execute between the read and the write of the pair,
-            and, as defined by ReadSharedMemory and
-            WriteSharedMemory, even the individual accesses in the
-            atomic access may not be executed atomically.</p>
+        <p>Data races expose non-intuitive and platform-specific effects of program transformations performed by the compiler or the hardware.  ECMAScript programs with data races are safe (races cannot subvert the language implementation, they affect only the memory locations in Shared Data Blocks), but the values resulting from a program with a data race are often hard to predict.  The effects of data races include observing values that, within limits, appear to come from the past (because they should have been written before other values, which have not been seen) or from the future (because they should have been written after other values, which have not been seen), or which should not exist at all (because conflicting writes may interleave the bytes being written).</p>
+      </emu-note>
 
-          <p>For example, non-lock-free atomic operations will allow
-            such a race to be observed.</p>
-        </emu-note>
+      <p>The following rules restrict program behavior in the presence of data races and as such limit legal program transformations:</p>
 
-        <p>The following rules restrict program behavior in the
-          presence of data races:</p>
+      <ul>
+        <!-- Deoptimization (maybe, unlikely); rematerialization -->
+        <li><b>Stable reads:</b> Any given read must only observe a single value.  (For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read.)
 
-        <p><b>FIXME:</b> This third rule is really very similar to the second one so it is
-            useful to maybe elaborate on that.  But the previous rule is about
-            side effects more than values, and the third rule is about invented garbage.
-            It may be that the note, above, about byte interleavings belongs with
-            the third rule.</p>
+        <!-- Common very-low-level optimizations -->
+        <li><b>Stable writes:</b> Any given read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleavings resulting from races, described below, is within program semantics.)
 
-        <ul>
-          <!-- Deoptimization (maybe, unlikely); rematerialization -->
-          <li>Any given read must only observe a single value.  (For
-            example, if what is semantically a single read in the
-            program is executed multiple times then the program is
-            subsequently allowed to observe only one of the values
-            read.)
+        <!-- Thin-air speculation -->
+        <li><b>Actual values:</b> Any given read must only observe values that have been produced by the program's execution.  (For example, the compiler or hardware may not speculate about a value and then use that value to justify the speculation.)
+      </ul>
 
-          <li>Any given read must only observe value changes in memory
-            that follow from program semantics.  (For example, the
-            compiler or hardware may not introduce certain observable
-            writes, such as using read-modify-write operations on a
-            larger location to write a smaller datum, writing a value
-            to memory that the program could not have written, or
-            spuriously writing a just-read value back to the location
-            it was read from.  Note that byte interleavings resulting
-            from races, described below, is within program semantics.)
-
-          <li>Any given read must only observe values that have been
-            produced by the program's execution.  (For example, the
-            compiler or hardware may not speculate about a value and
-            then use that value to justify the speculation.)
-       </ul>
-
-        <emu-note>
-          <p>Examples of program transformations that remain valid
-            (assuming no intra-agent semantic change and no reordering
-            with respect to synchronizing events) are: merging
-            multiple data reads from the same location, reordering
-            data reads from different locations, introducing
-            speculative data reads, merging multiple data writes to
-            the same location, and reordering data writes to different
-            locations.</p>
-        </emu-note>
-
-        <p>The subroutines ReadSharedMemory and WriteSharedMemory
-          define the valid outcomes of data races.  In general a race
-          allows a value to be read that is an interleaving of bytes
-          being written and bytes already in memory.  However,
-          ReadSharedMemory and WriteSharedMemory have special
-          provisions that allow some classes of data races to have
-          somewhat predictable outcomes.</p>
-
-        <emu-note>
-          <p>The special provisions are present because all hardware
-            supports the specialized behavior and because that
-            behavior is valuable to programs in practice.  Note,
-            however, that program transformations can have surprising
-            effects on the timing of memory accesses: data accesses
-            may be moved or removed if deemed redundant.</p>
-        </emu-note>
+      <emu-note>
+        <p><b>FIXME:</b> This third rule is really very similar to the second one so it is useful to maybe elaborate on that.  But the previous rule is about side effects more than values, and the third rule is about invented garbage.  It may be that the note, above, about byte interleavings belongs with the third rule.</p>
+      </emu-note>
+      
+      <emu-note>
+        <p>Examples of program transformations that remain valid (assuming no intra-agent semantic change and no reordering with respect to synchronizing events) are: merging multiple non-atomic reads from the same location, reordering non-atomic reads from different locations, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, and reordering non-atomic writes to different locations.</p>
+      </emu-note>
 
     </emu-clause>
 

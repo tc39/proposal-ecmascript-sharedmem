@@ -245,3 +245,35 @@
            respect to synchronizing events). -->
 
 
+      <p>[Semi-obsolete prose] If an atomic access is not in a data race, then the shared memory reads and writes issued by the atomic access shall be performed indivisibly (while also following the rules of ReadSharedMemory and WriteSharedMemory), and in a read-modify-write atomic access no write by another agent shall be allowed to execute between the read and the write.</p>
+
+      <p>[Probably obsolete now] <b>FIXME:</b> operationalize an atomic read "seeing" an atomic write.  This need not be hard.  Viable atomic read R sees viable atomic write W if W is before R in the total order, the access ranges of R and W overlap, and there are no other writes between W and R that scribble on all the bytes read by R.  This would be a lot cleaner with a restriction as introduced by tagging, since without tagging you can have the situation that a single read R sees multiple atomic writes if those writes wrote to different parts of the datum accessed by R.</p>
+
+
+              <p><b>FIXME:</b> Why only a read-modify-write access next?</p>
+
+        <p>When an atomic read-modify-write access is in a data race, then
+          those accesses are
+          performed as if the qualifier "With atomic access to shared
+          memory" were omitted from the algorithms below.</p>
+
+        <emu-note>
+          <p>[Semi-obsolete prose] Hence, a write access from another agent may be allowed
+            to execute between the read and the write of the pair,
+            and, as defined by ReadSharedMemory and
+            WriteSharedMemory, even the individual accesses in the
+            atomic access may not be executed atomically.</p>
+
+          <p>For example, non-lock-free atomic operations will allow
+            such a race to be observed.</p>
+        </emu-note>
+
+
+
+      <emu-note>
+        <p>CLAIM: If an execution has only viable atomic operations and is conflict-free among its non-atomic operations it will appear to be sequentially consistent.</p>
+
+        <p>NO: That's not true because of speculation and write buffering.</p>
+      </emu-note>
+      
+	
