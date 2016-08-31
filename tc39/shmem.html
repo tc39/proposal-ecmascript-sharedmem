@@ -733,55 +733,68 @@ These call AllocateTypedArray with a specified length:
 
       <emu-clause id="AtomicsObjectProperties">
         <h1><span class="secnum">7.4.1.1.4</span>Properties of the model<span class="utils"><span class="anchor"><a href="#AtomicsObjectProperties">#</a></span></span></h1>
-        
-        <p>TODO: Needs more work</p>
-        
-        <p>The following properties will hold (always in the absence of other matching, overlapping, or conflicting operations; these assertions are about <emu-xref aoid="AtomicRead"><a href="#Atomics.AtomicRead">AtomicRead</a></emu-xref>, etc, which are indicated by the word "operations"):</p>
 
-        <p>Forward progress:</p>
-        <ul>
-          <li>The system of <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">memory operations</a></emu-xref> always makes progress (does not deadlock).
-          
-          </li><li><emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">Viable</a></emu-xref> <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> are executed in a total order.
-        
-        </li></ul>
+        <p>(This is not normative, but useful to have, at least for now.)</p>
 
-        <p>Cases where things are not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>:</p>
-        <ul>
-          <li>If two candidate <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> but don't <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref> then neither is <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.  (OPEN QUESTION 1)
-          
-          </li><li>If a non-atomic write conflicts with an atomic operation then the atomic operation is not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.
-          
-          </li><li>If two candidate <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> and one is not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref> then the other is also not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.
-        
-        </li></ul>
+        <p>The following properties of the <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">memory operations</a></emu-xref> hold (in the absence of other interfering operations).  For details, see the definitions of <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref>, <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref>, <emu-xref aoid="BeginNonAtomic"><a href="#Atomics.BeginNonAtomic">BeginNonAtomic</a></emu-xref>, <emu-xref aoid="EndNonAtomic"><a href="#Atomics.EndNonAtomic">EndNonAtomic</a></emu-xref>, <emu-xref aoid="ReadSharedMemory"><a href="#Atomics.ReadSharedMemory">ReadSharedMemory</a></emu-xref>, and <emu-xref aoid="WriteSharedMemory"><a href="#Atomics.WriteSharedMemory">WriteSharedMemory</a></emu-xref> in the following sections.</p>
 
-        <p>Cases where things are <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>:</p>
-        <ul>
-          <li>If a non-atomic read conflicts with an atomic operation then the atomic operation is <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.
-          
-          </li><li>If two <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> and <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref> then they are <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.
-          
-          </li><li>If two <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> don't <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> then they are <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.
-        
-        </li></ul>
+        <p>The system of <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">memory operations</a></emu-xref> always makes progress (does not deadlock).</p>
 
-        <p>OPEN QUESTION 1: Right now two atomic reads that <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> but don't <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref> are flagged as not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.  This may be too harsh.  (Note we do support the case where an atomic read conflicts with a non-atomic read.)  In a practical implementation, if the two are lock-free they'll be properly ordered PROVIDED THE HARDWARE SUPPORTS THIS.  If one is lock-free and the other not, then the lock-free access will be ordered before, between, or after the lock/unlock pair for the non-lock-free access (the lock location does not <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">overlap</a></emu-xref> the accessed location).  If both are non-lock-free, the lock will take care of ordering the accesses.</p>
-
-        <p>I actually wonder about ARM in this regard but it's probably OK.  For 64-bit atomics we'll need to use LDREXD to load 8 bytes followed by CLREX.  A conflicting LDR or even LDREX, say, on another core does not affect this.  There are no indications that garbage would be returned anywhere for loads (stores may flip out but that's a different issue).</p>
-
-        <p>TODO: Surely there are more properties to prove above?  Notably about three accesses.</p>
-
-        <emu-note><span class="note">Note</span>
-          <p>(Spec draft note)</p>
-
-          <p>It will be useful to prove informally here that those properties hold.  Forward progress and the first two properties of non-viability are probably fairly obvious.</p>
-
-          <p>That non-viability of one operation implies the non-viability of a conflicting operation is probably not obvious.</p>
-
-          <p>A major concern is whether this notion of viability is sufficient for synchronization.</p>
+        <emu-note><span class="note">Note 1</span>
+          <p>The only of the <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">memory operations</a></emu-xref> to wait is <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref>, which waits while the atomic-reservation slot is occupied by an ongoing compatible atomic operation.  Since the <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">transaction</a></emu-xref> for the latter operation is stored into the slot after a possible wait, the ongoing atomic operation will be making progress and will reach its <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> operation, unless an interfering operation starts first and changes the state to Invalid.  In either case the waiting operation is released from the wait.</p>
         </emu-note>
 
+        <p>If a non-atomic write conflicts with an atomic operation then the atomic operation is not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+
+        <emu-note><span class="note">Note 2</span>
+          <p>Suppose the non-atomic operation starts first.  <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> will detect that there is a conflicting write in the non-atomic-<emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">transaction</a></emu-xref> set and will set the state to Invalid.  Suppose the atomic operation starts first.  <emu-xref aoid="BeginNonAtomic"><a href="#Atomics.BeginNonAtomic">BeginNonAtomic</a></emu-xref> will detect that the state is Atomic and that the write overlaps with the atomic <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">transaction</a></emu-xref>, and will set the state to Invalid.  In either case <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> will encounter an Invalid state and return false, making the atomic non-<emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+        </emu-note>
+
+        <p>If a non-atomic read conflicts with an atomic operation then the atomic operation is <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+
+        <emu-note><span class="note">Note 3</span>
+          <p>This is like the previous case, but since the non-atomic operation is a read the state will not transition to Invalid.  Hence <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> will see an Atomic state and return true.</p>
+        </emu-note>
+
+        <p>If two <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> and <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref> or don't <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">overlap</a></emu-xref> then they are both <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+
+        <emu-note><span class="note">Note 4</span>
+          <p>The <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> calls are totally ordered by the <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">Memory Critical Section</a></emu-xref>.  The first will leave the critical section with in an Atomic state.  The second call will enter the critical section and determine that there is an ongoing atomic operation that is matching or not overlapping, and enter a wait until the state changes (leaving the critical section).  Meanwhile the first agent makes progress and eventually calls <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref>, which sets the state to Clear and returns true (indicating viability).  That breaks the wait for the second atomic, which now is alone, and therefore trivially <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+        </emu-note>
+
+        <p>If two <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> don't <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> then they are both <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+
+        <emu-note><span class="note">Note 5</span>
+          <p>The first of the operations calls <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> and <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> before the second calls <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref>.  Hence both <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> calls return true, indicating viability.</p>
+        </emu-note>
+
+        <p>If two <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> and <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">overlap</a></emu-xref> then neither is <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+
+        <emu-note><span class="note">Note 6</span>
+          <p>The first <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> sets the state to Atomic with timestamp <var>t2</var>.  The second <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> will not wait (because the operations <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">overlap</a></emu-xref>) and will discover that it overlaps the atomic-reservation slot.  It will then invalidate the atomic-reservation with its own timestamp <var>t2</var>.  Now either the first operation calls <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> first or the second operation does.  Suppose the former.  <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> will see that the state is Invalid but that the timestamp does not <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref> its own, so it will just return <emu-val>false</emu-val>; the subsequent call to <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> from the second operation will however clear the state and return <emu-val>false</emu-val>.  Suppose the order is reversed.  The <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> from the second operation will clear the state and return <emu-val>false</emu-val>.  The <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> from the first operation will see that the state does not <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref> the expected translation, and will also return <emu-val>false</emu-val>.  In either case, both operations are deemed invalid.</p>
+
+          <p>Both cases above have additional possibilities if a third atomic operation is added.  In the first case, the new operation will simply update the timestamp of the Invalid state, thus forcing whoever still has not called <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> to return <emu-val>false</emu-val>.  In the second case, if the state has been cleared it transitions to Atomic by the new operation.    <b>BUG BUG BUG.</b>  If the third operation finishes before the first operation calls <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> the third operation will be deemed <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>, but it really is not.  Need a counter of outstanding operations rather than a timestamp, probably.</p>
+
+          <p>The thing is that whoever finishes last must do the clearing.</p>
+
+          <p>ALSO WORTH NOTING: The above is true even if both operations are reads.  This is touched upon above in the Framework section but can be reiterated here.</p>
+        </emu-note>
+
+        <p><emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">Viable</a></emu-xref> <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> are executed in a total order.</p>
+
+        <emu-note><span class="note">Note 7</span>
+          <p>Suppose the operations don't <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref>.  The <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">Memory Critical Section</a></emu-xref> orders <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> and <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> calls, thus ordering the operations.  Suppose the operations do <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref>.  Then they either <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">match</a></emu-xref>, <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">overlap</a></emu-xref>, or neither; see previous cases?  (Not quite, probably.)</p>
+        </emu-note>
+
+        <p>If two candidate <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">atomic operations</a></emu-xref> <emu-xref href="#AtomicsObjectFormalization"><a href="#AtomicsObjectFormalization">conflict</a></emu-xref> and one is not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref> then the other is also not <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>.</p>
+
+        <emu-note><span class="note">Note 8</span>
+          <p>TODO: TBD, though isn't this the same as the "neither is <emu-xref href="#AtomicsObjectFundamentals"><a href="#AtomicsObjectFundamentals">viable</a></emu-xref>" case above?</p>
+        </emu-note>
+
+        <p>TODO: Surely there are more properties to prove, notably about three accesses.</p>
+
+        <p>TODO: A major concern (in some sense) is whether our notion of viability is sufficient for synchronization.</p>
       </emu-clause>
 
       <emu-clause id="AtomicsObject.EventsAndSync">

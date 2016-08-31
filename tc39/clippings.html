@@ -277,3 +277,8 @@
       </emu-note>
       
 	
+
+              <p>OPEN QUESTION 1: Right now two atomic reads that conflict but don't match are flagged as not viable.  This may be too harsh.  (Note we do support the case where an atomic read conflicts with a non-atomic read.)  In a practical implementation, if the two are lock-free they'll be properly ordered PROVIDED THE HARDWARE SUPPORTS THIS.  If one is lock-free and the other not, then the lock-free access will be ordered before, between, or after the lock/unlock pair for the non-lock-free access (the lock location does not overlap the accessed location).  If both are non-lock-free, the lock will take care of ordering the accesses.</p>
+
+        <p>I actually wonder about ARM in this regard but it's probably OK.  For 64-bit atomics we'll need to use LDREXD to load 8 bytes followed by CLREX.  A conflicting LDR or even LDREX, say, on another core does not affect this.  There are no indications that garbage would be returned anywhere for loads (stores may flip out but that's a different issue).</p>
+
