@@ -1044,7 +1044,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _t_ be the current timestamp.
         1. Increment the timestamp.
         1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the non-atomic-transaction set.
-        1. If _op_ equals `"Write"` and the atomic-reservation slot overlaps (block, byteIndex, elementSize) then:
+        1. If _op_ equals `"Write"` and the atomic-reservation slot overlaps (_block_, _byteIndex_, _elementSize_) then:
           1. Clear the atomic-reservation slot.
         1. Leave the Memory Critical Section.
         1. Return _t_.
@@ -1056,7 +1056,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Enter the Memory Critical Section.
         1. Remove (_t_, _op_, _block_, _byteIndex_, _elementSize_) from the non-atomic-transaction set.
-        1. If _op_ equals `"Write"` and the atomic-reservation slot overlaps (block, byteIndex, elementSize) then:
+        1. If _op_ equals `"Write"` and the atomic-reservation slot overlaps (_block_, _byteIndex_, _elementSize_) then:
           1. Clear the atomic-reservation slot.
         1. Leave the Memory Critical Section.
       </emu-alg>
