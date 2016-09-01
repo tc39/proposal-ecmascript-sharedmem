@@ -867,12 +867,12 @@ These call AllocateTypedArray with a specified length:
         
         </li><li> <var>accessAtomic</var> is <emu-val>true</emu-val>, and
         
-        </li><li> _accessAtomic is <emu-val>true</emu-val> also for all the conflicting writes.
+        </li><li> <var>accessAtomic</var> is <emu-val>true</emu-val> in all the <emu-xref aoid="WriteSharedMemory"><a href="#Atomics.WriteSharedMemory">WriteSharedMemory</a></emu-xref> calls for the conflicting writes.
       
       </li></ol>
 
       <emu-note><span class="note">Note</span>
-        <p>The tidiness condition is present here and in <emu-xref aoid="WriteSharedMemory"><a href="#Atomics.WriteSharedMemory">WriteSharedMemory</a></emu-xref> to ensure that certain conflicts are resolved in a predictable way: compatible conflicting writes end up writing one value before the other, not a byte-wise mix of the values.  All hardware supports the behavior and it is valuable to programs in practice.</p>
+        <p>The tidiness condition is present here, and a similar condition is present in <emu-xref aoid="WriteSharedMemory"><a href="#Atomics.WriteSharedMemory">WriteSharedMemory</a></emu-xref>, to ensure that certain conflicts are resolved in a predictable way: matching conflicting writes to integer-typed TypedArrays end up writing one value before the other, not a byte-wise mix of the values.  All hardware supports the behavior and it is valuable to programs in practice.</p>
       </emu-note>
 
       <emu-alg><ol><li>Assert: If <var>accessAtomic</var> is true then <var>byteIndex</var> <emu-xref aoid="modulo"><a href="https://tc39.github.io/ecma262/#sec-algorithm-conventions">modulo</a></emu-xref> <var>numBytes</var> is zero.</li><li>Assert: The length of <var>block</var> is at least <var>byteIndex</var>+<var>numBytes</var>.</li><li>If the invocation of <emu-xref aoid="ReadSharedMemory"><a href="#Atomics.ReadSharedMemory">ReadSharedMemory</a></emu-xref> is tidy, then:<ol><li>Wait for some arbitrary number of the conflicting writes to complete, one after the other.</li></ol></li><li>Otherwise:<ol><li>Wait for some arbitrary number of bytes to be written by the conflicting writes in some arbitrary order.</li></ol></li><li>Return the <var>numBytes</var> bytes in memory starting at <var>block</var>[<var>byteIndex</var>], in order.
@@ -891,7 +891,7 @@ These call AllocateTypedArray with a specified length:
         
         </li><li> <var>accessAtomic</var> is <emu-val>true</emu-val>, and
         
-        </li><li> _accessAtomic is <emu-val>true</emu-val> also for all the conflicting writes.
+        </li><li> <var>accessAtomic</var> is <emu-val>true</emu-val> in all the WriteSharedMemory calls for the conflicting writes.
       
       </li></ol>
 

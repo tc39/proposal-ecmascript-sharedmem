@@ -1002,11 +1002,11 @@ These call AllocateTypedArray with a specified length:
       <ol>
         <li> The read operation that called ReadSharedMemory conflicts only with (possibly zero) write operations that all match the read operation (and optionally the read operation can conflict with arbitrary other read operations), and
         <li> _accessAtomic_ is *true*, and
-        <li> _accessAtomic is *true* also for all the conflicting writes.
+        <li> _accessAtomic_ is *true* in all the WriteSharedMemory calls for the conflicting writes.
       </ol>
 
       <emu-note>
-        <p>The tidiness condition is present here and in WriteSharedMemory to ensure that certain conflicts are resolved in a predictable way: compatible conflicting writes end up writing one value before the other, not a byte-wise mix of the values.  All hardware supports the behavior and it is valuable to programs in practice.</p>
+        <p>The tidiness condition is present here, and a similar condition is present in WriteSharedMemory, to ensure that certain conflicts are resolved in a predictable way: matching conflicting writes to integer-typed TypedArrays end up writing one value before the other, not a byte-wise mix of the values.  All hardware supports the behavior and it is valuable to programs in practice.</p>
       </emu-note>
 
       <emu-alg>
@@ -1030,7 +1030,7 @@ These call AllocateTypedArray with a specified length:
       <ol>
         <li> The write operation that called WriteSharedMemory conflicts only with (possibly zero) write operations that all match the write operation (and optionally the read operation can conflict with arbitrary other read operations), and
         <li> _accessAtomic_ is *true*, and
-        <li> _accessAtomic is *true* also for all the conflicting writes.
+        <li> _accessAtomic_ is *true* in all the WriteSharedMemory calls for the conflicting writes.
       </ol>
 
       <emu-alg>
