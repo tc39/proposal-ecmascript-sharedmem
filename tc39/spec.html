@@ -826,7 +826,11 @@ These call AllocateTypedArray with a specified length:
 
         <p>The semantic operations BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic operate on the memory system and denote the start and end of atomic and non-atomic operations, respectively.  The memory operations are defined in terms of these abstract operations and of the memory access primitives ReadSharedMemory and WriteSharedMemory.</p>
 
-        <p>A <dfn>transaction</dfn> on shared memory is a quintuple (_id_, _op_, _block_, _byteIndex_, _elementSize_).  The atomic-reservation slot and the non-atomic-transaction set store transactions.  The _id_ is a value from the stream of timestamps, or a sentinel.  The _op_ is a string, denoting the operation.  *ClearTimestamp* and *InvalidTimestamp* are timestamp values that do not mach any value obtained from the timestamp stream.  Additionally, *ClearBlock* and *InvalidBlock* are Shared Data Block values that are not confused with any actual data block.</p>
+        <emu-note>
+          <p>Operationally, an atomic access is viable if the EndAtomic operation returns *true*.</p>
+        </emu-note>
+
+        <p>A <dfn>transaction</dfn> on shared memory is a quintuple (_id_, _op_, _block_, _byteIndex_, _elementSize_).  The atomic-reservation slot and the non-atomic-transaction set store transactions.  The _id_ is a value from the stream of timestamps, or a sentinel.  The _op_ is a string, denoting the operation, it is `"Read"`, `"Write"`, `"Atomic"`, `"Invalid"`, or `"Clear"`.  *ClearTimestamp* and *InvalidTimestamp* are timestamp values that do not mach any value obtained from the timestamp stream.  Additionally, *ClearBlock* and *InvalidBlock* are Shared Data Block values that are not confused with any actual data block.</p>
 
         <p>The initial value of the atomic-reservation slot is (*ClearTimestamp*, `"Clear"`, *ClearBlock*, 0, 0).  To <em>clear</em> the atomic-reservation slot means to store that value in the atomic-reservation slot.</p>
 
@@ -843,31 +847,35 @@ These call AllocateTypedArray with a specified length:
 
       <emu-clause id="AtomicsObjectTransformations">
         <h1>Program transformations</h1>
-      
+
         <p>Program transformations (by a compiler or the hardware) must not reorder an agent's atomic operations with its non-atomic operations, nor reorder its atomic operations with each other.</p>
 
         <emu-note>
           <p>In practice, the prohibition on reorderings forces a compiler to assume that every atomic operation is viable, which it would usually have to assume in the absence of inter-agent program analysis.</p>
-
-          <p>Most intra-agent semantics-preserving program transformations remain valid so long as the reordering rule is obeyed (see below for exceptions).  Examples of transformations that remain valid are: merging multiple non-atomic reads from the same location, reordering non-atomic reads from different locations, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, and reordering non-atomic writes to different locations.</p>
-
-          <p>These transformations can be performed by a compiler or the hardware; in the latter case they take the form of speculative loads and buffered stores.</p>
-
-          <p>Programs with data races (defined later) can often observe the effects of legal transformations.</p>
         </emu-note>
 
-        <p>The following rules additionally restrict legal program transformations:</p>
+        <p>Almost all intra-agent semantics-preserving program transformations remain valid when accessing shared memory, so long as the reordering rule is obeyed.  The following rules additionally restrict intra-agent program transformations:</p>
 
         <ul>
           <li><b>Stable reads:</b> Any given shared memory read must only observe a single value.  (For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read.)
 
           <li><b>Stable writes:</b> Any given shared memory read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleavings resulting from races, described below, is within program semantics.)
 
-          <li><b>Actual values:</b> Any given shared memory read must only observe values that have been produced by the program's execution.  (For example, the compiler or hardware may not speculate about a value and then use that value to justify the speculation.)
+          <li><b>Actual values:</b> Any given shared memory read must only observe values that have been produced by the program's execution.  (For example, the compiler or hardware may not speculate about a value in shared memory and then use that value to justify the speculation.)
         </ul>
 
         <emu-note>
+          <p>It is generally desirable to allow transformations that are legal for non-shared-memory programs to continue to be legal in shared-memory programs.  However, some of those transformations lead to programs that are nonsensical in the presence of side effects in shared memory (colorfully described as having "quantum garbage").  For example, the transformation from this:</p>
+          <pre>let x = mem[n]; if (x) print(x)</pre>
+          <p>to this:</p>
+          <pre>if (mem[n]) print(mem[n])</pre>
+          <p>is legal in a non-shared-memory program (if `mem` and `n` are side-effect free) but if `mem` is shared memory and is updated by another agent in the middle of the execution of the statement the transformed program may end up printing *0*, and that is nonsensical.</p>
+
+          <p>These rules, then, can be seen as expressing restrictions on the program's interaction with shared memory.  They are expressed in the context of transformations since only (legally) transformed programs would encounter the problems.</p>
+
           <p>The restrictions apply only to shared memory accesses, so an implementation that knows the program is not accessing shared memory will not be affected by them.  In practice, the optimizations that are affected by the restrictions (rematerialization, certain local optimizations) are of limited value, and a practical implementation could avoid those optimizations even for non-shared memory without significant impact.</p>
+
+          <p>Examples of transformations that remain valid are: merging multiple non-atomic reads from the same location, reordering non-atomic reads from different locations, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, and reordering non-atomic writes to different locations.  These transformations can be performed by a compiler or the hardware; in the latter case they take the form of speculative loads and buffered stores.</p>
         </emu-note>
       </emu-clause>
 
@@ -911,7 +919,7 @@ These call AllocateTypedArray with a specified length:
         <p>If two atomic operations conflict and overlap then neither is viable.</p>
 
         <emu-note>
-          <p>The first BeginAtomic sets the state to Atomic with timestamp _t2_.  The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps the atomic-reservation slot.  It will then invalidate the atomic-reservation with its own timestamp _t2_.  Now either the first operation calls EndAtomic first or the second operation does.  Suppose the former.  EndAtomic will see that the state is Invalid but that the timestamp does not match its own, so it will just return *false*; the subsequent call to EndAtomic from the second operation will however clear the state and return *false*.  Suppose the order is reversed.  The EndAtomic from the second operation will clear the state and return *false*.  The EndAtomic from the first operation will see that the state does not match the expected translation, and will also return *false*.  In either case, both operations are deemed invalid.</p>
+          <p>The first BeginAtomic sets the state to Atomic with timestamp _t1_.  The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps the atomic-reservation slot.  It will then invalidate the atomic-reservation with its own timestamp _t2_.  Now either the first operation calls EndAtomic first or the second operation does.  Suppose the former.  EndAtomic will see that the state is Invalid but that the timestamp does not match its own, so it will just return *false*; the subsequent call to EndAtomic from the second operation will however clear the state and return *false*.  Suppose the order is reversed.  The EndAtomic from the second operation will clear the state and return *false*.  The EndAtomic from the first operation will see that the state does not match the expected translation, and will also return *false*.  In either case, both operations are deemed invalid.</p>
 
           <p>Both cases above have additional possibilities if a third atomic operation is added.  In the first case, the new operation will simply update the timestamp of the Invalid state, thus forcing whoever still has not called EndAtomic to return *false*.  In the second case, if the state has been cleared it transitions to Atomic by the new operation.  <b>BUG BUG BUG!</b>  If the third operation finishes before the first operation calls EndAtomic the third operation will be deemed viable, but it really is not.  We must have some state to fix that: either a counter of outstanding end operations rather than a timestamp, or perhaps a set of timestamps to clear to exit the Invalid state -- not sure yet.</p>
 
@@ -994,19 +1002,27 @@ These call AllocateTypedArray with a specified length:
 
       <p>ReadSharedMemory takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a nonnegative integer _numBytes_, and returns a List of length _numBytes_ containing bytes, as follows.</p>
 
+      <p>We say the invocation of ReadSharedMemory is <em>tidy</em> if and only if:</p>
+      <ol>
+        <li> The read operation that called ReadSharedMemory conflicts only with (possibly zero) write operations that all match the read operation (and optionally the read operation can conflict with arbitrary other read operations), and
+        <li> _accessAtomic_ is *true*, and
+        <li> _accessAtomic is *true* also for all the conflicting writes.
+      </ol>
+
+      <emu-note>
+        <p>The tidiness condition is present here and in WriteSharedMemory to ensure that certain conflicts are resolved in a predictable way: compatible conflicting writes end up writing one value before the other, not a byte-wise mix of the values.  All hardware supports the behavior and it is valuable to programs in practice.</p>
+      </emu-note>
+
       <emu-alg>
         1. Assert: If _accessAtomic_ is true then _byteIndex_ modulo _numBytes_ is zero.
         1. Assert: The length of _block_ is at least _byteIndex_+_numBytes_.
-        1. If the read conflicts only with writes that all match the read (and optionally conflicts with arbitrary other reads), and _accessAtomic_ is *true* for the read and for all the writes that conflict, then:
+        1. If the invocation of ReadSharedMemory is tidy, then:
           1. Wait for some arbitrary number of the conflicting writes to complete, one after the other.
-        1. Otherwise, the read may conflict with any number of writes (and with arbitrary reads), and the bytes that are returned from ReadSharedMemory are selected individually in arbitrary order as follows:
+        1. Otherwise:
           1. Wait for some arbitrary number of bytes to be written by the conflicting writes in some arbitrary order.
         1. Return the _numBytes_ bytes in memory starting at _block_[_byteIndex_], in order.
       </emu-alg>
 
-      <emu-note>
-        <p>The special provisions around _accessAtomic_ are present here and in WriteSharedMemory even for non-atomic accesses because all hardware supports the specialized behavior and because that behavior is valuable to programs in practice.</p>
-      </emu-note>
     </emu-clause>
 
     <emu-clause id="Atomics.WriteSharedMemory" aoid="WriteSharedMemory">
@@ -1014,12 +1030,19 @@ These call AllocateTypedArray with a specified length:
 
       <p>WriteSharedMemory takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a nonnegative integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_], as follows.</p>
 
+      <p>We say the invocation of WriteSharedMemory is <em>tidy</em> if and only if:</p>
+      <ol>
+        <li> The write operation that called WriteSharedMemory conflicts only with (possibly zero) write operations that all match the write operation (and optionally the read operation can conflict with arbitrary other read operations), and
+        <li> _accessAtomic_ is *true*, and
+        <li> _accessAtomic is *true* also for all the conflicting writes.
+      </ol>
+
       <emu-alg>
         1. Assert: If _accessAtomic_ is true then _byteIndex_ modulo _numBytes_ is zero.
         1. Assert: The length of _block_ is at least _byteIndex_+_numBytes_.
-        1. If the write conflicts only with writes that all match the write (and optionally conflicts with arbitrary reads), and _accessAtomic_ is *true* for all the writes, then:
+        1. If the invocation of WriteSharedMemory is tidy, then:
           1. Each write writes all of its bytes before the next write occurs, with the writes occurring in some arbitrary order.
-        1. Otherwise, the write may conflict with any number of writes (and optionally with arbitrary reads):
+        1. Otherwise:
           1. Each write writes the bytes of its value individually in some arbitrary order, and the byte writes of all the writes are interleaved in some arbitrary order.
       </emu-alg>
 
@@ -1049,17 +1072,17 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
-      <h1>EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_)</h1>
+      <h1>EndAtomic(_timestamp_, _block_, _byteIndex_, _elementSize_)</h1>
       <p>TODO: Boilerplate.</p>
       <emu-alg>
         1. Enter the Memory Critical Section.
         1. Assert: The atomic-reservation operation is `"Atomic"` or `"Invalid"`
         1. If the atomic-reservation operation is `"Invalid"`, then:
-          1. If the atomic-reservation timestamp equals _transaction_, then:
+          1. If the atomic-reservation timestamp equals _timestamp_, then:
             1. Clear the atomic-reservation slot.
           1. Leave the Memory Critical Section.
           1. Return *false*.
-        1. Assert: the atomic-reservation timestamp equals _transaction_.
+        1. Assert: the atomic-reservation timestamp equals _timestamp_.
         1. Assert: (_block_, _byteIndex_, _elementSize_) does not overlap or match any entry with a `"Write"` operation in the non-atomic-transaction set.
         1. Clear the atomic-reservation slot.
         1. Leave the Memory Critical Section.
@@ -1103,9 +1126,9 @@ These call AllocateTypedArray with a specified length:
       <p>NonAtomicRead takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a nonnegative integer _elementSize_. The following steps are taken:</p>
 
       <emu-alg>
-        1. Let _transaction_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _elementSize_).
+        1. Let _timestamp_ be BeginNonAtomic(`"Read"`, _block_, _byteIndex_, _elementSize_).
         1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_).
-        1. Perform EndNonAtomic(_transaction_, `"Read"`, _block_, _byteIndex_, _elementSize_).
+        1. Perform EndNonAtomic(_timestamp_, `"Read"`, _block_, _byteIndex_, _elementSize_).
         1. Assert: _rawValue_ is a List of size _elementSize_.
         1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
         1. Return _r_.
@@ -1118,9 +1141,9 @@ These call AllocateTypedArray with a specified length:
       <p>NonAtomicWrite takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a nonnegative integer _elementSize_, and a List _rawBytes_ of _elementSize_. The following steps are taken:</p>
 
       <emu-alg>
-        1. Let _transaction_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _elementSize_).
+        1. Let _timestamp_ be BeginNonAtomic(`"Write"`, _block_, _byteIndex_, _elementSize_).
         1. Perform WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _elementSize_, _rawBytes_).
-        1. Perform EndNonAtomic(_transaction_, `"Write"`, _block_, _byteIndex_, _elementSize_).
+        1. Perform EndNonAtomic(_timestamp_, `"Write"`, _block_, _byteIndex_, _elementSize_).
       </emu-alg>
     </emu-clause>
 
@@ -1134,9 +1157,9 @@ These call AllocateTypedArray with a specified length:
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
         1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
-        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Let _success_ be EndAtomic(_timestamp_, _block_, _byteIndex_, _elementSize_).
         1. Note: If _success_ is *true* then the AtomicRead is viable: it executed atomically in the cluster-wide total order.
         1. Assert: _rawValue_ is a List of size _elementSize_.
         1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
@@ -1155,9 +1178,9 @@ These call AllocateTypedArray with a specified length:
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
         1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _v_ as for SetValueInBuffer. (TODO: Elucidate.)
-        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
         1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Let _success_ be EndAtomic(_timestamp_, _block_, _byteIndex_, _elementSize_).
         1. Note: If _success_ is *true* then the AtomicWrite is viable: it executed atomically in the cluster-wide total order.
       </emu-alg>
     </emu-clause>
@@ -1172,14 +1195,14 @@ These call AllocateTypedArray with a specified length:
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
         1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
         1. Assert: _rawValue_ is a List of size _elementSize_.
         1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
         1. Compute: Let _w_ be _op_(_r_, _v_).
         1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _w_ as for SetValueInBuffer. (TODO: Elucidate.)
         1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Let _success_ be EndAtomic(_timestamp_, _block_, _byteIndex_, _elementSize_).
         1. Note: If _success_ is *true* then the AtomicReadModifyWrite is viable: it executed atomically in the cluster-wide total order.
         1. Return _r_.
       </emu-alg>
@@ -1195,14 +1218,14 @@ These call AllocateTypedArray with a specified length:
         1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
         1. Let _block_ be _buffer_.[[ArrayBufferData]].
         1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-        1. Let _transaction_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+        1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
         1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
         1. Assert: _rawValue_ is a List of size _elementSize_.
         1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
         1. If _r_ is the same as _expected_ then:
           1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _replacement_ as for SetValueInBuffer. (TODO: Elucidate.)
           1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-        1. Let _success_ be EndAtomic(_transaction_, _block_, _byteIndex_, _elementSize_).
+        1. Let _success_ be EndAtomic(_timestamp_, _block_, _byteIndex_, _elementSize_).
         1. Note: If _success_ is *true* then the AtomicCompareExchange is viable: it executed atomically in the cluster-wide total order.
         1. Return _r_
       </emu-alg>
