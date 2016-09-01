@@ -822,7 +822,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>We use the following semantic data structures to determine viability of atomic operations and to express the ordering of viable atomic operations.</p>
 
-        <p>The memory system for the agent cluster comprises a byte-addressable shared memory and a critical section (the <dfn>Memory Critical Section</dfn>) that protects a generator of timestamps, an atomic-reservation slot, and a non-atomic-transaction set.  The critical section is a specification device that exists outside the program-visible shared memory; it does not have effects beyond mutual exclusion.</p>
+        <p>The memory system for the agent cluster comprises a byte-addressable shared memory and a critical section (the <dfn>Memory Critical Section</dfn>) that protects a generator of timestamps and a transaction set.  The critical section is a specification device that exists outside the program-visible shared memory; it does not have effects beyond mutual exclusion.</p>
 
         <p>The semantic operations BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic operate on the memory system and denote the start and end of atomic and non-atomic operations, respectively.  The memory operations are defined in terms of these abstract operations and of the memory access primitives ReadSharedMemory and WriteSharedMemory.</p>
 
@@ -830,15 +830,15 @@ These call AllocateTypedArray with a specified length:
           <p>Operationally, an atomic access is viable if the EndAtomic operation returns *true*.</p>
         </emu-note>
 
-        <p>A <dfn>transaction</dfn> on shared memory is a quintuple (_id_, _op_, _block_, _byteIndex_, _elementSize_).  The atomic-reservation slot and the non-atomic-transaction set store transactions.  The _id_ is a value from the stream of timestamps, or a sentinel.  The _op_ is a string, denoting the operation, it is `"Read"`, `"Write"`, `"Atomic"`, `"Invalid"`, or `"Clear"`.  *ClearTimestamp* and *InvalidTimestamp* are timestamp values that do not mach any value obtained from the timestamp stream.  Additionally, *ClearBlock* and *InvalidBlock* are Shared Data Block values that are not confused with any actual data block.</p>
+        <p>A <dfn>transaction</dfn> on shared memory is a quintuple (_id_, _op_, _block_, _byteIndex_, _elementSize_).  The transaction set stores transactions.  The _id_ is a value from the stream of timestamps, or a sentinel.  The _op_ is a string, denoting the operation. An <dfn>atomic transaction</dfn> is a transaction whose operation is `"Atomic"` or `"Invalid"`. A <dfn>non-atomic transaction</dfn> is a transaction whose operation is `"Read"` or `"Write"`. *InvalidTimestamp* is a timestamp value that does not mach any value obtained from the timestamp stream.  Additionally, *InvalidBlock* is a Shared Data Block value that is not confused with any actual data block.</p>
 
-        <p>The initial value of the atomic-reservation slot is (*ClearTimestamp*, `"Clear"`, *ClearBlock*, 0, 0).  To <em>clear</em> the atomic-reservation slot means to store that value in the atomic-reservation slot.</p>
+        <p>The initial value of the transaction set is the empty set. To <em>invalidate</em> the transaction set for atomics means for each atomic transaction (_id_, _op_, _block_, _byteIndex_, _elementSize_) in the transaction set, replace it with a transaction (_id_, `"Invalid"`, _block_, _byteIndex_, _elementSize_).
 
-        <p>Two memory transactions (_x_, _opx_, _block1_, _byteIndex1_, _elementSize1_) and (_y_, _opy_, _block2_, _byteIndex2_, _elementSize2_) are said to <dfn>overlap</dfn> if _block1_ and _block2_ are the same, and the sequence [_byteIndex1_, _byteIndex1_+1, ..., _byteIndex1_+_elementSize1_-1] overlaps with but is not equal to the sequence [_byteIndex2_, _byteIndex2_+1, ..., _byteIndex2_+_elementSize2_-1].  Two transactions are said to <dfn>match</dfn> if their _block_, _byteIndex_, and _elementSize_ fields are pairwise equal.</p>
+        <p>Two memory transactions (_x_, _opx_, _block1_, _byteIndex1_, _elementSize1_) and (_y_, _opy_, _block2_, _byteIndex2_, _elementSize2_) are said to <dfn>overlap</dfn> if _block1_ and _block2_ are the same, and the sequence [_byteIndex1_, _byteIndex1_+1, ..., _byteIndex1_+_elementSize1_-1] overlaps with but is not equal to the sequence [_byteIndex2_, _byteIndex2_+1, ..., _byteIndex2_+_elementSize2_-1].  Two transactions are said to <dfn>match</dfn> if their _block_, _byteIndex_, and _elementSize_ fields are pairwise equal.  Two transactions are said to be <dfn>disjoint</dfn> if they neither overlap nor match.</p>
 
         <p>Two memory operations that overlap or match are said to <dfn>conflict</dfn> if one operation's Begin step happens between the other's Begin and End steps (as determined by the order they enter the Memory Critical Section).  A memory operation A is said to <dfn>cover</dfn> another operation B if A's Begin step happens before B's Begin step and B's End step happens before A's End step.</p>
 
-        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine where the atomic-reservation slot is in a state (denoted by the operation field of the slot) that is either Clear, Atomic(_t_), or Invalid(_t_), with Clear the initial state and _t_ a  timestamp value.  When all atomic operations are viable the machine alternates between Clear and Atomic states, but an event that makes an atomic operation non-viable will move the machine into an Invalid state, where it stays until the last event to observe that state executes its End operation.  On detecting an Invalid state, a Begin operation updates the Invalid state's timestamp, and an End operation will only clear the Invalid state if it matches the expected timestamp.</p>
+        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either either Clear, Atomic, or Invalid, with Clear the initial state. The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Invalid state when there is an atomic transaction in the set and it has an operation of `"Invalid"`. When all atomic operations are viable, the machine alternates between Clear and Atomic states, but an event that makes an atomic operation non-viable will move the machine into an Invalid state. The machine transitions out of the Invalid state when all atomic events whose atomic transactions conflict with the invalidating event's atomic transaction have executed their End operations.  [BUG BUG - not true, we want transitivity here, do we have it?]</p>
 
         <emu-note>
           <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping (non-matching) BeginAtomic will move the machine into the Invalid state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is questionable.</p>
@@ -895,19 +895,19 @@ These call AllocateTypedArray with a specified length:
         <p>If a non-atomic write conflicts with an atomic operation then the atomic operation is not viable.</p>
 
         <emu-note>
-          <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the non-atomic-transaction set and will set the state to Invalid.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that the state is Atomic and that the write overlaps with the atomic transaction, and will set the state to Invalid.  In either case EndAtomic will encounter an Invalid state and return false, making the atomic non-viable.</p>
+          <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the transaction set and will add an `"Invalid"` atomic transaction.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that there is an atomic transaction with operation `"Atomic"` and that the write overlaps with the atomic transaction, and will change the operation of the atomic transaction to `"Invalid"`.  In either case EndAtomic will see an `"Invalid"` operation for its transaction and return false, making the atomic non-viable.</p>
         </emu-note>
 
         <p>If a non-atomic read conflicts with an atomic operation then the atomic operation is viable.</p>
 
         <emu-note>
-          <p>This is like the previous case, but since the non-atomic operation is a read the state will not transition to Invalid.  Hence EndAtomic will see an Atomic state and return true.</p>
+          <p>This is like the previous case, but since the non-atomic operation is a read, neither will BeginAtomic add an `"Invalid"` atomic transaction, nor will BeginNonAtomic invalidate any existing, overlapping atomic transactions.  Hence EndAtomic will see an `"Atomic"` operation for its transaction and return true.</p>
         </emu-note>
 
-        <p>If two atomic operations conflict and match or don't overlap then they are both viable.</p>
+        <p>If two atomic operations conflict and match or are disjoint then they are both viable.</p>
 
         <emu-note>
-          <p>The BeginAtomic calls are totally ordered by the Memory Critical Section.  The first will leave the critical section with in an Atomic state.  The second call will enter the critical section and determine that there is an ongoing atomic operation that is matching or not overlapping, and enter a wait until the state changes (leaving the critical section).  Meanwhile the first agent makes progress and eventually calls EndAtomic, which sets the state to Clear and returns true (indicating viability).  That breaks the wait for the second atomic, which now is alone, and therefore trivially viable.</p>
+          <p>The BeginAtomic calls are totally ordered by the Memory Critical Section.  The first will leave the critical section having added an `"Atomic"` transaction and having asserted that it is now the only atomic transaction in the set.  The second call will enter the critical section and determine that there is exactly one `"Atomic"` transaction and that is matching or disjoint, and enter a wait until the set of atomic transactions changes (leaving the critical section).  Meanwhile the first agent makes progress and eventually calls EndAtomic, which removes its `"Atomic"` transaction and returns true (indicating viability).  That breaks the wait for the second atomic, which now is alone, and therefore trivially viable.</p>
         </emu-note>
 
         <p>If two atomic operations don't conflict then they are both viable.</p>
@@ -919,11 +919,7 @@ These call AllocateTypedArray with a specified length:
         <p>If two atomic operations conflict and overlap then neither is viable.</p>
 
         <emu-note>
-          <p>The first BeginAtomic sets the state to Atomic with timestamp _t1_.  The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps the atomic-reservation slot.  It will then invalidate the atomic-reservation with its own timestamp _t2_.  Now either the first operation calls EndAtomic first or the second operation does.  Suppose the former.  EndAtomic will see that the state is Invalid but that the timestamp does not match its own, so it will just return *false*; the subsequent call to EndAtomic from the second operation will however clear the state and return *false*.  Suppose the order is reversed.  The EndAtomic from the second operation will clear the state and return *false*.  The EndAtomic from the first operation will see that the state does not match the expected translation, and will also return *false*.  In either case, both operations are deemed invalid.</p>
-
-          <p>Both cases above have additional possibilities if a third atomic operation is added.  In the first case, the new operation will simply update the timestamp of the Invalid state, thus forcing whoever still has not called EndAtomic to return *false*.  In the second case, if the state has been cleared it transitions to Atomic by the new operation.  <b>BUG BUG BUG!</b>  If the third operation finishes before the first operation calls EndAtomic the third operation will be deemed viable, but it really is not.  We must have some state to fix that: either a counter of outstanding end operations rather than a timestamp, or perhaps a set of timestamps to clear to exit the Invalid state -- not sure yet.</p>
-
-          <p>The thing is that whoever finishes last must do the clearing.</p>
+          <p>The first BeginAtomic adds an `"Atomic"` transaction, after which it is the only atomic transaction in the set. The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not `"Read"`.  It will then invalidate all atomic transactions and add its own `"Invalid"` transaction.  Now either the first operation calls EndAtomic first or the second operation does.  In both cases, since the second BeginAtomic altered both atomic transactions to `"Invalid"`, EndAtomic will see an operation of `"Invalid"` for its transaction, returning *false* for both operations, making neither viable. This generalizes trivially to multiple conflicting atomic operations.</p>
 
           <p>ALSO WORTH NOTING: The above is true even if both operations are reads.  This is touched upon above in the Framework section but can be reiterated here.</p>
         </emu-note>
@@ -1054,18 +1050,17 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Enter the Memory Critical Section.
         1. Let _t_ be the next value from the timestamp stream; advance the stream.
-        1. While the atomic-reservation operation is `"Atomic"` and the atomic-reservation slot either matches or does not overlap (_block_, _byteIndex_, _elementSize_):
-          1. Wait (leaving the critical section) until the atomic-reservation slot changes.
-        1. If the atomic-reservation operation is `"Invalid"` or the atomic-reservation slot overlaps (_block_, _byteIndex_, _elementSize_) then:
-          1. Set the atomic-reservation slot to (_t_, `"Invalid"`, *InvalidBlock*, 0, 0).
+        1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
+        1. While _atomicTxns_ is the singleton set containing an atomic transaction whose operation is `"Atomic"` and either matches or is disjoint from (_block_, _byteIndex_, _elementSize_):
+          1. Wait (leaving the critical section) until the transaction set changes.
+          1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
+        1. If _atomicTxns_ contains a transaction that overlaps with (_block_, _byteIndex_, _elementSize_) and the operation of which is not `"Read"` then:
+          1. Invalidate the transaction set for atomics.
+          1. Add (_t_, `"Invalid"`, *InvalidBlock*, 0, 0) to the transaction set.
           1. Leave the Memory Critical Section.
           1. Return _t_.
-        1. Assert: The operation in the atomic-reservation slot is `"Clear"`.
-        1. If (_block_, _byteIndex_, _elementSize_) overlaps any entry with a `"Write"` operation in the non-atomic-transaction set then:
-          1. Set the atomic-reservation slot to (_t_, `"Invalid"`, *InvalidBlock*, 0, 0).
-          1. Leave the Memory Critical Section.
-          1. Return _t_.
-        1. Set the atomic-reservation slot to (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_).
+        1. Assert: _atomicTxns_ is the empty set.
+        1. Add (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_) to the transaction set.
         1. Leave the Memory Critical Section.
         1. Return _t_.
       </emu-alg>
@@ -1076,16 +1071,14 @@ These call AllocateTypedArray with a specified length:
       <p>TODO: Boilerplate.</p>
       <emu-alg>
         1. Enter the Memory Critical Section.
-        1. Assert: The atomic-reservation operation is `"Atomic"` or `"Invalid"`
-        1. If the atomic-reservation operation is `"Invalid"`, then:
-          1. If the atomic-reservation timestamp equals _timestamp_, then:
-            1. Clear the atomic-reservation slot.
-          1. Leave the Memory Critical Section.
-          1. Return *false*.
-        1. Assert: the atomic-reservation timestamp equals _timestamp_.
-        1. Assert: (_block_, _byteIndex_, _elementSize_) does not overlap or match any entry with a `"Write"` operation in the non-atomic-transaction set.
-        1. Clear the atomic-reservation slot.
+        1. Let _txn_ the transaction in the transaction set with timestamp _timestamp_.
+        1. Assert: _txn_ exists and is an atomic transaction.
+        1. Remove _txn_ from the transaction set.
+        1. Let _interfering_ be *false* if (_block_, _byteIndex_, _elementSize_) is disjoint from any entry with a `"Write"` operation in the transaction set, otherwise *true*.
         1. Leave the Memory Critical Section.
+        1. If the operation of _txn_ is `"Invalid"`, then:
+          1. Return *false*.
+        1. Assert: _interfering_ is *false*.
         1. Return *true*.
       </emu-alg>
     </emu-clause>
@@ -1096,12 +1089,10 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Enter the Memory Critical Section.
         1. Let _t_ be the next value from the timestamp stream; advance the stream.
-        1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the non-atomic-transaction set.
-        1. If the atomic-reservation operation is `"Invalid"`:
-          1. Set the atomic-reservation slot to (_t_, `"Invalid"`, *InvalidBlock*, 0, 0).
-        1. Otherwise, if the atomic-reservation operation is `"Atomic"`:
-          1. If _op_ equals `"Write"` and the atomic-reservation slot overlaps (_block_, _byteIndex_, _elementSize_) then:
-            1. Set the atomic-reservation slot to (_t_, `"Invalid"`, *InvalidBlock*, 0, 0).
+        1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the transaction set.
+        1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
+        1. If _op_ equals `"Write"` and there exists an atomic transaction that overlaps (_block_, _byteIndex_, _elementSize_) then:
+          1. Invalidate the transaction set for atomics.
         1. Leave the Memory Critical Section.
         1. Return _t_.
       </emu-alg>
@@ -1112,10 +1103,7 @@ These call AllocateTypedArray with a specified length:
       <p>TODO: Boilerplate.</p>
       <emu-alg>
         1. Enter the Memory Critical Section.
-        1. Remove (_t_, _op_, _block_, _byteIndex_, _elementSize_) from the non-atomic-transaction set.
-        1. If the atomic-reservation operation is `"Invalid"`, then:
-          1. If the atomic-reservation timestamp equals _t_, then:
-            1. Clear the atomic-reservation slot.
+        1. Remove (_t_, _op_, _block_, _byteIndex_, _elementSize_) from the transaction set.
         1. Leave the Memory Critical Section.
       </emu-alg>
     </emu-clause>
