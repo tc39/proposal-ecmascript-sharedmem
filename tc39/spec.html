@@ -852,7 +852,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>Two memory operations that overlap or match are said to <em>conflict</em> if one operation's Begin step happens between the other's Begin and End steps (as determined by the order those steps enter the Memory Critical Section).  A memory operation A is said to <em>cover</em> another operation B if A's Begin step happens before B's Begin step and B's End step happens before A's End step.</p>
 
-        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either either Clear, Atomic, or Invalid, with Clear the initial state.  The Begin operations add transactions to the set and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Invalid state when there is an atomic transaction in the set that has an operation of `"Invalid"` (in this case all atomic transactions in the set have the operation `"Invalid"`).  When all atomic operations are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Invalid state.  Atomic operations that occur while the machine is in the Invalid state are also non-viable.  The machine transitions out of the Invalid state only when there are no more atomic transactions left in the set.</p>
+        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either  Clear, Atomic, or Invalid, with Clear the initial state.  The Begin operations add transactions to the set and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Invalid state when there is an atomic transaction in the set that has an operation of `"Invalid"` (in this case all atomic transactions in the set have the operation `"Invalid"`).  When all atomic operations are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Invalid state.  Atomic operations that occur while the machine is in the Invalid state are also non-viable.  The machine transitions out of the Invalid state only when there are no more atomic transactions left in the set.</p>
 
         <emu-note>
           <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping  BeginAtomic will move the machine into the Invalid state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
@@ -960,7 +960,7 @@ These call AllocateTypedArray with a specified length:
         <emu-alg>
           1. Enter the Memory Critical Section.
           1. Let _t_ be the next value from the timestamp stream; advance the stream.
-          1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
+          1. Let _atomicTxns_ be the set of atomic transactions in the transaction set.
           1. While _atomicTxns_ is the singleton set containing an atomic transaction whose operation is `"Atomic"` and that either matches or is disjoint from (_block_, _byteIndex_, _elementSize_):
             1. Wait (leaving the critical section) until the transaction set changes.
             1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
@@ -1003,7 +1003,7 @@ These call AllocateTypedArray with a specified length:
           1. Enter the Memory Critical Section.
           1. Let _t_ be the next value from the timestamp stream; advance the stream.
           1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the transaction set.
-          1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
+          1. Let _atomicTxns_ be the set of atomic transactions in the transaction set.
           1. If _op_ equals `"Write"` and there exists a transaction in _atomicTxns_ that overlaps (_block_, _byteIndex_, _elementSize_) then:
             1. Invalidate the transaction set for atomics.
           1. Leave the Memory Critical Section.
