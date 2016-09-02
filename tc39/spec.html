@@ -1,4 +1,4 @@
-<!-- -*- indent-tabs-mode: nil -*-
+<!-- -*- indent-tabs-mode: nil; show-trailing-whitespace: t -*-
 
      Process this file with ../format.sh to produce shmem.html.  See comments in that file.
 -->
@@ -750,7 +750,7 @@ These call AllocateTypedArray with a specified length:
 
   <p>The Atomics object is the <dfn>%Atomics%</dfn> intrinsic object and the initial value of the `Atomics` property of the global object. The Atomics object is a single ordinary object.</p>
 
-  <p>The Atomics object provides functions that operate indivisibly (atomically) on shared memory array cells as well as functions that let agents wait for and dispatch primitive events.  When used with discipline, the Atomics functions allow multi-agent programs that communicate through shared memory to execute in a well-understood order even on parallel CPUs.  The rules that govern shared-memory communication are provided by the <dfn>memory model</dfn>, defined below.</p>
+  <p>The Atomics object provides functions that operate indivisibly (atomically) on shared memory array cells as well as functions that let agents wait for and dispatch primitive events.  When used with discipline, the Atomics functions allow multi-agent programs that communicate through shared memory to execute in a well-understood order even on parallel CPUs.  The rules that govern shared-memory communication are provided by the <em>memory model</em>, see <emu-xref href="#AtomicsObject.MemoryModel"></emu-xref>.</p>
 
   <p>The value of the [[Prototype]] internal slot of the Atomics object is the intrinsic object %ObjectPrototype%.</p>
 
@@ -773,7 +773,15 @@ These call AllocateTypedArray with a specified length:
       <p>Non-interfering atomic operations (later called <em>viable</em> atomic operations) are executed in a well-defined order, and that order will allow programmers to reason about program synchronization, causality, and data races in a conventional way.</p>
 
       <emu-note>
-        <p>(Programming advice)  As a rule of thumb, if the program accesses locations used for synchronization only with atomic operations and always with the same data width, then its atomic operations will be non-interfering.  The program can safely initialize the memory for the atomic locations using non-atomic operations so long as other synchronization in the program is used to ensure that initialization is finished before the program uses the memory for synchronization.</p>
+        <p>(Programming advice)  If the program obeys some simple rules then most of the complexities of the memory model can be ignored by programmers, and program behavior can be inferred from the description in <emu-xref href="#AtomicsObject.EventsAndSync"></emu-xref>.  These rules amount to segregating atomic and non-atomic locations and strongly typing the atomic locations:</p>
+
+        <ol>
+          <li> A variable in shared memory that is used with atomic operations should always be of a specific type, eg, `Int32`, and this fact should be implemented by always accessing the variable's memory through a view of that type, never through aliasing views of other types or DataViews.
+
+          <li> All accesses to the variable should be with atomic operations (of the selected type).
+        </ol>
+
+        <p>(Advanced programming advice) Initializing stores to the variable's memory can safely be made by non-atomic operations and through views of other types, provided there is other synchronization in the program that ensures that the initialization is finished before the program uses the variable for synchronization in any thread.</p>
       </emu-note>
 
       <emu-clause id="AtomicsObject.Fundamentals">
@@ -835,7 +843,7 @@ These call AllocateTypedArray with a specified length:
           <p>Operationally, an atomic access is viable if the EndAtomic operation returns *true*.</p>
         </emu-note>
 
-        <p>A <em>transaction</em> on shared memory is a quintuple (_t_, _op_, _block_, _byteIndex_, _elementSize_).  The transaction set stores transactions.  The _t_ is a value from the stream of timestamps.  The _op_ is a String, denoting the operation. An <em>atomic transaction</em> is a transaction whose operation is `"Atomic"` or `"Invalid"`. A <em>non-atomic transaction</em> is a transaction whose operation is `"Read"` or `"Write"`.  _block_ is a Shared Data Block value, _byteIndex_ a nonnegative integer, and _elementSize_ a positive integer.</p>
+        <p>A <em>transaction</em> on shared memory is a quintuple (_t_, _op_, _block_, _byteIndex_, _elementSize_).  The transaction set stores transactions.  The _t_ is a value from the stream of timestamps.  The _op_ is a String, denoting the operation. An <em>atomic transaction</em> is a transaction whose operation is `"Atomic"` or `"Invalid"`. A <em>non-atomic transaction</em> is a transaction whose operation is `"Read"` or `"Write"`.  The _block_ is a Shared Data Block value, the _byteIndex_ a nonnegative integer, and the _elementSize_ a positive integer.</p>
 
         <p>The initial value of the transaction set is the empty set. To <em>invalidate</em> the transaction set for atomics means for each atomic transaction (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_) in the transaction set, replace it with a transaction (_t_, `"Invalid"`, _block_, _byteIndex_, _elementSize_).
 
@@ -864,7 +872,7 @@ These call AllocateTypedArray with a specified length:
         <ul>
           <li><b>Stable reads:</b> Any given shared memory read must only observe a single value.  (For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read.)
 
-          <li><b>Stable writes:</b> Any given shared memory read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleaving resulting from conflicting writes, described below, is within program semantics.)
+          <li><b>Stable writes:</b> Any given shared memory read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleaving resulting from conflicting writes, see <emu-xref href="#Atomics.WriteSharedMemory"></emu-xref>, is within program semantics.)
 
           <li><b>Actual values:</b> Any given shared memory read must only observe values that have been produced by the program's execution.  (For example, the compiler or hardware may not speculate about a value in shared memory and then use that value to justify the speculation.)
         </ul>
@@ -888,7 +896,7 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="Atomics.ReadSharedMemory" aoid="ReadSharedMemory">
         <h1>ReadSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_)</h1>
 
-        <p>ReadSharedMemory takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a positive integer _numBytes_, and returns a List of length _numBytes_ containing bytes, as follows.</p>
+        <p>ReadSharedMemory takes four arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, and a positive integer _numBytes_, and returns a List of length _numBytes_ containing bytes</p>
 
         <p>We say the invocation of ReadSharedMemory is <em>tidy</em> if and only if:</p>
         <ol>
@@ -900,6 +908,8 @@ These call AllocateTypedArray with a specified length:
         <emu-note>
           <p>The tidiness condition is present here, and a similar condition is present in WriteSharedMemory, to ensure that certain conflicts are resolved in a predictable way: matching conflicting writes to integer-typed TypedArrays end up writing one value before the other, not a byte-wise mix of the values.  All hardware supports the behavior and it is valuable to programs in practice.</p>
         </emu-note>
+
+        <p>Perform the following operations:</p>
 
         <emu-alg>
           1. Assert: If _accessAtomic_ is true then _numBytes_ is a power of two and _byteIndex_ modulo _numBytes_ is zero.
@@ -916,7 +926,7 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="Atomics.WriteSharedMemory" aoid="WriteSharedMemory">
         <h1>WriteSharedMemory(_block_, _byteIndex_, _accessAtomic_, _numBytes_, _rawBytes_)</h1>
 
-        <p>WriteSharedMemory takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a positive integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_], as follows.</p>
+        <p>WriteSharedMemory takes five arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a Boolean _accessAtomic_, a positive integer _numBytes_, and a List _rawBytes_ of _numBytes_, and stores the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</p>
 
         <p>We say the invocation of WriteSharedMemory is <em>tidy</em> if and only if:</p>
         <ol>
@@ -924,6 +934,8 @@ These call AllocateTypedArray with a specified length:
           <li> _accessAtomic_ is *true*, and
           <li> _accessAtomic_ is *true* in all the WriteSharedMemory calls for the conflicting writes.
         </ol>
+
+        <p>Perform the following operations:</p>
 
         <emu-alg>
           1. Assert: If _accessAtomic_ is true then _numBytes_ is a power of two and _byteIndex_ modulo _numBytes_ is zero.
@@ -1226,6 +1238,8 @@ These call AllocateTypedArray with a specified length:
 
           <p>Data races expose non-intuitive and platform-specific effects of program transformations performed by the compiler or the hardware.  ECMAScript programs with data races are safe (races cannot subvert the language implementation, they affect only the memory locations in Shared Data Blocks), but the values resulting from a program with a data race are often hard to predict.  The effects of data races include observing values that, within limits, appear to come from the past (because they should have been written before other values, which have not been seen) or from the future (because they should have been written after other values, which have not been seen), or which should not exist at all (because conflicting writes may interleave the bytes being written).</p>
         </emu-note>
+
+        <p>If a program has a data race, the semantics guarantee two things.  First, if the racing accesses are all integer-typed accesses and all have the same access size then the writes that race will be performed in some order (their values will not be mixed somehow) and the reads that race will observe one of the writes or the value in memory before any of the writes (if there are multiple reads they may observe different values).  Second, if the values are mixed then they are mixed at the byte level (as opposed to the bit level), and all bytes of all the racing writes will eventually be written to memory in their correct locations, in an unspecified order.</p>
       </emu-clause>
 
     </emu-clause>
