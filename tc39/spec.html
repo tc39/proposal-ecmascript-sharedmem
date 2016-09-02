@@ -1186,6 +1186,47 @@ These call AllocateTypedArray with a specified length:
 
       </emu-clause>
 
+      <emu-clause id="AtomicsObject.Implementability">
+        <h1>Implementability of the Semantics</h1>
+
+        <p>The claim is that atomic operations that are deemed viable in the semantics of <emu-xref href="#AtomicsObject.MemoryModel"></emu-xref> will always be observed as being executed atomically and in some total order (within the agent cluster) on hardware, for any mix of lock-free and non-lock-free viable atomics, using  conventional implementations of sequentially consistent atomics on each platform.</p>
+
+        <emu-note>
+          <p>(Spec draft note)</p>
+
+          <p>This is the first attempt.  This is fairly elaborate and a little messy, but the idea is to establish first that lock-free atomics "just work" on all platforms and then to argue that non-lock-free atomics fit properly into it.  The hardware discussion may not need to discuss local reorderings; I'm not sure.</p>
+        </emu-note>
+
+        <p>The claim begs the question of the nature of the observer and its method of observation.  The observers must be additional agents in the system that always agree on the order in which updates become visible to them.  A meaningful mechanism for the observation seems to be a non-atomic (yet access-atomic) read where the observed atomic is lock-free, and a non-blocking lock acquisition where the observed atomic is non-lock-free (ie a failure to take the lock means the value has not yet changed).  As a thought experiment, imagine there are four agents, two of them perform atomic operations on separate atomics, the other two record the observed order of changes by looking first for changes to one atomic and then checking to see if the other have changed (one examining the atomics in one order, the other examining them in the other order.)  Both observers should see compatible orders always.</p>
+
+        <p>When necessary we will use x86 and ARMv7 as our sample architectures.  For practical purposes, SPARC is equivalent to x86, and POWER, MIPS, and Itanium are equivalent to ARMv7.</p>
+
+        <p>Observe first that if all the atomic sizes have lock-free implementations then the argument is straightforward and can rely on the memory system as the observer:</p>
+
+        <ul>
+          <li> On x86, an atomic load is a `MOV`, an atomic store is a `MOV` followed by `MFENCE`, an atomic read-modify-write is a `LOCK`-prefixed arithmetic operation, and an atomic compare-exchange is a `LOCK`-prefixed `CMPXCHG`.  The `MFENCE` after the atomic store and look-ahead in the write buffer for loads prevent local reordering.  The `LOCK`s ensure atomicity of read-write operations.  Access-atomicity in the hardware ensures that loads and stores don't tear and ensure that operations to memory happen in a total order.  That is, x86 has stronger semantics than we require.
+
+          <li> On ARMv7, atomics are preceded and succeeded by `DMB` instructions that prevent local reordering.  Between the two `DMB`s, an atomic load is an `LDR`, an atomic store an `STR`, and atomic read-modify-write and compare-exchange are written as loops using `LDREX` and `STREX` to ensure atomicity of the read-write pair (any interfering store from another CPU will make the `STREX` fail and cause the loaded value to be discarded).  Access-atomicity in the hardware ensures that accesses don't tear and ensure that operations to memory happen in a total order.  Like x86, ARM has stronger semantics than we require.
+        </ul>
+
+        <p>Suppose that we also have non-lock-free atomics for some sizes.  To make it interesting, assume we have non-lock-free `Float64` atomics, since some CPUs may load and store floating values one byte at a time (ARM allows this).  There will be a lock (either per SharedArrayBuffer, or per region of memory) that is acquired by the atomic operation before the operation and released after.  Assuming an operation _A_ is viable, we need to show that a concurrent viable atomic operation _B_ is perceived as executing before or after _A_.  If _B_ is to the same access range as _A_ then _B_ will wait for the lock, and _B_ will clearly execute after _A_.  If _B_ is to a disjoint access range from _A_ then the memory transactions from the two (including the transactions for lock and unlock) may actually execute interleaved, however.  This is the interesting case, because the semantics model this as a blocking wait for whichever operation starts second, but the implementation can't do that.</p>
+
+        <p>Assume first that _A_ is lock-free.  _A_ will be executed as a single memory transaction.</p>
+        <ul>
+          <li>Assume _A_ occurs before the lock for _B_.  The observer that observes _A_ before _B_ will see the change to _A_ and sometimes that _B_ has not changed; ergo, _A_ first.  The observer that observes _B_ before _A_ will see the change to _B_ first and always that _A_ has changed; inconclusive.  In sum, _A_ first.
+          <li> For the case where _A_ occurs after the unlock for _B_, the same argument, but _B_ first.
+          <li> Assume that _A_ occurs between the lock and the unlock for _B_.  The observer that observes _A_ before _B_ will sometimes observe that _B_ has not changed (it will fail to aquire the lock on _B_); ergo _A_ before _B_.  The observer that observes _B_ before _A_ will always observe that _A_ has changed; inconclusive.  In sum, _A_ first.
+        </ul>
+
+        <p>Assume next that _A_ and _B_ are both non-lock-free, with different locks (or the result is trivial).  The lock and unlock operations are themselves atomic memory operations and part of the memory system's total order of operations.  The interesting cases are when the lock/unlock pair for _A_ overlaps partially with the lock/unlock pair for _B_, and when the lock/unlock pair for _A_ is wholly within the lock/unlock pair for _B_.</p>
+        <ul>
+          <li>Assume the lock/unlock pairs overlap and that _A_'s lock is acquired and released first.  The agent observing _A_ before _B_ will observe that _A_ has changed and that sometimes, _B_ has not; hence _A_ before _B_.  The agent observing _B_ before _A_ will always observe that _A_ has changed once _B_ has changed; inconclusive.  In sum, _A_ first.
+          <li>Assume _A_'s lock/unlock pair is nested within _B_'s.  The agent observing _A_ before _B_ will observe that when _A_ has changed, _B_ sometimes has not; hence _A_ before _B_.  The agent observing _B_ before _A_ will observe that when _B_ has changed, _A_ also has; hence inconclusive.  In sum, _A_ first.
+        </ul>
+
+        <p>In effect, we can say that the unlock operation of a non-lock-free atomic that enters into the total order of viable atomic operations.</p>
+      </emu-clause>
+
       <emu-clause id="AtomicsObject.EventsAndSync">
         <h1>Events, Synchronization, Data Races, and Sequential Consistency</h1>
 
