@@ -1014,7 +1014,7 @@ These call AllocateTypedArray with a specified length:
         <p>The synchronization order induces a  <em>synchronized-with</em> relation on events for the execution: A viable atomic write of a location synchronizes-with all subsequent (later in the synchronization order) viable atomic reads of that location.</p>
 
         <emu-note><span class="note">Note 3</span>
-          <p>Since there is aliasing, it is possible for (say) a two-byte write to be observed by two one-byte reads, or for two one-byte writes to be observed by a two-byte read, or indeed for a one-byte write to be observed by a two-byte read.  Despite there not being a clean one-to-one relationship between writes and reads, the writes synchronize-with the reads in all those cases.</p>
+          <p>Since there is aliasing, it is possible for (say) a two-byte write to be observed by two subsequent one-byte reads, or for two one-byte writes to be observed by a subsequent two-byte read, or indeed for a one-byte write to be observed by a subsequent two-byte read.  Despite there not being a clean one-to-one relationship between writes and reads, the writes synchronize-with the subsequent reads in all those cases.</p>
         </emu-note>
 
         <p>An event A  <em>happens before</em> another event B in an execution if either:</p>
@@ -1033,10 +1033,6 @@ These call AllocateTypedArray with a specified length:
         <p>Two memory operations constitute a  <em>data race</em> if neither happens before the other, at least one of them is a write, and either they overlap, or they match but are not both viable atomic operations.</p>
 
         <emu-note><span class="note">Note 4</span>
-          <p>Two accesses can be in a data race without actually conflicting during any particular execution.  In particular, viable atomic accesses can be in a data race if they overlap but one just happens to be executed before the other.</p>
-
-          <p>Viable atomic operations that are in a data race can be used for synchronization (in that execution).  Consider two racing atomic writes, which will be executed in some order.  If an atomic read happen after both writes have finished (in the synchronization order) and reads the memory written by the writes, then the read is ordered after the writes in the happens-before relation.  In some other execution, though, the two writes may actually conflict, and though the read may still be executed after both writes, the writes, being non-viable, will not happen-before the read.</p>
-
           <p>An execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable) and will appear to be sequentially consistent.</p>
         </emu-note>
 

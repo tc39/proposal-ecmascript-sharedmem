@@ -282,3 +282,9 @@
 
         <p>I actually wonder about ARM in this regard but it's probably OK.  For 64-bit atomics we'll need to use LDREXD to load 8 bytes followed by CLREX.  A conflicting LDR or even LDREX, say, on another core does not affect this.  There are no indications that garbage would be returned anywhere for loads (stores may flip out but that's a different issue).</p>
 
+
+          <p>Two accesses can be in a data race without actually conflicting.  In particular, viable atomic accesses can be in a data race if they overlap but one is executed before the other.</p>
+
+          <p>Viable atomic operations that are in a data race can be used for synchronization.  Consider two racing atomic writes, which will be executed in some order.  If an atomic read happen after both writes have finished (in the synchronization order) and reads the memory written by the writes, then the read is ordered after the writes in the happens-before relation.  In some other execution, though, the two writes may actually conflict, and though the read may still be executed after both writes, the writes, being non-viable, will not happen-before the read.</p>
+
+	
