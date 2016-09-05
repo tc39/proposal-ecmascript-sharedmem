@@ -648,7 +648,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>The  <em>access range</em> of a memory operation comprises the memory cells read or written by the operation.  These cells are always consecutive and within a single <emu-xref href="#DataTypesValues.SpecTypes.DataBlocks"><a href="#DataTypesValues.SpecTypes.DataBlocks">Shared Data Block</a></emu-xref>.</p>
 
-        <p>An atomic operation to some access range is  <em>viable</em> (in an execution) only if all other memory operations that intersect with that access range while the atomic operation is being performed are atomic operations on the same access range, in a manner that is made precise in the following.</p>
+        <p>An atomic operation to some access range is  <em>viable</em> in an execution only if all other memory operations that intersect with that access range while the atomic operation is being performed are atomic operations or non-atomic read operations on the same access range, in a manner that is made precise in the following.</p>
 
         <emu-note><span class="note">Note 1</span>
           <p>(Spec draft note)</p>
@@ -700,7 +700,7 @@ These call AllocateTypedArray with a specified length:
         <p>The semantic operations <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref>, <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref>, <emu-xref aoid="BeginNonAtomic"><a href="#Atomics.BeginNonAtomic">BeginNonAtomic</a></emu-xref>, and <emu-xref aoid="EndNonAtomic"><a href="#Atomics.EndNonAtomic">EndNonAtomic</a></emu-xref> operate on the memory system and denote the start and end of atomic and non-atomic operations, respectively.  The memory operations are defined in terms of these abstract operations and of the memory access primitives <emu-xref aoid="ReadSharedMemory"><a href="#Atomics.ReadSharedMemory">ReadSharedMemory</a></emu-xref> and <emu-xref aoid="WriteSharedMemory"><a href="#Atomics.WriteSharedMemory">WriteSharedMemory</a></emu-xref>.</p>
 
         <emu-note><span class="note">Note 1</span>
-          <p>Operationally, an atomic access is viable if the <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> operation returns <emu-val>true</emu-val>.</p>
+          <p>Operationally, an atomic access is viable if and only if the <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> operation returns <emu-val>true</emu-val>.</p>
         </emu-note>
 
         <p>A  <em>transaction</em> on shared memory is a quintuple (<var>t</var>, <var>op</var>, <var>block</var>, <var>byteIndex</var>, <var>elementSize</var>).  The transaction set stores transactions.  The <var>t</var> is a value from the stream of timestamps.  The <var>op</var> is a String, denoting the operation. An  <em>atomic transaction</em> is a transaction whose operation is <code>"Atomic"</code> or <code>"Invalid"</code>. A  <em>non-atomic transaction</em> is a transaction whose operation is <code>"Read"</code> or <code>"Write"</code>.  The <var>block</var> is a <emu-xref href="#DataTypesValues.SpecTypes.DataBlocks"><a href="#DataTypesValues.SpecTypes.DataBlocks">Shared Data Block</a></emu-xref> value, the <var>byteIndex</var> a nonnegative integer, and the <var>elementSize</var> a positive integer.</p>
@@ -759,6 +759,8 @@ These call AllocateTypedArray with a specified length:
           <p>The restrictions apply only to shared memory accesses, so an implementation that knows the program is not accessing shared memory will not be affected by them.  In practice, the optimizations that are affected by the restrictions (rematerialization, certain local optimizations) are of limited value, and a practical implementation could avoid those optimizations even for non-shared memory without significant impact.</p>
 
           <p>Examples of transformations that remain valid are: merging multiple non-atomic reads from the same location, reordering non-atomic reads from different locations, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, and reordering non-atomic writes to different locations.  These transformations can be performed by a compiler or the hardware; in the latter case they take the form of speculative loads and buffered stores.</p>
+
+          <p>The "Actual values" was introduced to prohibit out-of-thin-air values but it is not obvious that it is necessary in our operational model.</p>
         </emu-note>
       </emu-clause>
 
@@ -816,6 +818,18 @@ These call AllocateTypedArray with a specified length:
 
         <emu-alg><ol><li>Enter the Memory Critical Section.</li><li>Let <var>t</var> be the next value from the timestamp stream; advance the stream.</li><li>Let <var>atomicTxns</var> be the set of atomic transactions in the transaction set.</li><li>While <var>atomicTxns</var> is the singleton set containing an atomic transaction whose operation is <code>"Atomic"</code> and that either matches or is disjoint from (<var>block</var>, <var>byteIndex</var>, <var>elementSize</var>):<ol><li>Leave the Memory Critical Section and wait until the transaction set changes.</li><li>Enter the Memory Critical Section.</li><li>Let <var>atomicTxns</var> be the set of all atomic transactions in the transaction set.</li></ol></li><li>Let <var>interferingTxns</var> be the set of transactions in the transaction set that are not disjoint from (<var>block</var>, <var>byteIndex</var>, <var>elementSize</var>).</li><li>Remove transactions that match (<var>block</var>, <var>byteIndex</var>, <var>elementSize</var>) and whose operation is <code>"Read"</code> from <var>interferingTxns</var>.</li><li>If <var>interferingTxns</var> is not the empty set, then:<ol><li>Invalidate the transaction set for atomics.</li><li>Add (<var>t</var>, <code>"Invalid"</code>, <var>block</var>, <var>byteIndex</var>, <var>elementSize</var>) to the transaction set.</li><li>Leave the Memory Critical Section.</li><li>Return <var>t</var>.</li></ol></li><li>Assert: <var>atomicTxns</var> is the empty set.</li><li>Add (<var>t</var>, <code>"Atomic"</code>, <var>block</var>, <var>byteIndex</var>, <var>elementSize</var>) to the transaction set.</li><li>Leave the Memory Critical Section.</li><li>Return <var>t</var>.
         </li></ol></emu-alg>
+
+        <emu-note><span class="note">Note 1</span>
+          <p>Here and in <emu-xref aoid="BeginNonAtomic"><a href="#Atomics.BeginNonAtomic">BeginNonAtomic</a></emu-xref>, we implement the rule that an atomic access will be invalidated by a concurrent non-atomic read that overlaps with the atomic access, but will not be invalidated by a concurrent non-atomic read that matches the atomic access.</p>
+        </emu-note>
+
+        <emu-note><span class="note">Note 2</span>
+          <p>(Spec draft note)</p>
+
+          <p>An argument could be made for making non-disjoint non-atomic accesses always invalidate the atomic access, and not have the special case here where matching non-atomic reads are allowed.  In particular, a matching non-atomic read can be used to observe that a non-lock-free atomic write is not  executed atomically.  This is expected in racy programs (and this is a race), so maybe it is no big deal, but it seems unnecessary to consider the atomic operation viable in that situation.</p>
+
+          <p>A stronger rule than we have now, but weaker than the preceding paragraph suggests, is to make  a read that matches an atomic write break viability for the atomic operation, but allow the conflict between a non-atomic read and an atomic read.</p>
+        </emu-note>
       </emu-clause>
 
       <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
@@ -953,9 +967,9 @@ These call AllocateTypedArray with a specified length:
         <emu-note><span class="note">Note 7</span>
           <p>The first <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> adds an <code>"Atomic"</code> transaction, after which it is the only atomic transaction in the set. The second <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not <code>"Read"</code>.  It will then invalidate all atomic transactions and add its own <code>"Invalid"</code> transaction.  Now either the first operation calls <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> first or the second operation does.  In both cases, since the second <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> altered both atomic transactions to <code>"Invalid"</code>, <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref> will see an operation of <code>"Invalid"</code> for its transaction, returning <emu-val>false</emu-val> for both operations, making neither viable.</p>
 
-          <p><b>FIXME</b> This generalizes trivially to multiple conflicting atomic operations, even when they only overlap pairwise.</p>
+          <p>This generalizes to multiple conflicting atomic operations, even when they only overlap pairwise: the presence of an <code>"Invalid"</code> atomic transaction in the set ensures that a new operation also becomes non-viable.</p>
 
-          <p>The above is true even if the operations are reads; see  <emu-xref href="#AtomicsObject.Formalization"><a href="#AtomicsObject.Formalization">7.4.1.1.2</a></emu-xref> for a discussion.</p>
+          <p>The above is true even if the overlapping operations are reads; see  <emu-xref href="#AtomicsObject.Formalization"><a href="#AtomicsObject.Formalization">7.4.1.1.2</a></emu-xref> for a discussion.</p>
         </emu-note>
 
         <p>Non-viable atomic operations have the same memory effects as corresponding non-atomic operations on the same TypedArrays.</p>
@@ -1054,7 +1068,7 @@ These call AllocateTypedArray with a specified length:
         <p>Two memory operations constitute a  <em>data race</em> if neither happens before the other, at least one of them is a write, and either they overlap, or they match but are not both viable atomic operations.</p>
 
         <emu-note><span class="note">Note 4</span>
-          <p>An execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable) and will appear to be sequentially consistent.</p>
+          <p>An execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable, and conflicts between atomics that match non-atomic reads) and will appear to be sequentially consistent.</p>
         </emu-note>
 
         <p>If every execution of an agent cluster is free of data races then the agent cluster will appear to be sequentially consistent.</p>
