@@ -195,14 +195,9 @@ comments.</p>
       <p>There is no [[IsLockFree4]] property: 4-byte atomic
         operations are always lock-free.</p>
 
-      <p>Formally, atomic operations are lock-free "if, infinitely
-        often, some atomic operation finishes in a finite number of
-        program steps", ie, some atomic operation is always
-        guaranteed to make progress.  In practice, if an atomic operation is
-        implemented with any type of lock the operation is not
-        lock-free.  Lock-free does not imply wait-free: there is no
-        upper bound on how many machine steps may be required to
-        complete a lock-free atomic operation.</p>
+      <p>Atomic operations are lock-free if some atomic operation in the agent cluster can always make progress.  For example, an agent that performs a lock-free atomic add of need only ever wait for the CPU to perform the memory access.  In contrast, with a non-lock-free atomic, an agent that holds a lock will force all other agents to wait for the lock to be released; if the agent holding the lock is suspended by the operating system, no other agents can make progress until it is resumed.</p>
+
+      <p>Lock-free does not imply wait-free: there is no upper bound on how many machine steps may be required to complete a lock-free atomic operation.  For example, if a lock-free atomic add is implemented with separate load and store instructions then the operation may need to be retried if some other agent updates the memory between the load and the store, and there is no bound on how many retries may be needed.</p>
 
       <p>That an atomic access of size <em>n</em> is lock-free does
         not imply anything about the (perceived) atomicity of
@@ -772,6 +767,8 @@ These call AllocateTypedArray with a specified length:
       </emu-note>
 
       <p>Non-interfering atomic operations (later called <em>viable</em> atomic operations) are executed in a well-defined order, and that order will allow programmers to reason about program synchronization, causality, and data races in a conventional way.</p>
+
+      <p>The idea of viability is to describe conditions under which the implementation of atomic operations need not concern itself with the problems resulting from the weak type discipline; atomic operations that are deemed viable in the semantics can simply be implemented in conventional ways on current hardware and will always be observed as being executed atomically and in the desired well-defined order.</p>
 
       <emu-note>
         <p>(Programming advice)  If the program obeys some simple rules then most of the complexities of the memory model can be ignored by programmers, and program behavior can be inferred from the description in <emu-xref href="#AtomicsObject.EventsAndSync"></emu-xref>.  These rules amount to segregating atomic and non-atomic locations and strongly typing the atomic locations:</p>
