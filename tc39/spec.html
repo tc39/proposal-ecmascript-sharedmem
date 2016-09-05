@@ -852,7 +852,7 @@ These call AllocateTypedArray with a specified length:
         <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Invalid, with Clear the initial state.  The Begin operations add transactions to the set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Invalid state when there is an atomic transaction in the set that has an operation of `"Invalid"` (in this case all atomic transactions in the set have the operation `"Invalid"`).  When all atomic operations are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Invalid state.  Atomic operations that occur while the machine is in the Invalid state are also non-viable.  The machine transitions out of the Invalid state only when there are no more atomic transactions left in the set.</p>
 
         <emu-note>
-          <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping  BeginAtomic will move the machine into the Invalid state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
+          <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping BeginAtomic will move the machine into the Invalid state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
         </emu-note>
       </emu-clause>
 
@@ -1188,6 +1188,12 @@ These call AllocateTypedArray with a specified length:
           <p>The first BeginAtomic adds an `"Atomic"` transaction, after which it is the only atomic transaction in the set. The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not `"Read"`.  It will then invalidate all atomic transactions and add its own `"Invalid"` transaction.  Now either the first operation calls EndAtomic first or the second operation does.  In both cases, since the second BeginAtomic altered both atomic transactions to `"Invalid"`, EndAtomic will see an operation of `"Invalid"` for its transaction, returning *false* for both operations, making neither viable. This generalizes trivially to multiple conflicting atomic operations, even when they only overlap pairwise.</p>
 
           <p>The above is true even if the operations are reads; see <emu-xref href="#AtomicsObject.Formalization"></emu-xref> for a discussion.</p>
+        </emu-note>
+
+        <p>Non-viable atomic operations have the same memory effects as comparable non-atomic operations on the same TypedArrays.</p>
+
+        <emu-note>
+          <p>The only effect of BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic is that BeginAtomic serializes non-overlapping atomic operations by pausing an operation until a previous operation is finished.  A non-viable atomic operation may or may not execute this wait step; if it does, the wait step will be aborted early.  Either way, the effect will be that BeginAtomic will not wait until some conflicting, overlapping access is finished, and so BeginAtomic will effectively be a no-op.  This makes all four of those semantic operations no-ops, as far as memory effects are concerned.  The callers of those operations all defer the actual work to ReadSharedMemory and WriteSharedMemory, with _accessAtomic_ *true*.  Hence non-viable atomics (eg `Atomics.store(ta, k, v)` or `Atomics.add(ta, k, v)`) and non-atomics (eg `ta[k]=v` or `ta[k] += v`).</p>
         </emu-note>
 
       </emu-clause>
