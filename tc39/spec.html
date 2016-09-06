@@ -843,9 +843,9 @@ These call AllocateTypedArray with a specified length:
           <p>Operationally, an atomic access is viable if and only if the EndAtomic operation returns *true*.</p>
         </emu-note>
 
-        <p>A <em>transaction</em> on shared memory is a quintuple (_t_, _op_, _block_, _byteIndex_, _elementSize_).  The transaction set stores transactions.  The _t_ is a value from the stream of timestamps.  The _op_ is a String, denoting the operation. An <em>atomic transaction</em> is a transaction whose operation is `"Atomic"` or `"Invalid"`. A <em>non-atomic transaction</em> is a transaction whose operation is `"Read"` or `"Write"`.  The _block_ is a Shared Data Block value, the _byteIndex_ a nonnegative integer, and the _elementSize_ a positive integer.</p>
+        <p>A <em>transaction</em> on shared memory is a quintuple (_t_, _op_, _block_, _byteIndex_, _elementSize_).  The _t_ is a value from the stream of timestamps.  The _op_ is a String, denoting the operation. An <em>atomic transaction</em> is a transaction whose operation is `"Atomic"` or `"Nonviable"`. A <em>non-atomic transaction</em> is a transaction whose operation is `"Read"` or `"Write"`.  The _block_ is a Shared Data Block value, the _byteIndex_ a nonnegative integer, and the _elementSize_ a positive integer.</p>
 
-        <p>The initial value of the transaction set is the empty set. To <em>invalidate</em> the transaction set for atomics means for each atomic transaction (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_) in the transaction set, replace it with a transaction (_t_, `"Invalid"`, _block_, _byteIndex_, _elementSize_).
+        <p>The transaction set stores transactions.  The initial value of the transaction set is the empty set.</p>
 
         <p>Two memory transactions (_t1_, _op1_, _block1_, _byteIndex1_, _elementSize1_) and (_t2_, _op2_, _block2_, _byteIndex2_, _elementSize2_) <em>overlap</em> if _block1_ and _block2_ are the same, and the sequence [_byteIndex1_, _byteIndex1_+1, ..., _byteIndex1_+_elementSize1_-1] overlaps with but is not equal to the sequence [_byteIndex2_, _byteIndex2_+1, ..., _byteIndex2_+_elementSize2_-1].  Two transactions <em>match</em> if their _block_, _byteIndex_, and _elementSize_ fields are pairwise equal.  Two transactions are <em>disjoint</em> if they neither overlap nor match.</p>
 
@@ -853,10 +853,10 @@ These call AllocateTypedArray with a specified length:
 
         <p>Two memory operations <em>conflict</em> if they are concurrent and are not disjoint.</p>
 
-        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Invalid, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Invalid state when there is an atomic transaction in the set that has an operation of `"Invalid"` (in this case all atomic transactions in the set have the operation `"Invalid"`).  When all atomic operations are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Invalid state.  Atomic operations that occur while the machine is in the Invalid state are also non-viable.  The machine transitions out of the Invalid state only when there are no more atomic transactions left in the set.</p>
+        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
 
         <emu-note>
-          <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping BeginAtomic will move the machine into the Invalid state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
+          <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping BeginAtomic will move the machine into the Nonviable state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
         </emu-note>
       </emu-clause>
 
@@ -978,8 +978,8 @@ These call AllocateTypedArray with a specified length:
           1. Let _interferingTxns_ be the set of transactions in the transaction set that are not disjoint from (_block_, _byteIndex_, _elementSize_).
           1. Remove transactions that match (_block_, _byteIndex_, _elementSize_) and whose operation is `"Read"` from _interferingTxns_.
           1. If _interferingTxns_ is not the empty set, then:
-            1. Invalidate the transaction set for atomics.
-            1. Add (_t_, `"Invalid"`, _block_, _byteIndex_, _elementSize_) to the transaction set.
+            1. Perform MakeNonviable().
+            1. Add (_t_, `"Nonviable"`, _block_, _byteIndex_, _elementSize_) to the transaction set.
             1. Leave the Memory Critical Section.
             1. Return _t_.
           1. Assert: _atomicTxns_ is the empty set.
@@ -989,13 +989,13 @@ These call AllocateTypedArray with a specified length:
         </emu-alg>
 
         <emu-note>
-          <p>Here and in BeginNonAtomic, we implement the rule that an atomic access will be invalidated by a concurrent non-atomic read that overlaps with the atomic access, but will not be invalidated by a concurrent non-atomic read that matches the atomic access.</p>
+          <p>Here and in BeginNonAtomic, we implement the rule that an atomic access will be made non-viable by a concurrent non-atomic read that overlaps with the atomic access, but will not be made non-viable by a concurrent non-atomic read that matches the atomic access.</p>
         </emu-note>
 
         <emu-note>
           <p>(Spec draft note)</p>
 
-          <p>An argument could be made for making non-disjoint non-atomic accesses always invalidate the atomic access, and not have the special case here where matching non-atomic reads are allowed.  In particular, a matching non-atomic read can be used to observe that a non-lock-free atomic write is not  executed atomically.  This is expected in racy programs (and this is a race), so maybe it is no big deal, but it seems unnecessary to consider the atomic operation viable in that situation.</p>
+          <p>An argument could be made for having non-disjoint non-atomic accesses always make the atomic access non-viable, and not have the special case here where matching non-atomic reads are allowed.  In particular, a matching non-atomic read can be used to observe that a non-lock-free atomic write is not  executed atomically.  This is expected in racy programs (and this is a race), so maybe it is no big deal, but it seems unnecessary to consider the atomic operation viable in that situation.</p>
 
           <p>A stronger rule than we have now, but weaker than the preceding paragraph suggests, is to make  a read that matches an atomic write break viability for the atomic operation, but allow the conflict between a non-atomic read and an atomic read.</p>
         </emu-note>
@@ -1014,10 +1014,20 @@ These call AllocateTypedArray with a specified length:
           1. Let _interferingTxns_ be the set of transactions in the transaction set that are not disjoint from (_block_, _byteIndex_, _elementSize_).
           1. Remove transactions that match (_block_, _byteIndex_, _elementSize_) and whose operation is `"Read"` from _interferingTxns_.
           1. Leave the Memory Critical Section.
-          1. If the operation of _txn_ is `"Invalid"`, then:
+          1. If the operation of _txn_ is `"Nonviable"`, then:
             1. Return *false*.
           1. Assert: _interferingTxns_ is the empty set.
           1. Return *true*.
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="Atomics.MakeNonviable" aoid="MakeNonviable">
+        <h1>MakeNonviable()</h1>
+        <p>MakeNonviable marks atomic transactions as non-viable and moves the state machine to the Nonviable state, as follows.</p>
+        <emu-alg>
+          1. Assert: This agent is in the Memory Critical Section.
+          1. For every transaction (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_):
+            1. Replace the transaction by (_t_, `"Nonviable"`, _block_, _byteIndex_, _elementSize_).
         </emu-alg>
       </emu-clause>
 
@@ -1034,7 +1044,7 @@ These call AllocateTypedArray with a specified length:
           1. If _op_ is `"Read"` then:
             1. Remove transactions that match (_block_, _byteIndex_, _elementSize_) from _interferingAtomicTxns_.
           1. If _interferingAtomicTxns_ is not the empty set then:
-            1. Invalidate the transaction set for atomics.
+            1. Perform MakeNonviable().
           1. Leave the Memory Critical Section.
           1. Return _t_.
         </emu-alg>
@@ -1179,19 +1189,19 @@ These call AllocateTypedArray with a specified length:
         <p>The system of memory operations always makes progress (does not deadlock).</p>
 
         <emu-note>
-          <p>The only of the memory operation steps to wait is BeginAtomic, which waits while the transaction set contains a transaction _T_ for an ongoing, matching or disjoint, atomic operation _O_.  Since _T_ was stored into the transaction set following a possible wait, _O_ will be making progress and will reach its EndAtomic step, unless an interfering operation starts first and changes the operation of _T_ to `"Invalid"`, thus changing the set of atomic transactions in the transaction set.  In either case _O_ is released from the wait.</p>
+          <p>The only of the memory operation steps to wait is BeginAtomic, which waits while the transaction set contains a transaction _T_ for an ongoing, matching or disjoint, atomic operation _O_.  Since _T_ was stored into the transaction set following a possible wait, _O_ will be making progress and will reach its EndAtomic step, unless an interfering operation starts first and changes the operation of _T_ to `"Nonviable"`, thus changing the set of atomic transactions in the transaction set.  In either case _O_ is released from the wait.</p>
         </emu-note>
 
         <p>If a non-atomic write conflicts with an atomic operation then the atomic operation is not viable.</p>
 
         <emu-note>
-          <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the transaction set and will add an `"Invalid"` atomic transaction.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that there is an atomic transaction with operation `"Atomic"` and that the write is not disjoint with the atomic transaction, and will change the operation of the atomic transaction to `"Invalid"`.  In either case EndAtomic will see an `"Invalid"` operation for its transaction and return *false*, making the atomic non-viable.</p>
+          <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the transaction set and will add an `"Nonviable"` atomic transaction.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that there is an atomic transaction with operation `"Atomic"` and that the write is not disjoint with the atomic transaction, and will change the operation of the atomic transaction to `"Nonviable"`.  In either case EndAtomic will see an `"Nonviable"` operation for its transaction and return *false*, making the atomic non-viable.</p>
         </emu-note>
 
         <p>If a non-atomic read is concurrent with an atomic operation and the two operations match or are disjoint, then the atomic operation is viable.</p>
 
         <emu-note>
-          <p>This is like the non-atomic write case, but since the non-atomic operation is a matching or disjoint read, neither will BeginAtomic add an `"Invalid"` atomic transaction, nor will BeginNonAtomic invalidate any existing atomic transactions.  Hence EndAtomic will see an `"Atomic"` operation for its transaction and return *true*.</p>
+          <p>This is like the non-atomic write case, but since the non-atomic operation is a matching or disjoint read, neither will BeginAtomic add an `"Nonviable"` atomic transaction, nor will BeginNonAtomic make any existing atomic transactions non-viable.  Hence EndAtomic will see an `"Atomic"` operation for its transaction and return *true*.</p>
         </emu-note>
 
         <p>If a non-atomic read conflicts with an atomic operation and the two operations overlap then the atomic operation is not viable.</p>
@@ -1215,9 +1225,9 @@ These call AllocateTypedArray with a specified length:
         <p>If two or more atomic operations conflict and overlap then none are viable; and, if an atomic operation is concurrent with a non-viable atomic then the former atomic is also non-viable.</p>
 
         <emu-note>
-          <p>The first BeginAtomic adds an `"Atomic"` transaction, after which it is the only atomic transaction in the set. The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not `"Read"`.  It will then invalidate all atomic transactions and add its own `"Invalid"` transaction.  Now either the first operation calls EndAtomic first or the second operation does.  In both cases, since the second BeginAtomic altered both atomic transactions to `"Invalid"`, EndAtomic will see an operation of `"Invalid"` for its transaction, returning *false* for both operations, making neither viable.</p>
+          <p>The first BeginAtomic adds an `"Atomic"` transaction, after which it is the only atomic transaction in the set. The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not `"Read"`.  It will then make all atomic transactions non-viable and add its own `"Nonviable"` transaction.  Now either the first operation calls EndAtomic first or the second operation does.  In both cases, since the second BeginAtomic altered both atomic transactions to `"Nonviable"`, EndAtomic will see an operation of `"Nonviable"` for its transaction, returning *false* for both operations, making neither viable.</p>
 
-          <p>This generalizes to multiple conflicting atomic operations, even when they only overlap pairwise: the presence of an `"Invalid"` atomic transaction in the set ensures that a new operation also becomes non-viable.</p>
+          <p>This generalizes to multiple conflicting atomic operations, even when they only overlap pairwise: the presence of an `"Nonviable"` atomic transaction in the set ensures that a new operation also becomes non-viable.</p>
 
           <p>The above is true even if the overlapping operations are reads; see <emu-xref href="#AtomicsObject.Formalization"></emu-xref> for a discussion.</p>
         </emu-note>
