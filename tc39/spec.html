@@ -848,7 +848,7 @@ These call AllocateTypedArray with a specified length:
           <p>Operationally, an atomic access is viable if and only if the EndAtomic operation returns *true*.</p>
         </emu-note>
 
-        <p>A <em>transaction</em> on shared memory is a quintuple (_t_, _op_, _block_, _byteIndex_, _elementSize_).  The _t_ is a value from the stream of timestamps.  The _op_ is a String, denoting the operation. An <em>atomic transaction</em> is a transaction whose operation is `"Atomic"` or `"Nonviable"`. A <em>non-atomic transaction</em> is a transaction whose operation is `"Read"` or `"Write"`.  The _block_ is a Shared Data Block value, the _byteIndex_ a nonnegative integer, and the _elementSize_ a positive integer.</p>
+        <p>A <em>transaction</em> on shared memory is a quintuple (_t_, _op_, _block_, _byteIndex_, _elementSize_).  The _t_ is a value from the stream of timestamps.  The _op_ is a String, denoting the operation. An <em>atomic transaction</em> is a transaction whose operation is `"AtomicRead"`, `"AtomicWrite"`, or `"Nonviable"`. A <em>non-atomic transaction</em> is a transaction whose operation is `"Read"` or `"Write"`.  The _block_ is a Shared Data Block value, the _byteIndex_ a nonnegative integer, and the _elementSize_ a positive integer.</p>
 
         <p>The transaction set stores transactions.  The initial value of the transaction set is the empty set.</p>
 
@@ -858,7 +858,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>Two memory operations <em>conflict</em> if they are concurrent and are not disjoint.</p>
 
-        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"Atomic"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
+        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"AtomicRead"` or `"AtomicWrite"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
 
         <emu-note>
           <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping BeginAtomic will move the machine into the Nonviable state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
@@ -969,14 +969,14 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="Atomics.BeginAtomic" aoid="BeginAtomic">
-        <h1>BeginAtomic(_block_, _byteIndex_, _elementSize_)</h1>
-        <p>BeginAtomic takes three arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a positive integer _elementSize_, and does the following:</p>
+        <h1>BeginAtomic(_op_, _block_, _byteIndex_, _elementSize_)</h1>
+        <p>BeginAtomic takes four arguments, a String _op_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a positive integer _elementSize_, and does the following:</p>
 
         <emu-alg>
           1. Enter the Memory Critical Section.
           1. Let _t_ be the next value from the timestamp stream; advance the stream.
           1. Let _atomicTxns_ be the set of atomic transactions in the transaction set.
-          1. While _atomicTxns_ is the singleton set containing an atomic transaction whose operation is `"Atomic"` and that either matches or is disjoint from (_block_, _byteIndex_, _elementSize_):
+          1. While _atomicTxns_ is the singleton set containing an atomic transaction whose operation is `"AtomicRead"` or `"AtomicWrite"` and that either matches or is disjoint from (_block_, _byteIndex_, _elementSize_):
             1. Leave the Memory Critical Section and wait until the transaction set changes.
             1. Enter the Memory Critical Section.
             1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
@@ -988,7 +988,7 @@ These call AllocateTypedArray with a specified length:
             1. Leave the Memory Critical Section.
             1. Return _t_.
           1. Assert: _atomicTxns_ is the empty set.
-          1. Add (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_) to the transaction set.
+          1. Add (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the transaction set.
           1. Leave the Memory Critical Section.
           1. Return _t_.
         </emu-alg>
@@ -1007,8 +1007,8 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
-        <h1>EndAtomic(_timestamp_)</h1>
-        <p>EndAtomic takes a timestamp value _timestamp_ and does the following:</p>
+        <h1>EndAtomic(_timestamp_, _op_)</h1>
+        <p>EndAtomic takes a timestamp value _timestamp_ and a String _op_ and does the following:</p>
 
         <emu-alg>
           1. Enter the Memory Critical Section.
@@ -1031,7 +1031,7 @@ These call AllocateTypedArray with a specified length:
         <p>MakeNonviable marks atomic transactions as non-viable and moves the state machine to the Nonviable state, as follows.</p>
         <emu-alg>
           1. Assert: This agent is in the Memory Critical Section.
-          1. For every transaction (_t_, `"Atomic"`, _block_, _byteIndex_, _elementSize_):
+          1. For every transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) where _op_ is `"AtomicRead"` or `"AtomicWrite"`:
             1. Replace the transaction by (_t_, `"Nonviable"`, _block_, _byteIndex_, _elementSize_).
         </emu-alg>
       </emu-clause>
@@ -1104,9 +1104,9 @@ These call AllocateTypedArray with a specified length:
           1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
           1. Let _block_ be _buffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-          1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+          1. Let _timestamp_ be BeginAtomic(`"AtomicRead"`, _block_, _byteIndex_, _elementSize_).
           1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
-          1. Let _success_ be EndAtomic(_timestamp_).
+          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicRead"`).
           1. Note: If _success_ is *true* then the AtomicRead is viable: it executed atomically in the cluster-wide total order.
           1. Assert: _rawValue_ is a List of size _elementSize_.
           1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
@@ -1124,9 +1124,9 @@ These call AllocateTypedArray with a specified length:
           1. Let _block_ be _buffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _v_ as for SetValueInBuffer. (TODO: Elucidate.)
-          1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+          1. Let _timestamp_ be BeginAtomic(`"AtomicWrite"`, _block_, _byteIndex_, _elementSize_).
           1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-          1. Let _success_ be EndAtomic(_timestamp_).
+          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicWrite"`).
           1. Note: If _success_ is *true* then the AtomicWrite is viable: it executed atomically in the cluster-wide total order.
         </emu-alg>
       </emu-clause>
@@ -1140,14 +1140,14 @@ These call AllocateTypedArray with a specified length:
           1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
           1. Let _block_ be _buffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-          1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+          1. Let _timestamp_ be BeginAtomic(`"AtomicWrite"`, _block_, _byteIndex_, _elementSize_).
           1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
           1. Assert: _rawValue_ is a List of size _elementSize_.
           1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
           1. Compute: Let _w_ be _op_(_r_, _v_).
           1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _w_ as for SetValueInBuffer. (TODO: Elucidate.)
           1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-          1. Let _success_ be EndAtomic(_timestamp_).
+          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicWrite"`).
           1. Note: If _success_ is *true* then the AtomicReadModifyWrite is viable: it executed atomically in the cluster-wide total order.
           1. Return _r_.
         </emu-alg>
@@ -1162,14 +1162,14 @@ These call AllocateTypedArray with a specified length:
           1. Assert: There are sufficient bytes in _buffer_ starting at _byteIndex_ to represent a value of _type_.
           1. Let _block_ be _buffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
-          1. Let _timestamp_ be BeginAtomic(_block_, _byteIndex_, _elementSize_).
+          1. Let _timestamp_ be BeginAtomic(`"AtomicWrite"`, _block_, _byteIndex_, _elementSize_).
           1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
           1. Assert: _rawValue_ is a List of size _elementSize_.
           1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
           1. If _r_ is the same as _expected_ then:
             1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _replacement_ as for SetValueInBuffer. (TODO: Elucidate.)
             1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-          1. Let _success_ be EndAtomic(_timestamp_).
+          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicWrite"`).
           1. Note: If _success_ is *true* then the AtomicCompareExchange is viable: it executed atomically in the cluster-wide total order.
           1. Return _r_
         </emu-alg>
@@ -1200,13 +1200,13 @@ These call AllocateTypedArray with a specified length:
         <p>If a non-atomic write conflicts with an atomic operation then the atomic operation is not viable.</p>
 
         <emu-note>
-          <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the transaction set and will add an `"Nonviable"` atomic transaction.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that there is an atomic transaction with operation `"Atomic"` and that the write is not disjoint with the atomic transaction, and will change the operation of the atomic transaction to `"Nonviable"`.  In either case EndAtomic will see an `"Nonviable"` operation for its transaction and return *false*, making the atomic non-viable.</p>
+          <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the transaction set and will add an `"Nonviable"` atomic transaction.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that there is an atomic transaction with operation `"AtomicRead"` or `"AtomicWrite"` and that the write is not disjoint with the atomic transaction, and will change the operation of the atomic transaction to `"Nonviable"`.  In either case EndAtomic will see an `"Nonviable"` operation for its transaction and return *false*, making the atomic non-viable.</p>
         </emu-note>
 
         <p>If a non-atomic read is concurrent with an atomic operation and the two operations match or are disjoint, then the atomic operation is viable.</p>
 
         <emu-note>
-          <p>This is like the non-atomic write case, but since the non-atomic operation is a matching or disjoint read, neither will BeginAtomic add an `"Nonviable"` atomic transaction, nor will BeginNonAtomic make any existing atomic transactions non-viable.  Hence EndAtomic will see an `"Atomic"` operation for its transaction and return *true*.</p>
+          <p>This is like the non-atomic write case, but since the non-atomic operation is a matching or disjoint read, neither will BeginAtomic add an `"Nonviable"` atomic transaction, nor will BeginNonAtomic make any existing atomic transactions non-viable.  Hence EndAtomic will see an `"AtomicRead"` or `"AtomicWrite"` operation for its transaction and return *true*.</p>
         </emu-note>
 
         <p>If a non-atomic read conflicts with an atomic operation and the two operations overlap then the atomic operation is not viable.</p>
@@ -1218,7 +1218,7 @@ These call AllocateTypedArray with a specified length:
         <p>If two atomic operations are concurrent and do not overlap then they are both viable, and executed one after the other.</p>
 
         <emu-note>
-          <p>The BeginAtomic calls are ordered by the Memory Critical Section.  The first will leave the critical section having added an `"Atomic"` transaction and having asserted that it is now the only atomic transaction in the set.  The second call will enter the critical section and determine that there is exactly one `"Atomic"` transaction and that is matching or disjoint, and enter a wait until the set of atomic transactions changes (leaving the critical section).  Meanwhile the first agent makes progress and eventually calls EndAtomic, which removes its `"Atomic"` transaction and returns *true* (indicating viability).  That breaks the wait for the second atomic, which now is alone, and therefore trivially viable, and also clearly executes after the first atomic is done.</p>
+          <p>The BeginAtomic calls are ordered by the Memory Critical Section.  The first will leave the critical section having added an `"AtomicRead"` or `"AtomicWrite"` transaction and having asserted that it is now the only atomic transaction in the set.  The second call will enter the critical section and determine that there is exactly one `"AtomicRead"` or `"AtomicWrite"` transaction and that is matching or disjoint, and enter a wait until the set of atomic transactions changes (leaving the critical section).  Meanwhile the first agent makes progress and eventually calls EndAtomic, which removes the `"AtomicRead"` or `"AtomicWrite"` transaction and returns *true* (indicating viability).  That breaks the wait for the second atomic, which now is alone, and therefore trivially viable, and also clearly executes after the first atomic is done.</p>
         </emu-note>
 
         <p>If two atomic operations aren't concurrent then they are both viable.</p>
@@ -1230,7 +1230,7 @@ These call AllocateTypedArray with a specified length:
         <p>If two or more atomic operations conflict and overlap then none are viable; and, if an atomic operation is concurrent with a non-viable atomic then the former atomic is also non-viable.</p>
 
         <emu-note>
-          <p>The first BeginAtomic adds an `"Atomic"` transaction, after which it is the only atomic transaction in the set. The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not `"Read"`.  It will then make all atomic transactions non-viable and add its own `"Nonviable"` transaction.  Now either the first operation calls EndAtomic first or the second operation does.  In both cases, since the second BeginAtomic altered both atomic transactions to `"Nonviable"`, EndAtomic will see an operation of `"Nonviable"` for its transaction, returning *false* for both operations, making neither viable.</p>
+          <p>The first BeginAtomic adds an `"AtomicRead"` or `"AtomicWrite"` transaction, after which it is the only atomic transaction in the set. The second BeginAtomic will not wait (because the operations overlap) and will discover that it overlaps an existing transaction whose operation is not `"Read"`.  It will then make all atomic transactions non-viable and add its own `"Nonviable"` transaction.  Now either the first operation calls EndAtomic first or the second operation does.  In both cases, since the second BeginAtomic altered both atomic transactions to `"Nonviable"`, EndAtomic will see an operation of `"Nonviable"` for its transaction, returning *false* for both operations, making neither viable.</p>
 
           <p>This generalizes to multiple conflicting atomic operations, even when they only overlap pairwise: the presence of an `"Nonviable"` atomic transaction in the set ensures that a new operation also becomes non-viable.</p>
 
