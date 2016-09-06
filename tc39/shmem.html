@@ -646,16 +646,26 @@ These call AllocateTypedArray with a specified length:
 
         <p>Shared memory access is always performed by designated  <em>memory operations</em>: the  <em>atomic operations</em> <emu-xref aoid="AtomicRead"><a href="#Atomics.AtomicRead">AtomicRead</a></emu-xref>, <emu-xref aoid="AtomicWrite"><a href="#Atomics.AtomicWrite">AtomicWrite</a></emu-xref>, <emu-xref aoid="AtomicReadModifyWrite"><a href="#Atomics.AtomicReadModifyWrite">AtomicReadModifyWrite</a></emu-xref>, and <emu-xref aoid="AtomicCompareExchange"><a href="#Atomics.AtomicCompareExchange">AtomicCompareExchange</a></emu-xref>, and the  <em>non-atomic operations</em> <emu-xref aoid="NonAtomicRead"><a href="#Atomics.NonAtomicRead">NonAtomicRead</a></emu-xref> and <emu-xref aoid="NonAtomicWrite"><a href="#Atomics.NonAtomicWrite">NonAtomicWrite</a></emu-xref>.  The memory operations never perform non-shared-memory access.</p>
 
-        <p>The  <em>access range</em> of a memory operation comprises the memory cells read or written by the operation.  These cells are always consecutive and within a single <emu-xref href="#DataTypesValues.SpecTypes.DataBlocks"><a href="#DataTypesValues.SpecTypes.DataBlocks">Shared Data Block</a></emu-xref>.</p>
-
-        <p>An atomic operation to some access range is  <em>viable</em> in an execution only if all other memory operations that intersect with that access range while the atomic operation is being performed are atomic operations or non-atomic read operations on the same access range, in a manner that is made precise in the following.</p>
+        <p>Inter-agent communication actions that are not memory operations (such as Atomics.wake and Atomics.wait, or host-specific communication actions) are in the following considered to be memory operations, with an <emu-xref aoid="AtomicWrite"><a href="#Atomics.AtomicWrite">AtomicWrite</a></emu-xref> (to some hidden location in shared memory, with an arbitrary value) occuring as part of the action that sends a communication and an <emu-xref aoid="AtomicRead"><a href="#Atomics.AtomicRead">AtomicRead</a></emu-xref> (to the same location) occuring as part of the action that receives a communication.</p>
 
         <emu-note><span class="note">Note 1</span>
+          <p>Examples of host-specific inter-agent communication actions are: sending a SharedArrayBuffer from one agent and receiving it in another (e.g., by <code>postMessage</code> in a web browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory.</p>
+        </emu-note>
+
+        <p>An  <em>execution</em> of an agent is the sequence of memory operations performed by the evaluation of the agent's program steps according to ECMAScript semantics, allowing for program transformations discussed in  <emu-xref href="#AtomicsObject.Transformations"><a href="#AtomicsObject.Transformations">7.4.1.1.3</a></emu-xref>.</p>
+
+        <p>The  <em>access range</em> of a memory operation comprises the memory cells read or written by the operation.  These cells are always consecutive and within a single <emu-xref href="#DataTypesValues.SpecTypes.DataBlocks"><a href="#DataTypesValues.SpecTypes.DataBlocks">Shared Data Block</a></emu-xref>.</p>
+
+        <p>An atomic operation to some access range is  <em>viable</em> in an execution only if all other memory operations from other agents that intersect with that access range while the atomic operation is being performed are atomic operations or non-atomic read operations on the same access range, in a manner that is made precise in the following.</p>
+
+        <p>Atomic operations synthesized for communication actions are viable, by construction.</p>
+
+        <emu-note><span class="note">Note 2</span>
           <p>(Spec draft note)</p>
 
           <p>Below, we provide a precise operational definition of viability that is based on transactions on a shared state; each memory operation has distinct start and end points, allowing us to discuss interference and to state clearly when an atomic operation is viable.</p>
 
-          <p>Our eventual purpose is to define the synchronization order of an execution, which is a total order of the viable atomic operations of the execution.  In selecting the viable atomic operations we have to consider the following interacting problems:</p>
+          <p>Our eventual purpose is to define the synchronization order of the execution of an agent cluster, which is a total order of the viable atomic operations of the executions of those agents.  In selecting the viable atomic operations we have to consider the following interacting problems:</p>
 
           <ul>
             <li> <b>Cells that are not exclusively atomic:</b> Instead of having typed atomic cells that are disjoint from non-atomic cells, we allow atomic and non-atomic operations to operate on the same cells, and it is possible to have simultaneous atomic and non-atomic operations on the same cell. 
@@ -676,18 +686,13 @@ These call AllocateTypedArray with a specified length:
 
           <p>The purpose of viability is therefore to describe conditions under which the implementation of atomic operations  <em>need not concern</em> itself with the problems listed above, ie, we do not wish to order the operations in the example above, but rather to make it plain that there are no atomicity or ordering guarantees when the atomic operations are non-viable.</p>
 
-          <p>Ours is a lightweight notion of viability in that it is strictly per atomic operation.  If what is syntactically a single atomic operation in the program is executed more than once, the operation can be viable in one case and non-viable in another.  It is also per execution: even if two programs execute the same atomic operations in the same order, an operation may be viable in one execution and not in another.  We also do not consider the provenance of the bytes read by an atomic read -- they could have been written by an atomic write to the access range, an atomic write to a larger access range, a non-atomic write, or a combination of those.  A stronger notion of viability could require a viable atomic read to see only a value that was written by a single atomic write to the same access range (but we would then need to add some mechanism for dealing with non-atomic initializing writes).</p>
+          <p>Ours is a lightweight notion of viability in that it is strictly per atomic operation.  If what is syntactically a single atomic operation in the program is executed more than once, the operation can be viable in one case and non-viable in another.  It is also per execution: even if a program has two executions containing the same atomic operations in the same order, an operation may be viable in one execution and not in another.  We also do not consider the provenance of the bytes read by an atomic read -- they could have been written by an atomic write to the access range, an atomic write to a larger access range, a non-atomic write, or a combination of those.  A stronger notion of viability could require a viable atomic read to see only a value that was written by a single atomic write to the same access range (but we would then need to add some mechanism for dealing with non-atomic initializing writes).</p>
 
           <p>The term "viable" is used in preference to e.g. "non-racy" since we want to reserve the term "data race" for the conventional notion of operations unordered by the happens-before relation, see later.</p>
 
           <p>(End spec draft note)</p>
         </emu-note>
 
-        <p>Inter-agent communication actions that are not memory operations (such as Atomics.wake and Atomics.wait, or host-specific communication actions) are in the following considered to be memory operations, with an <emu-xref aoid="AtomicWrite"><a href="#Atomics.AtomicWrite">AtomicWrite</a></emu-xref> (to some hidden location in shared memory, with an arbitrary value) occuring as part of the action that sends a communication and an <emu-xref aoid="AtomicRead"><a href="#Atomics.AtomicRead">AtomicRead</a></emu-xref> (to the same location) occuring as part of the action that receives a communication.  These synthesized atomic operations are viable, by construction.</p>
-
-        <emu-note><span class="note">Note 2</span>
-          <p>Examples of host-specific inter-agent communication actions are: sending a SharedArrayBuffer from one agent and receiving it in another (e.g., by <code>postMessage</code> in a web browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory.</p>
-        </emu-note>
       </emu-clause>
 
       <emu-clause id="AtomicsObject.Formalization">
@@ -713,7 +718,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>Two memory operations  <em>conflict</em> if they are concurrent and are not disjoint.</p>
 
-        <p><emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref>, <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref>, <emu-xref aoid="BeginNonAtomic"><a href="#Atomics.BeginNonAtomic">BeginNonAtomic</a></emu-xref>, and <emu-xref aoid="EndNonAtomic"><a href="#Atomics.EndNonAtomic">EndNonAtomic</a></emu-xref> implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of <code>"Atomic"</code>; the Nonviable state when there is an atomic transaction in the set that has an operation of <code>"Nonviable"</code> (in this case all atomic transactions in the set have the operation <code>"Nonviable"</code>).  When all atomic operations are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
+        <p><emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref>, <emu-xref aoid="EndAtomic"><a href="#Atomics.EndAtomic">EndAtomic</a></emu-xref>, <emu-xref aoid="BeginNonAtomic"><a href="#Atomics.BeginNonAtomic">BeginNonAtomic</a></emu-xref>, and <emu-xref aoid="EndNonAtomic"><a href="#Atomics.EndNonAtomic">EndNonAtomic</a></emu-xref> implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of <code>"Atomic"</code>; the Nonviable state when there is an atomic transaction in the set that has an operation of <code>"Nonviable"</code> (in this case all atomic transactions in the set have the operation <code>"Nonviable"</code>).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
 
         <emu-note><span class="note">Note 2</span>
           <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping <emu-xref aoid="BeginAtomic"><a href="#Atomics.BeginAtomic">BeginAtomic</a></emu-xref> will move the machine into the Nonviable state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
@@ -736,7 +741,7 @@ These call AllocateTypedArray with a specified length:
 
           </li><li><b>Stable writes:</b> Any given shared memory read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleaving resulting from conflicting writes, see  <emu-xref href="#Atomics.WriteSharedMemory"><a href="#Atomics.WriteSharedMemory">7.4.1.1.5</a></emu-xref>, is within program semantics.) 
 
-          </li><li><b>Actual values:</b> Any given shared memory read must only observe values that have been produced by the program's execution.  (For example, the compiler or hardware may not speculate about a value in shared memory and then use that value to justify the speculation.)
+          </li><li><b>Actual values:</b> Any given shared memory read must only observe values that have been produced by the execution of some agent in the cluster.  (For example, the compiler or hardware may not speculate about a value in shared memory and then use that value to justify the speculation.)
         
         </li></ul>
 
@@ -754,7 +759,7 @@ These call AllocateTypedArray with a specified length:
     if (x) print(x)</pre>
           <p>to this:</p>
           <pre>    if (mem[n]) print(mem[n])</pre>
-          <p>is legal in a non-shared-memory program (if <code>mem</code> and <code>n</code> are side-effect free) but if <code>mem</code> is shared memory and is updated by another agent in the middle of the execution of the statement the transformed program may end up printing <emu-val>0</emu-val>, and that is nonsensical.</p>
+          <p>is legal in a non-shared-memory program (if <code>mem</code> and <code>n</code> are side-effect free) but if <code>mem</code> is shared memory and is updated by another agent in the middle of the evaluation of the statement the transformed program may end up printing <emu-val>0</emu-val>, and that is nonsensical.</p>
 
           <p>The restrictions apply only to shared memory accesses, so an implementation that knows the program is not accessing shared memory will not be affected by them.  In practice, the optimizations that are affected by the restrictions (rematerialization, certain local optimizations) are of limited value, and a practical implementation could avoid those optimizations even for non-shared memory without significant impact.</p>
 
@@ -1043,23 +1048,25 @@ These call AllocateTypedArray with a specified length:
 
         <emu-note><span class="note">Note 1</span>
           <p>There are usually many possible legal program orders for a program, representing legal transformations of the program.  Note that transformations may be dynamic, and multiple executions of a program fragment may give rise to different sequences of events.</p>
+
+          <p>The order of memory operations in the program order is the same as the order of memory operations in a agent's execution, defined earlier; the only difference is the distinction between atomic operations as viable and non-viable in the program order.</p>
         </emu-note>
 
-        <p>An  <em>execution</em> of an agent cluster is a partial ordering of the agents' events that is consistent with each agent's program order.</p>
+        <p>A  <em>cluster execution</em> of an agent cluster is a partial ordering of the agents' events that is consistent with each agent's program order.</p>
 
-        <p>Synchronizing events in an execution will be performed in a total order -- known as the  <em>synchronization order</em> for the execution -- that is consistent with each agent's program order.</p>
+        <p>Synchronizing events in a cluster execution will be performed in a total order -- known as the  <em>synchronization order</em> for the cluster execution -- that is consistent with each agent's program order.</p>
 
         <emu-note><span class="note">Note 2</span>
           <p>The total order exists by construction: viable atomic operations are executed in a total order, and only viable atomic operations are part of the synchronization order.</p>
         </emu-note>
 
-        <p>The synchronization order induces a  <em>synchronized-with</em> relation on events for the execution: A viable atomic write of a location synchronizes-with all subsequent (later in the synchronization order) viable atomic reads of that location.</p>
+        <p>The synchronization order induces a  <em>synchronized-with</em> relation on events for the cluster execution: A viable atomic write of a location synchronizes-with all subsequent (later in the synchronization order) viable atomic reads of that location.</p>
 
         <emu-note><span class="note">Note 3</span>
           <p>Since there is aliasing, it is possible for (say) a two-byte write to be observed by two subsequent one-byte reads, or for two one-byte writes to be observed by a subsequent two-byte read, or indeed for a one-byte write to be observed by a subsequent two-byte read.  Despite there not being a clean one-to-one relationship between writes and reads, the writes synchronize-with the subsequent reads in all those cases.</p>
         </emu-note>
 
-        <p>An event A  <em>happens before</em> another event B in an execution if either:</p>
+        <p>An event A  <em>happens before</em> another event B in an cluster execution if either:</p>
 
         <ul>
           <li>A precedes B in an agent's program order,
@@ -1070,15 +1077,15 @@ These call AllocateTypedArray with a specified length:
         
         </li></ul>
 
-        <p>Executions must be such that  <em>happens before</em> is irreflexive (acyclic).</p>
+        <p>Cluster executions must be such that  <em>happens before</em> is irreflexive (acyclic).</p>
 
         <p>Two memory operations constitute a  <em>data race</em> if neither happens before the other, at least one of them is a write, and either they overlap, or they match but are not both viable atomic operations.</p>
 
         <emu-note><span class="note">Note 4</span>
-          <p>An execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable, and conflicts between atomics that match non-atomic reads) and will appear to be sequentially consistent.</p>
+          <p>A cluster execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable, and conflicts between atomics that match non-atomic reads) and will appear to be sequentially consistent.</p>
         </emu-note>
 
-        <p>If every execution of an agent cluster is free of data races then the agent cluster will appear to be sequentially consistent.</p>
+        <p>If every cluster execution is free of data races then the agent cluster will appear to be sequentially consistent.</p>
 
         <emu-note><span class="note">Note 5</span>
           <p>If the agent cluster appears sequentially consistent it is not necessary for the programmer to reason about program transformations.</p>
