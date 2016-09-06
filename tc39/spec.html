@@ -1026,16 +1026,6 @@ These call AllocateTypedArray with a specified length:
         </emu-alg>
       </emu-clause>
 
-      <emu-clause id="Atomics.MakeNonviable" aoid="MakeNonviable">
-        <h1>MakeNonviable()</h1>
-        <p>MakeNonviable marks atomic transactions as non-viable and moves the state machine to the Nonviable state, as follows.</p>
-        <emu-alg>
-          1. Assert: This agent is in the Memory Critical Section.
-          1. For every transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) where _op_ is `"AtomicRead"` or `"AtomicWrite"`:
-            1. Replace the transaction by (_t_, `"Nonviable"`, _block_, _byteIndex_, _elementSize_).
-        </emu-alg>
-      </emu-clause>
-
       <emu-clause id="Atomics.BeginNonAtomic" aoid="BeginNonAtomic">
         <h1>BeginNonAtomic(_op_, _block_, _byteIndex_, _elementSize_)</h1>
         <p>BeginNonAtomic takes four arguments, a String _op_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a positive integer _elementSize_, and does the following:</p>
@@ -1065,6 +1055,16 @@ These call AllocateTypedArray with a specified length:
           1. Assert: _txn_ exists and is a non-atomic transaction.
           1. Remove _txn_ from the transaction set.
           1. Leave the Memory Critical Section.
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="Atomics.MakeNonviable" aoid="MakeNonviable">
+        <h1>MakeNonviable()</h1>
+        <p>MakeNonviable marks atomic transactions as non-viable and moves the state machine to the Nonviable state, as follows.</p>
+        <emu-alg>
+          1. Assert: This agent is in the Memory Critical Section.
+          1. For every transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) where _op_ is `"AtomicRead"` or `"AtomicWrite"`:
+            1. Replace the transaction by (_t_, `"Nonviable"`, _block_, _byteIndex_, _elementSize_).
         </emu-alg>
       </emu-clause>
 
