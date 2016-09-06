@@ -760,7 +760,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>The memory model determines when a particular read from shared memory may observe a particular write to shared memory.  Programs <em>synchronize</em> to ensure that reads and writes to shared memory happen in a meaningful order.  Synchronization happens chiefly by means of <em>atomic operations</em> to shared memory wherein an atomic read observes the value written by an atomic write.</p>
 
-      <p>ECMAScript shared memory obeys very weak type discipline, in that the byte array of a Shared Data Block can be aliased by TypedArrays of different types and accessed without natural alignment via DataViews, and also in that atomic operations are applied to cells that are also accessed non-atomically.  For atomic operations to be useful for synchronization they must not be interfered with by incompatible atomic operations or by non-atomic operations, and this specification therefore describes the conditions under which memory operations interfere as well as the observable effects of interfering and non-interfering operations.</p>
+      <p>ECMAScript shared memory obeys very weak type discipline, in that the byte array of a Shared Data Block can be aliased by TypedArrays of different types and accessed without natural alignment via DataViews, and also in that atomic operations are applied to cells that are also accessed non-atomically.  For atomic operations to be useful for synchronization they must not be interfered with by incompatible atomic or non-atomic operations, and this specification therefore describes the conditions under which memory operations interfere as well as the observable effects of interfering and non-interfering operations.</p>
 
       <emu-note>
         <p>In many other programming languages, non-interference is just a consequence of strong typing.</p>
@@ -768,7 +768,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>Non-interfering atomic operations (later called <em>viable</em> atomic operations) are executed in a well-defined order, and that order will allow programmers to reason about program synchronization, causality, and data races in a conventional way.</p>
 
-      <p>The purpose of viability is to describe conditions under which the implementation of atomic operations need not concern itself with the problems resulting from the weak type discipline; atomic operations can simply be implemented in conventional ways on current hardware and operations that are deemed viable in the semantics will always be observed as being executed atomically and in the desired well-defined order.</p>
+      <p>Viability also describes conditions under which the implementation of atomic operations need not concern itself with the problems resulting from the weak type discipline: atomic operations can be implemented in conventional ways on hardware and operations that are deemed viable in the semantics will always be observed as being executed atomically and in the desired well-defined order.</p>
 
       <emu-note>
         <p>(Programming advice)  If the program obeys some simple rules then most of the complexities of the memory model can be ignored by programmers, and program behavior can be inferred from the description in <emu-xref href="#AtomicsObject.EventsAndSync"></emu-xref>.  These rules amount to segregating atomic and non-atomic locations and strongly typing the atomic locations:</p>
@@ -797,7 +797,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>The <em>access range</em> of a memory operation comprises the memory cells read or written by the operation.  These cells are always consecutive and within a single Shared Data Block.</p>
 
-        <p>An atomic operation to some access range is <em>viable</em> in an execution only if all other memory operations from other agents that intersect with that access range while the atomic operation is being performed are atomic operations or non-atomic read operations on the same access range, in a manner that is made precise in the following.</p>
+        <p>An atomic operation to some access range is <em>viable</em> in an execution only if all other memory operations from other agents that intersect with that access range while the atomic operation is being performed are atomic operations on the same access range or non-atomic reads, in a manner that is made precise in the following.</p>
 
         <p>Atomic operations synthesized for communication actions are viable, by construction.</p>
 
@@ -858,9 +858,9 @@ These call AllocateTypedArray with a specified length:
 
         <p>Two memory operations <em>conflict</em> if they are concurrent and are not disjoint.</p>
 
-        <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"AtomicRead"` or `"AtomicWrite"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
-
         <emu-note>
+          <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"AtomicRead"` or `"AtomicWrite"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
+
           <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping BeginAtomic will move the machine into the Nonviable state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
         </emu-note>
       </emu-clause>
@@ -871,6 +871,8 @@ These call AllocateTypedArray with a specified length:
         <p>Program transformations (by a compiler or the hardware) must not reorder an agent's atomic operations with its non-atomic operations, nor reorder its atomic operations with each other.</p>
 
         <emu-note>
+          <p>Thus the memory ordering for atomic operations is sequential consistency.</p>
+
           <p>In practice, the prohibition on reorderings forces a compiler to assume that every atomic operation is viable, which it would usually have to assume anyway in the absence of inter-agent program analysis.</p>
         </emu-note>
 
@@ -976,12 +978,13 @@ These call AllocateTypedArray with a specified length:
           1. Enter the Memory Critical Section.
           1. Let _t_ be the next value from the timestamp stream; advance the stream.
           1. Let _atomicTxns_ be the set of atomic transactions in the transaction set.
-          1. While _atomicTxns_ is the singleton set containing an atomic transaction whose operation is `"AtomicRead"` or `"AtomicWrite"` and that either matches or is disjoint from (_block_, _byteIndex_, _elementSize_):
+          1. While _atomicTxns_ is the singleton set containing an atomic transaction whose operation is `"AtomicRead"` or `"AtomicWrite"` and which does not overlap (_block_, _byteIndex_, _elementSize_):
             1. Leave the Memory Critical Section and wait until the transaction set changes.
             1. Enter the Memory Critical Section.
             1. Let _atomicTxns_ be the set of all atomic transactions in the transaction set.
           1. Let _interferingTxns_ be the set of transactions in the transaction set that are not disjoint from (_block_, _byteIndex_, _elementSize_).
-          1. Remove transactions that match (_block_, _byteIndex_, _elementSize_) and whose operation is `"Read"` from _interferingTxns_.
+          1. If _op_ is `"AtomicRead"`:
+            1. Remove transactions whose operation is `"Read"` from _interferingTxns_.
           1. If _interferingTxns_ is not the empty set, then:
             1. Perform MakeNonviable().
             1. Add (_t_, `"Nonviable"`, _block_, _byteIndex_, _elementSize_) to the transaction set.
@@ -994,30 +997,29 @@ These call AllocateTypedArray with a specified length:
         </emu-alg>
 
         <emu-note>
-          <p>Here and in BeginNonAtomic, we implement the rule that an atomic access will be made non-viable by a concurrent non-atomic read that overlaps with the atomic access, but will not be made non-viable by a concurrent non-atomic read that matches the atomic access.</p>
+          <p>Here and in BeginNonAtomic we implement a rule that an atomic write will be made non-viable by a concurrent non-atomic read that is not disjoint from the atomic write, while an atomic read will not be made non-viable by any concurrent non-atomic read.</p>
         </emu-note>
 
         <emu-note>
-          <p>(Outstanding technical issue)</p>
+          <p>(Spec draft note -- for discussion)</p>
 
-          <p>An argument could be made for having non-disjoint non-atomic accesses always make the atomic access non-viable, and not have the special case here where matching non-atomic reads are allowed.  In particular, a matching non-atomic read can be used to observe that a non-lock-free atomic write is not  executed atomically.  This is expected in racy programs (and this is a race), so maybe it is no big deal, but it seems unnecessary to consider the atomic operation viable in that situation.</p>
-
-          <p>A stronger rule than we have now, but weaker than the preceding paragraph suggests, is to make a non-atomic read that matches an atomic write break viability for the atomic operation, but allow the conflict between a non-atomic read and an atomic read.  This matches the traditional spec for data races as well.  Lars favors this, and suspects Shu does too.</p>
+          <p>Most of the rules about viability are obvious: if two atomic accesses conflict but don't match, or if a non-atomic write conflicts with an atomic operation, then the atomic is not viable; and so on.  The corner cases occur when non-atomic reads interact with atomics, since a non-atomic read is generally effect-free in the implementation.  As noted above we forbid a viable atomic write from interacting with a non-atomic read, but we allow a viable atomic read to conflict with a non-atomic read.  We have considered tightening the latter rule so that the two reads must match.</p>
         </emu-note>
       </emu-clause>
 
       <emu-clause id="Atomics.EndAtomic" aoid="EndAtomic">
-        <h1>EndAtomic(_timestamp_, _op_)</h1>
-        <p>EndAtomic takes a timestamp value _timestamp_ and a String _op_ and does the following:</p>
+        <h1>EndAtomic(_timestamp_)</h1>
+        <p>EndAtomic takes a timestamp value _timestamp_ and does the following:</p>
 
         <emu-alg>
           1. Enter the Memory Critical Section.
           1. Let _txn_ be the transaction in the transaction set with timestamp _timestamp_.
           1. Assert: _txn_ exists and is an atomic transaction.
           1. Remove _txn_ from the transaction set.
-          1. Let _block_, _byteIndex_, and _elementSize_ be those fields of the transaction.
+          1. Let _op_, _block_, _byteIndex_, and _elementSize_ be those fields of the transaction.
           1. Let _interferingTxns_ be the set of transactions in the transaction set that are not disjoint from (_block_, _byteIndex_, _elementSize_).
-          1. Remove transactions that match (_block_, _byteIndex_, _elementSize_) and whose operation is `"Read"` from _interferingTxns_.
+          1. If _op_ is `"AtomicRead"`, then:
+            1. Remove transactions whose operation is `"Read"` from _interferingTxns_.
           1. Leave the Memory Critical Section.
           1. If the operation of _txn_ is `"Nonviable"`, then:
             1. Return *false*.
@@ -1037,7 +1039,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _atomicTxns_ be the set of atomic transactions in the transaction set.
           1. Let _interferingAtomicTxns_ be the set of transactions in _atomicTxns_ that are not disjoint from (_block_, _byteIndex_, _elementSize_).
           1. If _op_ is `"Read"` then:
-            1. Remove transactions that match (_block_, _byteIndex_, _elementSize_) from _interferingAtomicTxns_.
+            1. Remove transactions whose operations are `"AtomicRead"` from _interferingAtomicTxns_.
           1. If _interferingAtomicTxns_ is not the empty set then:
             1. Perform MakeNonviable().
           1. Leave the Memory Critical Section.
@@ -1060,7 +1062,7 @@ These call AllocateTypedArray with a specified length:
 
       <emu-clause id="Atomics.MakeNonviable" aoid="MakeNonviable">
         <h1>MakeNonviable()</h1>
-        <p>MakeNonviable marks atomic transactions as non-viable and moves the state machine to the Nonviable state, as follows.</p>
+        <p>MakeNonviable marks atomic transactions as non-viable, as follows.</p>
         <emu-alg>
           1. Assert: This agent is in the Memory Critical Section.
           1. For every transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) where _op_ is `"AtomicRead"` or `"AtomicWrite"`:
@@ -1106,7 +1108,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. Let _timestamp_ be BeginAtomic(`"AtomicRead"`, _block_, _byteIndex_, _elementSize_).
           1. Let _rawValue_ be ReadSharedMemory(_block_, _byteIndex_, *true*, _elementSize_).
-          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicRead"`).
+          1. Let _success_ be EndAtomic(_timestamp_).
           1. Note: If _success_ is *true* then the AtomicRead is viable: it executed atomically in the cluster-wide total order.
           1. Assert: _rawValue_ is a List of size _elementSize_.
           1. Let _r_ be a Number constructed from _rawValue_ as for GetValueFromBuffer. (TODO: Elucidate.)
@@ -1126,7 +1128,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _v_ as for SetValueInBuffer. (TODO: Elucidate.)
           1. Let _timestamp_ be BeginAtomic(`"AtomicWrite"`, _block_, _byteIndex_, _elementSize_).
           1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicWrite"`).
+          1. Let _success_ be EndAtomic(_timestamp_).
           1. Note: If _success_ is *true* then the AtomicWrite is viable: it executed atomically in the cluster-wide total order.
         </emu-alg>
       </emu-clause>
@@ -1147,7 +1149,7 @@ These call AllocateTypedArray with a specified length:
           1. Compute: Let _w_ be _op_(_r_, _v_).
           1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _w_ as for SetValueInBuffer. (TODO: Elucidate.)
           1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicWrite"`).
+          1. Let _success_ be EndAtomic(_timestamp_).
           1. Note: If _success_ is *true* then the AtomicReadModifyWrite is viable: it executed atomically in the cluster-wide total order.
           1. Return _r_.
         </emu-alg>
@@ -1169,7 +1171,7 @@ These call AllocateTypedArray with a specified length:
           1. If _r_ is the same as _expected_ then:
             1. Let _rawBytes_ be a List of size _elementSize_ bytes constructed from _replacement_ as for SetValueInBuffer. (TODO: Elucidate.)
             1. Perform WriteSharedMemory(_block_, _byteIndex_, *true*, _elementSize_, _rawBytes_).
-          1. Let _success_ be EndAtomic(_timestamp_, `"AtomicWrite"`).
+          1. Let _success_ be EndAtomic(_timestamp_).
           1. Note: If _success_ is *true* then the AtomicCompareExchange is viable: it executed atomically in the cluster-wide total order.
           1. Return _r_
         </emu-alg>
@@ -1191,7 +1193,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>The following properties of the memory operations hold (in the absence of other interfering operations).  For details, see the definitions of BeginAtomic, EndAtomic, BeginNonAtomic, EndNonAtomic, ReadSharedMemory, and WriteSharedMemory.</p>
 
-        <p>The system of memory operations always makes progress (does not deadlock).</p>
+        <p>The system of memory operations always makes progress; a waiting operation will eventually be released from its wait.</p>
 
         <emu-note>
           <p>The only of the memory operation steps to wait is BeginAtomic, which waits while the transaction set contains a transaction _T_ for an ongoing, matching or disjoint, atomic operation _O_.  Since _T_ was stored into the transaction set following a possible wait, _O_ will be making progress and will reach its EndAtomic step, unless an interfering operation starts first and changes the operation of _T_ to `"Nonviable"`, thus changing the set of atomic transactions in the transaction set.  In either case _O_ is released from the wait.</p>
@@ -1203,16 +1205,10 @@ These call AllocateTypedArray with a specified length:
           <p>Suppose the non-atomic operation starts first.  BeginAtomic will detect that there is a conflicting write in the transaction set and will add an `"Nonviable"` atomic transaction.  Suppose the atomic operation starts first.  BeginNonAtomic will detect that there is an atomic transaction with operation `"AtomicRead"` or `"AtomicWrite"` and that the write is not disjoint with the atomic transaction, and will change the operation of the atomic transaction to `"Nonviable"`.  In either case EndAtomic will see an `"Nonviable"` operation for its transaction and return *false*, making the atomic non-viable.</p>
         </emu-note>
 
-        <p>If a non-atomic read is concurrent with an atomic operation and the two operations match or are disjoint, then the atomic operation is viable.</p>
+        <p>If a non-atomic read conflicts with an atomic read then the atomic operation is viable.</p>
 
         <emu-note>
-          <p>This is like the non-atomic write case, but since the non-atomic operation is a matching or disjoint read, neither will BeginAtomic add an `"Nonviable"` atomic transaction, nor will BeginNonAtomic make any existing atomic transactions non-viable.  Hence EndAtomic will see an `"AtomicRead"` or `"AtomicWrite"` operation for its transaction and return *true*.</p>
-        </emu-note>
-
-        <p>If a non-atomic read conflicts with an atomic operation and the two operations overlap then the atomic operation is not viable.</p>
-
-        <emu-note>
-          <p>This is like the non-atomic write case above: an overlapping read is considered interfering.</p>
+          <p>This is like the non-atomic write case above, but since the non-atomic operation is a read, neither will BeginAtomic add an `"Nonviable"` atomic transaction, nor will BeginNonAtomic make any existing atomic transactions non-viable.  Hence EndAtomic will see an `"AtomicRead"` or `"AtomicWrite"` operation for its transaction and return *true*.</p>
         </emu-note>
 
         <p>If two atomic operations are concurrent and do not overlap then they are both viable, and executed one after the other.</p>
@@ -1326,7 +1322,7 @@ These call AllocateTypedArray with a specified length:
         <p>Two memory operations constitute a <em>data race</em> if neither happens before the other, at least one of them is a write, and either they overlap, or they match but are not both viable atomic operations.</p>
 
         <emu-note>
-          <p>A cluster execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable, and conflicts between atomics that match non-atomic reads) and will appear to be sequentially consistent.</p>
+          <p>A cluster execution that is free of data races will also be free of conflicts (except conflicts between matching atomic operations, all of which will be viable, and conflicts between atomic and non-atomic reads) and will appear to be sequentially consistent.</p>
         </emu-note>
 
         <p>If every cluster execution is free of data races then the agent cluster will appear to be sequentially consistent.</p>
