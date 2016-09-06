@@ -829,11 +829,11 @@ These call AllocateTypedArray with a specified length:
         </emu-note>
 
         <emu-note><span class="note">Note 2</span>
-          <p>(Spec draft note)</p>
+          <p>(Outstanding technical issue)</p>
 
           <p>An argument could be made for having non-disjoint non-atomic accesses always make the atomic access non-viable, and not have the special case here where matching non-atomic reads are allowed.  In particular, a matching non-atomic read can be used to observe that a non-lock-free atomic write is not  executed atomically.  This is expected in racy programs (and this is a race), so maybe it is no big deal, but it seems unnecessary to consider the atomic operation viable in that situation.</p>
 
-          <p>A stronger rule than we have now, but weaker than the preceding paragraph suggests, is to make  a read that matches an atomic write break viability for the atomic operation, but allow the conflict between a non-atomic read and an atomic read.</p>
+          <p>A stronger rule than we have now, but weaker than the preceding paragraph suggests, is to make a non-atomic read that matches an atomic write break viability for the atomic operation, but allow the conflict between a non-atomic read and an atomic read.  This matches the traditional spec for data races as well.  Lars favors this, and suspects Shu does too.</p>
         </emu-note>
       </emu-clause>
 
