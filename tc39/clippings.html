@@ -288,3 +288,19 @@
           <p>Viable atomic operations that are in a data race can be used for synchronization.  Consider two racing atomic writes, which will be executed in some order.  If an atomic read happen after both writes have finished (in the synchronization order) and reads the memory written by the writes, then the read is ordered after the writes in the happens-before relation.  In some other execution, though, the two writes may actually conflict, and though the read may still be executed after both writes, the writes, being non-viable, will not happen-before the read.</p>
 
 	
+
+
+          <p>(In the case of a non-lock-free atomic in a practical implementation, the lock and unlock operations may themselves not be atomic operations in the sense used here; the only requirement is that the combination of the lock and the unlock should enter into the global atomic order on behalf of the non-lock-free atomic access.)</p>
+
+
+	            <p>Our eventual purpose is to define the synchronization order of the execution of an agent cluster, which is a total ordering of the viable atomic operations of the executions of those agents.  </p>
+          
+
+
+          <p>In contrast, consider a case where operations overlap <em>pairwise</em>, ie, 1 and 2 overlap and 2 and 3 overlap, but 1 and 3 do not overlap.  In our semantics, the conflict of 1 and 2 makes both non-viable and the interaction of 2 and 3 therefore makes 3 non-viable also.  But if incompatible reads did not create non-viability, then operation 3 would make 2 non-viable, but not 1, because 1 is already finished and was not made non-viable by 2.   BUT!  Wouldn't then 1 and 2 be serialized, so that they could not overlap?  The thing is, they would not be serialized in the implementation, that would not be observable... maybe.</p>
+          <pre>  1: atomic_read x_lo || 2: atomic_read x || 3: atomic_write x_hi</pre>
+
+          <p>Suppose instead it was this.  Then 1 or 2 goes first and the other waits; if 2 and 3 overlap then both are non-viable but that does not affect 1 if 1 is already done.</p>
+          <pre>  1: atomic_read x || 2: atomic_read x || 3: atomic_write x_hi</pre>
+
+		    
