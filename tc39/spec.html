@@ -859,7 +859,7 @@ These call AllocateTypedArray with a specified length:
         <p>Two memory operations <em>conflict</em> if they are concurrent and are not disjoint.</p>
 
         <emu-note>
-          <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transaction in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"AtomicRead"` or `"AtomicWrite"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
+          <p>BeginAtomic, EndAtomic, BeginNonAtomic, and EndNonAtomic implement a state machine whose state is either Clear, Atomic, or Nonviable, with Clear the initial state.  The Begin operations add transactions to the transaction set, and the End operations remove them.  The machine is in the Clear state when there are no atomic transactions in the set; the Atomic state when there is exactly one atomic transaction in the set and it has an operation of `"AtomicRead"` or `"AtomicWrite"`; the Nonviable state when there is an atomic transaction in the set that has an operation of `"Nonviable"` (in this case all atomic transactions in the set have the operation `"Nonviable"`).  While the atomic operations in an execution are viable, the machine alternates between the Clear and Atomic states, but a memory operation that makes an atomic operation non-viable will move the machine into the Nonviable state.  Atomic operations that occur while the machine is in the Nonviable state are also non-viable.  The machine transitions out of the Nonviable state only when there are no more atomic transactions left in the set.</p>
 
           <p>The state machine is conservative in that, when it is in the Atomic state, an overlapping BeginAtomic will move the machine into the Nonviable state even if both atomic operations are reads.  This is deemed acceptable as the utility of allowing non-matching reading atomics to be viable is highly questionable.</p>
         </emu-note>
@@ -1036,10 +1036,9 @@ These call AllocateTypedArray with a specified length:
           1. Enter the Memory Critical Section.
           1. Let _t_ be the next value from the timestamp stream; advance the stream.
           1. Add a transaction (_t_, _op_, _block_, _byteIndex_, _elementSize_) to the transaction set.
-          1. Let _atomicTxns_ be the set of atomic transactions in the transaction set.
-          1. Let _interferingAtomicTxns_ be the set of transactions in _atomicTxns_ that are not disjoint from (_block_, _byteIndex_, _elementSize_).
+          1. Let _interferingAtomicTxns_ be the set of atomic transactions in the transaction set that are not disjoint from (_block_, _byteIndex_, _elementSize_).
           1. If _op_ is `"Read"` then:
-            1. Remove transactions whose operations are `"AtomicRead"` from _interferingAtomicTxns_.
+            1. Remove transactions whose operation is `"AtomicRead"` from _interferingAtomicTxns_.
           1. If _interferingAtomicTxns_ is not the empty set then:
             1. Perform MakeNonviable().
           1. Leave the Memory Critical Section.
