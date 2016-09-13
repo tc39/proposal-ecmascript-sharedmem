@@ -303,4 +303,27 @@
           <p>Suppose instead it was this.  Then 1 or 2 goes first and the other waits; if 2 and 3 overlap then both are non-viable but that does not affect 1 if 1 is already done.</p>
           <pre>  1: atomic_read x || 2: atomic_read x || 3: atomic_write x_hi</pre>
 
-		    
+
+            This lack of ordering leads to a contradiction in a more complex scenario.  In the example below, 1 and 2 would be compatible and 2 and 3 would also be compatible.  Suppose that in the absence of ordering, 1 and 2 would overlap in time, as would 2 and 3.  Suppose 1 is non-lock-free but 2 and 3 are lock-free.  All would appear to be viable as long as 1 and 3 do not overlap.  Being viable, however, 2 and 3 will be executed in some order; suppose 3 executes first.  Now 2 and 1 need to be executed in some order, but nothing in the implementation of 3 or 2 stops 1 from racing ahead to observe the on-going write, contrary to assumptions of viability.</p>
+
+          <pre>  atomic_write x, 1 || atomic_read x || atomic_read x_lo</pre>
+
+          <p>With three agents operations can overlap pairwise.  Viability can't flow backward in time; once an operation has ended its viability is known.  In the following example, suppose 1 and 2 overlap in time, and 2 and 3 overlap in time.  In our semantics, 1 and 2 conflict and are not viable, making 3 also not viable: it overlaps with the non-viable 2, and non-viability is like non-atomicity.  (If the read-read conflict of 1 and 2 did not create non-viability then by definition 1 and 2 would never interact; if 1 were executed first then 2 and 3 would both be viable as well, but if 2 were executed first then 1 and 3 might conflict, making both non-viable, which would impact 2...)
+          <pre>  1: atomic_read x_lo || 2: atomic_read x || 3: atomic_write x</pre>
+
+
+            There are at least two approaches to this filter.  One is to assume current hardware and implementation techniques and to make non-viable only those operations that would interfere with each other under those assumptions.  Another is to examine the possible interactions of memory operations and to make non-viable those operations that violate a dynamic type discipline, in which an operation on memory gives the accessed cell a type and a second operation that is initiated before the first ends must conform to that type or will make the operations non-viable.  The latter approach will tend to be slightly more restrictive, and less dependent on implementation details, and is the one chosen in this proposal.</p>
+
+
+          <p>Ignoring implementation issues, allowing incompatible reads to be viable would also lead to confusing situations.  In that case, the following two programs would both be viable:</p>
+          <pre>  atomic_write x, 1 || atomic_read x</pre>
+          <pre>  atomic_read x     || atomic_read x_lo</pre>
+
+          <p>Yet this one would not be viable:</p>
+          <pre>  atomic_write x, 1 || atomic_read x_lo</pre>
+
+          <p>So what do we make of the following program?
+          <pre>  atomic_write x, 1 || atomic_read x || atomic_read x_lo</pre>
+
+
+	  
