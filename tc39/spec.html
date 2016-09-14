@@ -58,6 +58,15 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-09-14 -- 7.4.1.1, wordsmithing
+  <li>2016-09-14 -- 7.4.1.1.1, enumerated cases + a little reorg
+  <li>2016-09-14 -- 7.4.1.1.2, the state machine's purpose has been explained (briefly)
+  <li>2016-09-14 -- 7.4.1.1.3, the rule on reordering is rephrased in terms of executions, and now also prohibits removing atomic operations
+  <li>2016-09-14 -- 7.4.1.1.3, "Stable writes" was clarified by adding a clause about access-atomicity
+  <li>2016-09-14 -- 7.4.1.1.3, there is a new rule, "Visible writes", requiring writes to be effected eventually
+  <li>2016-09-14 -- 7.4.1.1.3, added an example to explain "Visible writes"
+  <li>2016-09-14 -- 7.4.1.1.6, BeginAtomic has been slightly restructured but its meaning has not changed
+  <li>2016-09-14 -- 7.4.1.2.1, Note 4 and the claim it backs are both new, so the old Note 4 is now Note 5, etc
   <li>2016-07-22 -- Editorial fixes.
   <li>2016-07-21 -- Replace [[SharedArrayBufferData]] and [[SharedArrayBufferByteLength]] with [[ArrayBufferData]] and [[ArrayBufferByteLength]]; remove specialization that was based on the removed properties and instead use type checks with IsSharedArrayBuffer in ArrayBuffer, SharedArrayBuffer, and Atomics methods; spec that Shared Data Blocks are distinguishable (by unspecified means) from regular Data Blocks and use this to defined IsSharedArrayBuffer.
   <li>2016-07-20 -- Editorial fix: clarify the operator passed to AtomicFetchOp.
@@ -901,26 +910,28 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="AtomicsObject.Transformations">
         <h1>Program transformations</h1>
 
-        <p>Program transformations (by a compiler or the hardware) must not reorder an agent's atomic operations with its non-atomic operations, nor reorder its atomic operations with each other.</p>
+        <p>Program transformations (by a compiler or the hardware) must not cause the atomic operations in an agent's execution to be reordered with its non-atomic operations, nor its atomic operations to be reordered with each other.  Nor may a program transformation remove an atomic operation from the execution.</p>
 
         <emu-note>
           <p>Thus the memory ordering for atomic operations is sequential consistency.</p>
 
-          <p>In practice, the prohibition on reorderings forces a compiler to assume that every atomic operation is viable, which it would usually have to assume anyway in the absence of inter-agent program analysis.</p>
+          <p>In practice, the prohibition on reorderings forces a compiler to assume that every atomic operation is viable and effectful, which it would usually have to assume anyway in the absence of inter-agent program analysis.</p>
         </emu-note>
 
-        <p>Almost all intra-agent semantics-preserving program transformations remain valid when accessing shared memory, so long as the reordering rule is obeyed.  The following rules additionally restrict intra-agent program transformations:</p>
+        <p>Except as restricted by the following rules and by the reordering rule above, all program transformations that preserve intra-agent semantics remain valid when accessing shared memory.</p>
 
         <ul>
           <li><b>Stable reads:</b> Any given shared memory read must only observe a single value.  (For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read.)
 
-          <li><b>Stable writes:</b> Any given shared memory read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleaving resulting from conflicting writes, see <emu-xref href="#Atomics.WriteSharedMemory"></emu-xref>, is within program semantics.)
+          <li><b>Stable writes:</b> Any given shared memory read must only observe value changes in memory that follow from program semantics.  (For example, the compiler or hardware may not introduce certain observable writes, such as using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or spuriously writing a just-read value back to the location it was read from.  Note that byte interleaving resulting from conflicting writes, see <emu-xref href="#Atomics.WriteSharedMemory"></emu-xref>, is within program semantics.  Note also that access-atomicity in writes must be preserved.)
 
           <li><b>Actual values:</b> Any given shared memory read must only observe values that have been produced by the execution of some agent in the cluster.  (For example, the compiler or hardware may not speculate about a value in shared memory and then use that value to justify the speculation.)
+
+          <li><b>Visible writes:</b> If the program updates a shared memory location non-atomically then an operation that updates the location must be performed before the next atomic operation is performed by the agent, or before the agent's job ends if there is no next atomic operation.  (For example, writes may be moved and coalesced and sometimes reordered between two atomic operations, but the compiler or hardware may not remove every write that updates a location; some write must be preserved.)
         </ul>
 
         <emu-note>
-          <p>It is generally desirable to allow transformations that are legal for non-shared-memory programs to continue to be legal in shared-memory programs.  However, some of those transformations lead to programs that are nonsensical in the presence of side effects in shared memory.</p>
+          <p>It is generally agreed that it is desirable to allow transformations that are legal for non-shared-memory programs to continue to be legal in shared-memory programs.  However, some of those transformations lead to programs that are nonsensical in the presence of side effects in shared memory.</p>
 
           <p>The preceding rules can be seen as expressing restrictions on the program's interaction with shared memory.  They are expressed in the context of transformations since mainly transformed or optimized programs would encounter the problems.</p>
         </emu-note>
@@ -935,9 +946,16 @@ These call AllocateTypedArray with a specified length:
           <pre>    if (mem[n]) print(mem[n])</pre>
           <p>is legal in a non-shared-memory program (if `mem` and `n` are side-effect free) but if `mem` is shared memory and is updated by another agent in the middle of the evaluation of the statement the transformed program may end up printing *0*, and that is nonsensical.</p>
 
+          <p>For another example, the transformation from this:</p>
+          <pre>    mem[n] = 37;</pre>
+          <pre>    ...</pre>
+          <p>to this:</p>
+          <pre>    ...</pre>
+          <p>is legal in a non-shared-memory program if `mem[n]` is never accessed again, but if `mem` is shared memory and is read by another agent then the update will have to be made visible.</p>
+
           <p>The restrictions apply only to shared memory accesses, so an implementation that knows the program is not accessing shared memory will not be affected by them.  In practice, the optimizations that are affected by the restrictions (rematerialization, certain local optimizations) are of limited value, and a practical implementation could avoid those optimizations even for non-shared memory without significant impact.</p>
 
-          <p>Examples of transformations that remain valid are: merging multiple non-atomic reads from the same location, reordering non-atomic reads from different locations, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, and reordering non-atomic writes to different locations.  These transformations can be performed by a compiler or the hardware; in the latter case they take the form of speculative loads and buffered stores.</p>
+          <p>Examples of transformations that remain valid are: merging multiple non-atomic reads from the same location, reordering non-atomic reads, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, and reordering non-atomic writes to different locations.  (Aliasing makes it hard to prove that locations are different.)  These transformations can be performed by a compiler or the hardware; in the latter case they take the form of speculative loads and buffered stores.</p>
 
           <p>The "Actual values" was introduced to prohibit out-of-thin-air values but it is not obvious that it is necessary in our operational model.</p>
         </emu-note>
@@ -1035,7 +1053,7 @@ These call AllocateTypedArray with a specified length:
         <emu-note>
           <p>(Spec draft note -- for discussion)</p>
 
-          <p>Most of the rules about viability are obvious: if two atomic accesses conflict but don't match, or if a non-atomic write conflicts with an atomic operation, then the atomic is not viable; and so on.  The corner cases occur when non-atomic reads interact with atomics, since a non-atomic read is generally effect-free in the implementation.  As noted above we forbid a viable atomic write from interacting with a non-atomic read, but we allow a viable atomic read to conflict with a non-atomic read.  We have considered tightening the latter rule so that the two reads must match.</p>
+          <p>Most of the rules about viability are obvious: if two atomic accesses conflict but don't match, or if a non-atomic write conflicts with an atomic operation, then the atomic is not viable; and so on.  The corner cases occur when non-atomic reads interact with atomics, since a non-atomic read is generally effect-free in the implementation.  As noted above we forbid a viable atomic write from interacting with a non-atomic read, but we allow a viable atomic read to conflict with a non-atomic read.  We have considered tightening the latter rule so that the two reads must match, but also loosening the former rule so that it becomes legal to introduce spurious non-atomic reads without impacting viability.</p>
         </emu-note>
       </emu-clause>
 
