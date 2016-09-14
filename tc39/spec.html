@@ -841,7 +841,7 @@ These call AllocateTypedArray with a specified length:
           <p>Nor is the atomic write viable here, as it conflicts with a non-atomic write:</p>
           <pre>  atomic_write x, 1 || write x, 1</pre>
 
-          <p>Atomic writes aren't safe even from non-atomic reads: in the program below the write is non-viable.  The intuition is that if the write is non-lock-free then the read can observe a partially written datum.  That is quite a weak, albeit conservative, justification.  (It is not without its problems, since it means that a transformation that introduces a spurious non-atomic read can make an atomic operation non-viable.)</p>
+          <p>Atomic writes aren't safe even from non-atomic reads: in the program below the write is non-viable.  There are a couple of intuitions for this.  One is that if the write is non-lock-free then the read can observe a partially written datum.  Another is that this is a classical data race.  Both of those intuitions are weak, and making the atomic non-viable in this context means that a transformation that introduces a spurious non-atomic read (not far-fetched) can break viability, which we don't want.  This is therefore subject to revision.</p>
           <pre>  atomic_write x, 1 || read x</pre>
 
           <p>That argument holds even if the read is partial, of course:</p>
