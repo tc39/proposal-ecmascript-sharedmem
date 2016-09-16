@@ -58,6 +58,9 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-09-16 -- 7.4.1.1.1, Note 2, clarified `atomic_write || read` rule
+  <li>2016-09-16 -- 7.4.1.1.3, added note on non-coherent memory
+  <li>2016-09-16 -- 7.4.1.1.6, Note 2, clarified `atomic_write || read` rule
   <li>2016-09-14 -- 7.4.1.1, wordsmithing
   <li>2016-09-14 -- 7.4.1.1.1, enumerated cases + a little reorg
   <li>2016-09-14 -- 7.4.1.1.2, the state machine's purpose has been explained (briefly)
@@ -850,7 +853,7 @@ These call AllocateTypedArray with a specified length:
           <p>Nor is the atomic write viable here, as it conflicts with a non-atomic write:</p>
           <pre>  atomic_write x, 1 || write x, 1</pre>
 
-          <p>Atomic writes aren't safe even from non-atomic reads: in the program below the write is non-viable.  There are a couple of intuitions for this.  One is that if the write is non-lock-free then the read can observe a partially written datum.  Another is that this is a classical data race.  Both of those intuitions are weak, and making the atomic non-viable in this context means that a transformation that introduces a spurious non-atomic read (not far-fetched) can break viability, which we don't want.  This is therefore subject to revision.</p>
+          <p>Atomic writes aren't safe even from non-atomic reads: in the program below the write is non-viable.  The main intuition for this rule is that this is a classical data race, a read-write conflict where not both operations are atomic.  Making the atomic non-viable keeps the definition of viability more closely in sync with that of a data race.</p>
           <pre>  atomic_write x, 1 || read x</pre>
 
           <p>That argument holds even if the read is partial, of course:</p>
@@ -916,6 +919,11 @@ These call AllocateTypedArray with a specified length:
           <p>Thus the memory ordering for atomic operations is sequential consistency.</p>
 
           <p>In practice, the prohibition on reorderings forces a compiler to assume that every atomic operation is viable and effectful, which it would usually have to assume anyway in the absence of inter-agent program analysis.</p>
+
+          <p>When modeling the effects of transformations, there are some considerations:</p>
+          <ul>
+            <li> <b>Non-coherent memory systems</b>: Non-atomic operations are subject to system effects wherein different agents may observe events in different orders.  For example, a write may propagate to one agent quickly and to another more slowly.  This is observable on hardware and our memory model must not require a non-atomic write to be simultaneously visible in all observers, lest it be unimplementable.
+          </ul>
         </emu-note>
 
         <p>Except as restricted by the following rules and by the reordering rule above, all program transformations that preserve intra-agent semantics remain valid when accessing shared memory.</p>
@@ -1053,7 +1061,7 @@ These call AllocateTypedArray with a specified length:
         <emu-note>
           <p>(Spec draft note -- for discussion)</p>
 
-          <p>Most of the rules about viability are obvious: if two atomic accesses conflict but don't match, or if a non-atomic write conflicts with an atomic operation, then the atomic is not viable; and so on.  The corner cases occur when non-atomic reads interact with atomics, since a non-atomic read is generally effect-free in the implementation.  As noted above we forbid a viable atomic write from interacting with a non-atomic read, but we allow a viable atomic read to conflict with a non-atomic read.  We have considered tightening the latter rule so that the two reads must match, but also loosening the former rule so that it becomes legal to introduce spurious non-atomic reads without impacting viability.</p>
+          <p>Most of the rules about viability are obvious: if two atomic accesses conflict but don't match, or if a non-atomic write conflicts with an atomic operation, then the atomic is not viable; and so on.  The corner cases occur when non-atomic reads interact with atomics, since a non-atomic read is generally effect-free in the implementation.  As noted above we forbid a viable atomic write from interacting with a non-atomic read, but we allow a viable atomic read to conflict with a non-atomic read.  We have considered tightening the latter rule so that the two reads must match.  Loosening the former rule is currently not considered a good idea because it would allow a viable access to be in a data race.</p>
         </emu-note>
       </emu-clause>
 
