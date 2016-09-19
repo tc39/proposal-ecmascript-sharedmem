@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-09-19 -- Throughout: removed the provision for non-lock-free atomics; removed the Atomics.isLockFree API
   <li>2016-09-16 -- 7.4.1.1.1, Note 2, clarified `atomic_write || read` rule
   <li>2016-09-16 -- 7.4.1.1.3, added note on non-coherent memory
   <li>2016-09-16 -- 7.4.1.1.6, Note 2, clarified `atomic_write || read` rule
@@ -180,44 +181,12 @@ comments.</p>
             <td>A value that admits equality testing</td>
             <td>Uniquely identifies the agent within its agent cluster.</td>
          </tr>
-          <tr>
-            <td>[[IsLockFree1]]</td>
-            <td>Boolean</td>
-            <td>True if and only if atomic operations on one-byte values are lock-free.</td>
-         </tr>
-          <tr>
-            <td>[[IsLockFree2]]</td>
-            <td>Boolean</td>
-            <td>True if and only if atomic operations on two-byte values are lock-free.</td>
-         </tr>
        </tbody>
      </table>
     </emu-table>
 
-    <p>Once the values of [[Signifier]], [[IsLockFree1]], and
-    [[IsLockFree2]] have been observed by any agent in the agent
-    cluster they cannot change.</p>
-
-    <emu-note>
-      <p>The values of [[IsLockFree1]] and [[IsLockFree2]] are not
-        necessarily determined by the hardware, but may also reflect
-        implementation choices that can vary over time and between
-        ECMAScript implementations.</p>
-
-      <p>There is no [[IsLockFree4]] property: 4-byte atomic
-        operations are always lock-free.</p>
-
-      <p>Atomic operations are lock-free if some atomic operation in the agent cluster can always make progress.  For example, an agent that performs a lock-free atomic add of need only ever wait for the CPU to perform the memory access.  In contrast, with a non-lock-free atomic, an agent that holds a lock will force all other agents to wait for the lock to be released; if the agent holding the lock is suspended by the operating system, no other agents can make progress until it is resumed.</p>
-
-      <p>Lock-free does not imply wait-free: there is no upper bound on how many machine steps may be required to complete a lock-free atomic operation.  For example, if a lock-free atomic add is implemented with separate load and store instructions then the operation may need to be retried if some other agent updates the memory between the load and the store, and there is no bound on how many retries may be needed.</p>
-
-      <p>That an atomic access of size <em>n</em> is lock-free does
-        not imply anything about the (perceived) atomicity of
-        non-atomic accesses of size <em>n</em>, specifically,
-        non-atomic accesses may still be performed as a sequence of
-        several separate memory accesses.  See the memory model
-        section for details.</p>
-    </emu-note>
+    <p>Once the value of [[Signifier]] has been observed by any agent in the agent
+    cluster it cannot change.</p>
 
   </emu-clause>
 
@@ -257,10 +226,6 @@ comments.</p>
         values of [[LittleEndian]] it becomes hard to use shared
         memory for multi-byte data.</p>
     </emu-note>
-
-    <p>All agents within a cluster must have the same values for
-      the [[IsLockFree1]] property in their respective Agent Records; similarly for
-      the [[IsLockFree2]] property.</p>
 
     <p>All agents within a cluster must have different values for
       the [[Signifier]] property in their respective Agent Records.</p>
@@ -794,6 +759,18 @@ These call AllocateTypedArray with a specified length:
         <p>(Advanced programming advice) Initializing stores to the variable's memory can safely be made by non-atomic operations and through views of other types, provided there is other synchronization in the program that ensures that the initialization is finished before the program uses the variable for synchronization in any thread.</p>
       </emu-note>
 
+      <emu-note>
+        <p><b>TODO:</b> Find a better place for this?</p>
+
+        <p>Atomic operations are <em>lock-free</em> if some atomic operation in the agent cluster can always make progress.  For example, an agent that performs a lock-free atomic add need only ever wait for the CPU to perform the memory access.  In contrast, with a non-lock-free atomic, an agent that holds a lock would force all other agents to wait for the lock to be released; if the agent holding the lock were to be suspended by the operating system, no other agents would be able to make progress until it is resumed.</p>
+
+        <p>Atomic operations in this specification are always lock-free.</p>
+
+        <p>Lock-free does not imply wait-free: there is no upper bound on how many machine steps may be required to complete a lock-free atomic operation.  For example, if a lock-free atomic add is implemented with separate load and store instructions then the operation may need to be retried if some other agent updates the memory between the load and the store, and there is no bound on how many retries may be needed.</p>
+
+      <p>That an atomic access of size <em>n</em> is lock-free does not imply anything about the (perceived) atomicity of non-atomic accesses of size <em>n</em>, specifically, non-atomic accesses may still be performed as a sequence of several separate memory accesses.  See the memory model section for details.</p>
+    </emu-note>
+
       <emu-clause id="AtomicsObject.Fundamentals">
         <h1>Fundamentals</h1>
 
@@ -827,14 +804,8 @@ These call AllocateTypedArray with a specified length:
 
             <li> <b>Non-atomic initialization of memory:</b> In practice, programs translated from C, and from C++ with low-level atomics, will assume that it's legal to perform an atomic read from memory that was initialized with non-atomic writes, so long as the read is properly ordered after the writes by some other mechanism.
 
-            <li> <b>Lock-free and non-lock-free atomics:</b> Lock-free and non-lock-free atomics do not use compatible mutual exclusion mechanisms, so even if hardware can be relied on to properly order different-sized lock-free atomic operations on overlapping access ranges, it may not be counted on to also order lock-free and non-lock-free atomic operations on overlapping access ranges.
-
             <li> <b>Implementability</b>: We want to be able to use hardware locking primitives (eg, bus-locked instructions on x86 or load-exclusive/store-exclusive instructions on ARM) whenever that yields the fastest code, and not have to use more complicated mechanisms everywhere to satisfy semantic needs.
           </ul>
-
-          <p>For example, suppose an eight-byte non-lock-free atomic write operation E attempts to interact with the memory system at the same time as a four-byte lock-free atomic write operation F, and that the access ranges overlap.  (We don't have eight-byte atomics at present but we may have them in the future, and there are 32-bit platforms, such as MIPS, that do not have 64-bit atomics.)  E acquires a lock, then writes the data bytes in some arbitrary order, then releases the lock.  While E holds the lock, F interacts directly with the memory system to write its four bytes as a unit.  The result may easily be that some of the bytes written for E are written before the four bytes of F, and some after.  As a result, the bytes in memory at the location of F may be a jumble of the two values, contrary to the desire that atomic operations execute atomically.  We find it unacceptable to require the four-byte access to use the lock.</p>
-
-          <p>In the semantics, the difference between lock-free and non-lock free is not visible, but some of the choices in the semantics are a consequence of having to deal with both implementation strategies.</p>
 
           <p>The viability test in the semantics acts as a filter that selects those atomic operations that will appear to execute atomically and in a total order if implemented with straightforward techniques -- using hardware primitives when available and simple locks otherwise.  Atomic operations that overlap in time and in access ranges, without having identical access ranges, are non-viable, as they cannot be serialized at run-time using straightforward implementation techniques; atomic operations that overlap non-atomic writes in time and access ranges are also not viable.</p>
 
@@ -1630,40 +1601,6 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Return AtomicFetchOp(_typedArray_, _index_, _value_, `second`).
       </emu-alg>
-    </emu-clause>
-
-    <emu-clause id="Atomics.isLockFree">
-      <h1>Atomics.isLockFree( _size_ )</h1>
-
-      <emu-alg>
-        1. Let _n_ be ? ToInteger(_size_).
-        1. Let _AR_ be the Agent Record of the <em>surrounding agent</em>.
-        1. If _n_ equals 1 then return _AR_.[[IsLockFree1]].
-        1. If _n_ equals 2 then return _AR_.[[IsLockFree2]].
-        1. If _n_ equals 4 then return *true*.
-        1. Return *false*.
-      </emu-alg>
-
-      <emu-note>
-        <p>Atomics.isLockFree() is an optimization primitive.  The
-          intuition is that if the atomic step of an atomic primitive
-          (`compareExchange`, `load`, `store`, `add`, `sub`, `and`,
-          `or`, `xor`, or `exchange`) on a datum of size _n_ bytes
-          will be performed without the calling agent acquiring a lock
-          outside the _n_ bytes comprising the datum, then
-          Atomics.isLockFree(_n_) will return *true*.
-          High-performance algorithms will use Atomics.isLockFree to
-          determine whether to use locks or atomic operations in
-          critical sections.  If an atomic primitive is not lock-free
-          then it is often more efficient for an algorithm to provide
-          its own locking.</p>
-
-        <p>Atomics.isLockFree(4) always returns *true* as that can be
-          supported on all known relevant hardware.  Being able to
-          assume this will generally simplify programs.</p>
-
-      </emu-note>
-
     </emu-clause>
 
     <emu-clause id="Atomics.load">
