@@ -156,6 +156,9 @@ may perceive in that statement.)
   * x86 (32-bit and 64-bit), at least Core2 and later
   * POWER (32-bit and 64-bit), unknown versions
   * SPARC (32-bit and 64-bit), v9 or later (none at present)
+* Systems programming languages have their own memory models:
+  * C/C++ (the C/C++11 or C/C++14 memory models)
+  * Rust (the LLVM memory model)
 * _Weakly ordered memory:_ Some platforms have very weak memory models
   where writes arrive out of order at different cores and not all
   writes by all cores may be visible to all other cores at the point
