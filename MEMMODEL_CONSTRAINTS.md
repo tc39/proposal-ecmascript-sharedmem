@@ -205,6 +205,188 @@ This is discussed below, in "Viability".
 
 ## Viability
 
-What does it mean for an atomic to be well-defined?
+(This is still a rough, and it's incomplete in parts.)
 
-(To be completed :)
+In drafts of the memory model we've used the term _viable_ for a
+certain class of well-defined atomic operations and will use that here
+too.
+
+Abstractly, an atomic operation is _viable_ if other operations in the
+program do not prevent the operation from behaving atomically
+according to the earlier requirements for the atomics (atomicity,
+ordering, observability).
+
+From a more concrete point of view, a classification system for
+viability is valid only if every atomic operation deemed viable by
+that system will behave according to requirements for atomics if
+atomics are implemented using conventional implementation techniques.
+
+(A conventional implementation means using lock-free hardware
+primitives when available for a given atomic data size, and using
+simple sharded or global locks for all non-lock-free atomics.)
+
+To see how atomics can be non-viable, here are some examples.
+
+Consider first a case in which an access to a four-byte datum x is
+lock-free and an access to a two-byte datum x_lo that aliases x is
+non-lock-free (because the hardware only has 4-byte atomics, such as
+MIPS and POWER).  The initial value of x is 0x01010101.
+
+```
+  atomic_read x  || atomic_write x_lo <- 0xF0F0
+```
+
+Really this is what the program looks like if there are no halfword
+stores on the CPU:
+
+```
+  barrier   || lock
+  read x    || write x[0] <- 0xF0
+  barrier   || write x[1] <- 0xF0
+            || unlock
+```
+
+Lock-free and non-lock-free atomics use different mutual exclusion
+mechanisms and the read of x does not properly wait for the write of
+x_lo.  The read of x may therefore return 0x01010101, 0xF0010101,
+0x01F00101, or 0x0F0F0101.  That violates the requirement that the two
+operations must execute in order: only 0x01010101 and 0xF0F00101 are
+valid answers.
+
+Next, consider a case in which atomic and non-atomic writes to a
+four-byte datum interact to destroy atomic behavior in other
+observers.  Assume the writes are lock-free:
+
+```
+  T1                      T2              T3               T4
+  atomic_write x <- 1  || write x <- 2 || atomic_read x || atomic_read x
+                                       || atomic_read x || atomic_read x
+```
+
+Since the non-atomic write may propagate to T3 and T4 at different
+speeds, T3 may read 1, 2 and T4 may read 2, 1, indicating that the
+non-atomic write destroys the coherence of the atomic cell.  The only
+way this code would be reliable is if the write in T2 had propagated
+to T1 before T1's write, so that that write would force the earlier
+write to become visible to T3 and T4 first.
+
+We've discussed various viability systems, and they are discussed
+below.  For each of them we need to make the case that the
+conventional implementation of atomics leads to a situation where
+viable atomics in the classification meet the requirements for atomics
+stated earlier.
+
+
+### The statically typed view
+
+If atomic and non-atomic cells were segregated and atomic cells could
+not alias each other, then atomic cells would only be accessed using
+atomic operations and every operation would be of the right access
+size.  In that case, every atomic operation would be viable.  This is
+the situation in most concurrent programming languages.
+
+C and to some extent C++ add a wrinkle to that scheme, in that memory
+for an atomic cell is carved from a common memory pool and returned to
+that pool after use.  Thus the segregation is not complete: an actual
+storage location may be used for an atomic over a timespan that has a
+fairly well-defined start (the atomic cell is initialized, often with
+a non-atomic write) and an ill-defined end (the memory is freed or
+reallocated or reinitialized or otherwise accessed by a non-atomic
+operation).  However, the segregation scheme applies between the
+initialization and destruction points.
+
+We can't hope to implement this in ECMAScript.
+
+
+### The dynamically typed view
+
+If there is an operation that establishes an access range as atomic
+and all subsequent operations on that range treat it as atomic until
+some operation kills the atomicity, then the access range is atomic in
+that time span.
+
+We can think of every byte in memory being tagged, and the tag for a
+byte that is part of an atomic cell states that it is so, and that the
+atomic is K bytes wide and this is the Nth byte.  The operation that
+establishes atomicity writes that tag.  Any atomic access checks that
+the tags of all bytes touched by the access are correct for the
+access, and if not, then the atomic operation is ill-defined (and the
+tag should be cleared).  Indeed, non-atomic accesses, at least writes,
+need to clear the tag always.
+
+This dynamic type system is not practically implementable, it is just
+a semantic model that is looser than the statically typed view.  It
+addresses (somewhat) the problem with allocation/deallocation of
+memory, though the operation that establishes atomicity needs to be
+special, it can't be a non-atomic write.  It may be that an atomic
+write is sufficient for establishing atomicity, but that would blur
+the boundary between initializing operations and invalid atomic write
+operations.
+
+With a suitable initialization operation we could try to implement
+this in ECMAScript, but the C/C++ code generation use case is a poor
+fit for an explicit initialization operation.
+
+
+### The friendly hardware view
+
+If the hardware provides lock-free atomic operations for all sizes (so
+that there is only one mutual exclusion mechanism), and non-atomic
+operations are always properly serialized before or after atomic
+operations they're attempting to execute concurrently with, regardless
+of the relative access sizes of the two operations, then all atomic
+operations are viable.
+
+(This is an unproven hypothesis.  Lars thinks it is probably not true
+except maybe on x86, though that could be because of awkward framing.
+But observe that the read coherence example earlier will fail on all
+weakly ordered platforms even if the hardware is not "friendly.")
+
+
+
+### The no-conflicting-operations view
+
+Consider memory operations pairwise or in small groups.  An atomic
+operation A is intuitively viable if all operations that attempt to
+execute concurrently with A and that overlap A's access range are also
+atomic operations on the same access range as A: in this case, A will
+always be properly serialized relative to the other operations, as all
+operations use the same mutual exclusion mechanism.
+
+The problem with that intuitive view is that "concurrent" is slippery.
+Consider the x86.  An atomic read-modify-write on core A takes a bus
+lock and executes directly against memory.  Simultaneously, a
+non-atomic write (to the same location) executes on core B, and the
+write is added to B's write buffer.  That write will _eventually_ be
+sent to memory, but before B attempts to do that the atomic operation
+on A might have completed.  Now, was the non-atomic write on B
+concurrent with the atomic operation on A, or not?
+
+Note B may observe its own write followed by A's write, while a third
+core C may observe A's write followed by B's write.
+
+On the x86, all other observers than B would observe the non-atomic
+write at the same time.  On a weak architecture, different observers
+may observe the write at different times, there's not a definite point
+at which the write becomes visible.
+
+Here we can perhaps say that a write starts when a core issues the
+instruction and ends when all other cores have observed the write (ie
+a read on the observing core, were it to execute, would read the
+written value, not the previous value).  This would be true for both
+atomic writes and non-atomic writes.  (Atomic writes, of course, are
+supposed to be seen by all cores at the same time.)
+
+Then, if an atomic operation executes concurrently with any write that
+is either not atomic or is not to the same access range then the
+atomic operation is non-viable.  (If the other operation is also
+atomic then it, too, is non-viable.)
+
+Again this is not an implementable model, it just provides semantics
+for the atomics that we have to consider valid when choosing
+implementation techniques, or, it selects those atomics that allow
+only fast implementation techniques.
+
+But is this a consistent model?  Does it lead to circularities?  Is it
+meaningful?  Can we reason about it?
+
