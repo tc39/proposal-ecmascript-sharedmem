@@ -281,10 +281,9 @@ The barriers on T1 and T2 aren't enough to guarantee propagation in any order
 to T3 and T4. On architectures with weak memory ordering, the writes may
 propagate to T3 and T4 at different speeds, T3 may read 1, 2 and T4 may read
 2, 1, indicating that the non-atomic read destroys the coherence of the atomic
-cell. The only way this code would be reliable is if the write in T2 had
-propagated to T1 before T1's write or vice versa, so that that write would
-force the earlier write to become visible to T3 and T4 first. On weak
-architectures this is enforceable via memory fences.
+cell. The only way this code would be reliable is if the reads on T3 and T4
+observed the same ordering of values for x, which is enforceable by inserting
+memory barriers between the reads for both threads.
 
 We've discussed various viability systems, and they are discussed
 below.  For each of them we need to make the case that the
