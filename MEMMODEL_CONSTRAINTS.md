@@ -103,6 +103,19 @@ may perceive in that statement.)
   for memory used for atomics.  The situation is somewhat better in
   well-typed C++ but reality is complicated.
 
+## Implementation targeting C and C++ or LLVM
+
+* _Targeting C or C++_: it should be possible to implement
+  SharedArrayBuffer using C or C++.  The C/C++11 memory model allows
+  accesses with a number of orderings, and there should be a mapping
+  from SharedArrayBuffer accesses to C/C++11 orderings. Racy
+  SharedArrayBuffer accesses are required to produce defined values,
+  so cannot be implemented using C/C++ non-atomics.
+* _Targeting LLVM_: implementations may also decide to target
+  LLVM, which may provide for more optimization than targeting C/C++
+  and compiling to LLVM. In particular, LLVM allows unordered access,
+  which does not require per-variable sequential consistency.
+
 ## Racy accesses and safety
 
 * _Conflicts and races are safe_: Standard non-atomic accesses can be
@@ -156,9 +169,6 @@ may perceive in that statement.)
   * x86 (32-bit and 64-bit), at least Core2 and later
   * POWER (32-bit and 64-bit), unknown versions
   * SPARC (32-bit and 64-bit), v9 or later (none at present)
-* Systems programming languages have their own memory models:
-  * C/C++ (the C/C++11 or C/C++14 memory models)
-  * Rust (the LLVM memory model)
 * _Weakly ordered memory:_ Some platforms have very weak memory models
   where writes arrive out of order at different cores and not all
   writes by all cores may be visible to all other cores at the point
