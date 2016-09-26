@@ -112,9 +112,10 @@ may perceive in that statement.)
   SharedArrayBuffer accesses are required to produce defined values,
   so cannot be implemented using C/C++ non-atomics.
 * _Targeting LLVM_: implementations may also decide to target
-  LLVM, which may provide for more optimization than targeting C/C++
-  and compiling to LLVM. In particular, LLVM allows unordered access,
-  which does not require per-variable sequential consistency.
+  the LLVM memory model, for example by using a language such as
+  Rust, which inherits its memory model from LLVM. LLVM has a very
+  similar model to C/C++, but allows mixed-size access, and
+  allows Java-like unordered access.
 
 ## Racy accesses and safety
 
