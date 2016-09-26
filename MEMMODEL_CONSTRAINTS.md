@@ -225,12 +225,17 @@ atomics are implemented using conventional implementation techniques.
 primitives when available for a given atomic data size, and using
 simple sharded or global locks for all non-lock-free atomics.)
 
-To see how atomics can be non-viable, here are some examples.
+Non-viable atomics thus may be non-atomic along two orthogonal axes, both
+non-access-atomic (i.e., writes may be torn) and non-multiple-copy-atomic
+(i.e., writes are not guaranteed to appear to all other threads than the
+writing thread at the same time). In this way non-viable atomics decay into
+non-atomic accesses. To see how atomics can be non-viable, here are some
+examples.
 
-Consider first a case in which an access to a four-byte datum x is
-lock-free and an access to a two-byte datum x_lo that aliases x is
-non-lock-free (because the hardware only has 4-byte atomics, such as
-MIPS and POWER).  The initial value of x is 0x01010101.
+For non-access-atomicity, consider first a case in which an access to a
+four-byte datum x is lock-free and an access to a two-byte datum x_lo that
+aliases x is non-lock-free (because the hardware only has 4-byte atomics, such
+as MIPS and POWER).  The initial value of x is 0x01010101.
 
 ```
   atomic_read x  || atomic_write x_lo <- 0xF0F0
@@ -253,22 +258,33 @@ x_lo.  The read of x may therefore return 0x01010101, 0xF0010101,
 operations must execute in order: only 0x01010101 and 0xF0F00101 are
 valid answers.
 
-Next, consider a case in which atomic and non-atomic writes to a
-four-byte datum interact to destroy atomic behavior in other
-observers.  Assume the writes are lock-free:
+For non-multiple-copy-atomicity, consider a case in which atomic writes are
+read by non-atomic reads on a four-byte datum.  Assume the writes are
+lock-free:
 
 ```
-  T1                      T2              T3               T4
-  atomic_write x <- 1  || write x <- 2 || atomic_read x || atomic_read x
-                                       || atomic_read x || atomic_read x
+  T1                      T2                    T3        T4
+  atomic_write x <- 1 || atomic_write x <- 2 || read x || read x
+                                             || read x || read x
 ```
 
-Since the non-atomic write may propagate to T3 and T4 at different
-speeds, T3 may read 1, 2 and T4 may read 2, 1, indicating that the
-non-atomic write destroys the coherence of the atomic cell.  The only
-way this code would be reliable is if the write in T2 had propagated
-to T1 before T1's write, so that that write would force the earlier
-write to become visible to T3 and T4 first.
+Again, psuedocode for a CPU:
+
+```
+  T1              T2              T3        T4
+  barrier      || barrier      || read x || read x
+  write x <- 1 || write x <- 2 || read x || read x
+  barrier      || barrier
+```
+
+The barriers on T1 and T2 aren't enough to guarantee propagation in any order
+to T3 and T4. On architectures with weak memory ordering, the writes may
+propagate to T3 and T4 at different speeds, T3 may read 1, 2 and T4 may read
+2, 1, indicating that the non-atomic read destroys the coherence of the atomic
+cell. The only way this code would be reliable is if the write in T2 had
+propagated to T1 before T1's write or vice versa, so that that write would
+force the earlier write to become visible to T3 and T4 first. On weak
+architectures this is enforceable via memory fences.
 
 We've discussed various viability systems, and they are discussed
 below.  For each of them we need to make the case that the
