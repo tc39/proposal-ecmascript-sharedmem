@@ -103,20 +103,6 @@ may perceive in that statement.)
   for memory used for atomics.  The situation is somewhat better in
   well-typed C++ but reality is complicated.
 
-## Implementation targeting C and C++ or LLVM
-
-* _Targeting C or C++_: it should be possible to implement
-  SharedArrayBuffer using C or C++.  The C/C++11 memory model allows
-  accesses with a number of orderings, and there should be a mapping
-  from SharedArrayBuffer accesses to C/C++11 orderings. Racy
-  SharedArrayBuffer accesses are required to produce defined values,
-  so cannot be implemented using C/C++ non-atomics.
-* _Targeting LLVM_: implementations may also decide to target
-  the LLVM memory model, for example by using a language such as
-  Rust, which inherits its memory model from LLVM. LLVM has a very
-  similar model to C/C++, but allows mixed-size access, and
-  allows Java-like unordered access.
-
 ## Racy accesses and safety
 
 * _Conflicts and races are safe_: Standard non-atomic accesses can be
@@ -189,7 +175,20 @@ may perceive in that statement.)
   affects the ability of using RMW with wide atomic operations to
   implement narrow atomic operations.
 
+## Implementation via LLVM
 
+* Rather than target particular hardware, an implementation of
+  SharedArrayBuffer may use LLVM (or a similar VM) as an intermediate
+  representation. A possible code path would then be from C/C++
+  via LLVM to asm.js with shared array buffers, then via LLVM
+  to hardware.
+* LLVM has a memory model, which includes a `seq_cst` memory order,
+  which is a good match to atomic accesses. It is possible that either
+  `monotone` or `unordered` is a good match to non-atomic accesses
+  (the difference between the two is per-location sequential
+  consistency). The LLVM model gives defined semantics to all reads
+  and writes with memory order `unordered` or stronger, including
+  accesses at different data sizes.
 
 # Some specific problems
 
