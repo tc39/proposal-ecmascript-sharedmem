@@ -175,7 +175,20 @@ may perceive in that statement.)
   affects the ability of using RMW with wide atomic operations to
   implement narrow atomic operations.
 
+## Implementation via LLVM
 
+* Rather than target particular hardware, an implementation of
+  SharedArrayBuffer may use LLVM (or a similar VM) as an intermediate
+  representation. A possible code path would then be from C/C++
+  via LLVM to asm.js with shared array buffers, then via LLVM
+  to hardware.
+* LLVM has a memory model, which includes a `seq_cst` memory order,
+  which is a good match to atomic accesses. It is possible that either
+  `monotone` or `unordered` is a good match to non-atomic accesses
+  (the difference between the two is per-location sequential
+  consistency). The LLVM model gives defined semantics to all reads
+  and writes with memory order `unordered` or stronger, including
+  accesses at different data sizes.
 
 # Some specific problems
 
