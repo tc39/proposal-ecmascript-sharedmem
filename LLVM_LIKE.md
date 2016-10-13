@@ -16,7 +16,7 @@ These events are ordered by two relations: happens-before and reads-from, define
 
 ### agent-order
 
-  The total order of SharedArrayBuffer events in a single agent during evaluation.
+  The total order of SharedArrayBuffer events in a single agent during a particular evaluation of the program.
 
 ### synchronizes-with
 
@@ -41,6 +41,8 @@ These events are ordered by two relations: happens-before and reads-from, define
     1. It is not the case that _R_ happens-before _W_, and
     1. There is no _W2_ such that _W_ happens-before _W2_ and _W2_ happens-before _R_.
 
+[[[ I don't think the second clause is correct.  (Maybe you meant _R_ not _W_?)  Consider a halfword read, with two writes that each write a byte of that halfword.  (Or did you mean the selection of events in _Ws_ that overlap with _W_?) ]]]
+
   NOTE: A correctly synchronized atomic ReadSharedMemory event will always read from a single atomic WriteSharedMemory event on the same range. Non-atomic events or racing atomic events on overlapping ranges may read a set of bytes composed from multiple write events.
 
 ### Candidate Executions
@@ -60,6 +62,8 @@ We call a happens-before relation together with a reads-from relation a candidat
   1. If a ReadSharedMemory event _R_ with _order_ `"SeqCst"` reads-from a WriteSharedMemory event _W_ with _order_ `"SeqCst"` and _R_ and _W_ have the same range, there is no WriteSharedMemoryEvent _W2_ with the same range such that _R_ is memory-order before _W2_ and _W2_ is memory-order before _W_.
 
   NOTE: Unlike C++, there is no total memory ordering for all `"SeqCst"` events. Executions do not require that overlapping events that race are totally ordered.
+
+[[[ Define "race" properly, because I think the term is hiding something. ]]]
 
 ### Valid Executions
 
@@ -84,6 +88,8 @@ ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_)
     1. Let the _l_th byte in v be W's value for the _l_th byte in its _bytes_.
   1. Return _v_.
 
+[[[ This destroys access-atomicity for racing compatible writes because any _W_ from _Ws_ may be chosen for any byte of the result, mingling results in a way we do not want. IIUC, _Ws_ will contain all writes that are not ordered, even if they have the same range.  ]]]
+
 NOTE: These are not runtime semantics. Weak consistency models permit causality paradoxes and non-multiple copy atomic observable behavior that are not representable in the non-speculative step-by-step semantics labeled "Runtime Semantics" in ECMA262. Thought of another way, sequential evaluation of a single agent gives an initial partial ordering to ReadSharedMemory and WriteSharedMemory events. These events, and events from every other agent in the agent cluster, must be partially ordered with each other according to the rules above, and then the order must be validated. ReadSharedMemory and WriteMemoryEvents are only well-defined when given a valid execution.
 
 # Implementation Guidelines
@@ -96,6 +102,8 @@ The following restrictions apply to compiler transforms for non-atomics.
   - An API call resulting in a single WriteSharedMemory event cannot be transformed into API calls resulting in multiple WriteSharedMemory events.
   - API calls resulting in WriteSharedMemory events may not have its range changed.
   - API calls resulting in WriteSharedMemory events may not store a value that would not have otherwise been stored.
+
+[[[ The first bullet is too strong -- it should be legal to do redundant reads.  The third bullet is probably too strong -- it should be legal to combine writes to adjacent bytes into a single write, for example. ]]]
 
 The following restrictions apply to compiler transforms for atomics.
 
