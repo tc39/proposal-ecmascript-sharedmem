@@ -111,7 +111,7 @@ NOTE 1: These are not runtime semantics. Weak consistency models permit causalit
 
 NOTE 2: In an execution, a `"SeqCst"` ReadSharedMemory event _R_ that synchronizes-with a `"SeqCst"` WriteSharedMemory event _W_ means that _R_ reads-from the singleton set containing _W_. This ensures access atomicity for synchronized pairs of atomics in the "choice semantics" above.
 
-# Sequential Consistency for Data Race Free Programs
+### Sequential Consistency for Data Race Free Programs
 
 We say an execution is data race free if it has no data races between any two memory operation events. A program is data race free if all its executions are data race free.
 
