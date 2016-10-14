@@ -87,7 +87,7 @@ A candidate execution has sequentially consistent atomics if there is a partial 
   1. _R_ is memory-order before _W_, and
   1. There is no other shared memory event _E_ such that _R_ is memory-order before _E_ and _E_ is memory-order before _W_.
 
-NOTE: Unlike C++, there is no total memory ordering for all `"SeqCst"` events. Executions require that memory-order is total for all `"SeqCst"` events that is reads-from with other `"SeqCst"` events of the same range. Executions do not require that overlapping `"SeqCst"` events that race be totally ordered.
+NOTE: Unlike C++, there is no total memory ordering for all `"SeqCst"` events. Executions require that memory-order be total for all `"SeqCst"` events that is reads-from with other `"SeqCst"` events of the same range. Executions do not require that overlapping `"SeqCst"` events that race be totally ordered.
 
 ### Valid Executions
 
