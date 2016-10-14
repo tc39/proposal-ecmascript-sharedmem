@@ -8,7 +8,7 @@ The memory consistency model (hereinafter "memory model") aims to define the ord
 
 # Model
 
-The memory model describes the allowed orderings of SharedArrayBuffer events and host-provided events (e.g., those arising from `postMessage`). We represent events as "calls" to ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation.
+The memory model describes the allowed orderings of SharedArrayBuffer events and host-provided events (e.g., those arising from `postMessage`). We represent events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation.
 
 Let the range of an event be the byte locations from _byteIndex_ to _byteIndex_ + _elementSize_, inclusive. We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Ranges are not considered overlapping, equal, or subsumed when two events do not have the same _block_.
 
@@ -20,7 +20,7 @@ The total order of SharedArrayBuffer events in a single agent during a particula
 
 ### synchronizes-with
 
-A partial order between pairs of atomic events such that:
+A partial order between pairs of events such that:
 
 1. For each a ReadSharedMemory event _R_ with _order_ `"SeqCst"` that reads-from a WriteSharedMemory event _W_:
   1. If _W_ has _order_ `"SeqCst"` and _R_ and _W_ have the same range then:
