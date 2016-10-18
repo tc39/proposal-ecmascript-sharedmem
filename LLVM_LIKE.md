@@ -47,7 +47,7 @@ A function from ReadSharedMemory events to sets of WriteSharedMemory events such
   1. It is not the case that _R_ happens-before _W<sub>1</sub>_, and
   1. There is no _W<sub>2</sub>_ in _Ws_ [[[ that has _l_ in its range ]]] such that _W<sub>1</sub>_ happens-before _W<sub>2</sub>_ and _W<sub>2</sub>_ happens-before _R_.
 
-[[[ I think the assertion in the last step is incorrect.  Consider two writes performed by an agent W1 writes to [0..3] and W2 writes to [2..3] and W1 h-b W2.  Now another agent reads [0..3].  Consider position 2.  ]]]
+[[[ I think the assertion in the last step is incorrect.  Consider two writes performed by an agent; W1 writes to [0..3] and W2 writes to [2..3] and W1 h-b W2.  Now another agent reads [0..3].  Consider position 2.  Both W1 and W2 must be in _Ws_ for _R_ to pick up all the bytes.  But if W1 is chosen in 1.i then 1.iv is violated.  ]]]
 
 ### Initial Values
 
