@@ -10,7 +10,7 @@ The memory consistency model (hereinafter "memory model") aims to define the ord
 
 The memory model describes the allowed orderings of SharedArrayBuffer events and host-provided events (e.g., those arising from `postMessage`). We represent events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation.
 
-Let the range of an event be the byte locations from _byteIndex_ to _byteIndex_ + _elementSize_, inclusive. We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Ranges are not considered overlapping, equal, or subsumed when two events do not have the same _block_.
+Let the range of an event be the byte locations from _byteIndex_ to _byteIndex_ + _elementSize_, inclusive. [[[ Inclusive can't be right here since it means that tow accesses that are nonoverlapping in fact are overlapping in the model. ]]] We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Ranges are not considered overlapping, equal, or subsumed when two events do not have the same _block_.
 
 These events are ordered by two relations: happens-before and reads-from, defined mutually recursively as follows.
 
