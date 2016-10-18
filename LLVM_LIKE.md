@@ -8,9 +8,9 @@ The memory consistency model (hereinafter "memory model") aims to define the ord
 
 # Model
 
-The memory model describes the allowed orderings of SharedArrayBuffer events and host-provided events (e.g., those arising from `postMessage`). We represent events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation.
+The memory model describes the allowed orderings of SharedArrayBuffer events and host-provided events (e.g., those arising from `postMessage`). We represent events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation.  [[[ Describe the allowable values for _order_ here ]]]
 
-Let the range of an event be the byte locations from _byteIndex_ to _byteIndex_ + _elementSize_, inclusive. [[[ Inclusive can't be right here since it means that tow accesses that are nonoverlapping in fact are overlapping in the model. ]]] We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Ranges are not considered overlapping, equal, or subsumed when two events do not have the same _block_.
+Let the range of an event be the byte locations from _byteIndex_ to _byteIndex_ + _elementSize_, inclusive. [[[ Inclusive can't be right here since it means that two accesses that are nonoverlapping in the execution are overlapping in the model. ]]] We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Ranges are not considered overlapping, equal, or subsumed when two events do not have the same _block_.
 
 These events are ordered by two relations: happens-before and reads-from, defined mutually recursively as follows.
 
@@ -22,18 +22,18 @@ The total order of SharedArrayBuffer events in a single agent during a particula
 
 A partial order between pairs of events such that:
 
-1. For each a ReadSharedMemory event _R_ with _order_ `"SeqCst"` that reads-from a WriteSharedMemory event _W_:
+1. For each ReadSharedMemory event _R_ with _order_ `"SeqCst"` that reads-from a WriteSharedMemory event _W_:
   1. If _W_ has _order_ `"SeqCst"` and _R_ and _W_ have the same range then:
     1. Assert that _R_ reads-from the singleton set containing _W_.
     1. There is an edge in synchronizes-with from _R_ to _W_.
-1. There is an edge between host-provided synchronization events.
-1. NOTE: The above clause applies to calls such `postMessage` between agents.
+1. There is an edge between host-provided synchronization events.  [[[ This is weak, flesh out a bit ]]]
+1. NOTE: The above clause applies to calls such `postMessage` between agents.  [[[ Would move this note out of the algorithm ]]]
 
-NOTE: Only correctly synchronized pairs of atomic reads and writes synchronizes-with each other. Racing atomic operations on overlapping ranges do not synchronizes-with each other.
+NOTE: Only correctly synchronized pairs of atomic reads and writes synchronizes-with each other. Racing atomic operations on overlapping ranges do not synchronizes-with each other.  [[[ This is very confusing at this point since it uses terms that are not yet defined (race) or arguably not defined at all (correctly synchronized). ]]]
 
 ### happens-before
 
-The least partial order that is a superset of agent-order and includes all edges in synchronizes-with.
+The least partial order that is a superset of agent-order and includes all edges in synchronizes-with.  [[[ So above, agent-order is per agent, but here it can't be that, so what kind of combination is it? ]]]
 
 ### reads-from
 
@@ -45,24 +45,28 @@ A function from ReadSharedMemory events to sets of WriteSharedMemory events such
     1. _W<sub>1</sub>_ and _W<sub>2</sub>_ both have _order_ `"SeqCst"` and have the same range.
     1. NOTE: This prohibits a `"SeqCst"` read event from reading a value composed of bytes from different `"SeqCst"` write events on the same range.
   1. It is not the case that _R_ happens-before _W<sub>1</sub>_, and
-  1. There is no _W<sub>2</sub>_ such that _W<sub>1</sub>_ happens-before _W<sub>2</sub>_ and _W<sub>2</sub>_ happens-before _R_.
+  1. There is no _W<sub>2</sub>_ in _Ws_ [[[ that has _l_ in its range ]]] such that _W<sub>1</sub>_ happens-before _W<sub>2</sub>_ and _W<sub>2</sub>_ happens-before _R_.
+
+[[[ I think the assertion in the last step is incorrect.  Consider two writes performed by an agent W1 writes to [0..3] and W2 writes to [2..3] and W1 h-b W2.  Now another agent reads [0..3].  Consider position 2.  ]]]
 
 ### Initial Values
 
 For each byte location _l_ in _block_, there is a WriteSharedMemory(`"Init"`, _block_, _l_, 1, _v0<sub>l</sub>_) for a host-defined value _v0<sub>l</sub>_ such that it is happens-before all other WriteSharedMemory events with overlapping ranges.
+
+[[[ This is a start but it's going to be tricky to make this work for us in the context of translating from C++ code, since memory will be recycled without the SAB being freed and reallocated, and we need a way to apply this mechanism to recycled memory.  I wouldn't get hung up on this quite yet but it will be a headache.  There are few solutions here. ]]]
 
 ### Races
 
 Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a race if all of the following conditions hold.
 
 1. It is not the case that _E<sub>1</sub>_ happens-before _E<sub>2</sub>_ or _E<sub>2</sub>_ happens-before _E<sub>1</sub>_.
-1. Either _E<sub>1</sub>_ or _E<sub>2</sub>_ is a WriteSharedMemory event.
-1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges or the same range.
+1. Either _E<sub>1</sub>_ or _E<sub>2</sub>_ is a WriteSharedMemory event.  [[[ Or both? ]]]
+1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges or the same range.  [[[ What about subsumed? ]]]
 
 Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a data race if they are in a race and additionally, any of the following conditions hold.
 
 1. Either _E<sub>1</sub>_ or _E<sub>2</sub>_ does not have _order_ `"SeqCst"`, or
-1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges but not the same range.
+1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges but not the same range.  [[[ What about subsumed? ]]]
 
 ### Candidate Executions
 
@@ -70,7 +74,7 @@ We call a happens-before relation together with a reads-from relation a candidat
 
 ### No Out of Thin Air Reads
 
-Let depends-on be relation on shared memory events that is consistent with agent-order and captures data and control dependencies between events. A candidate execution has no out of thin air reads if there is no cycle in the union of reads-from and depends-on.
+Let depends-on be a relation on shared memory events that is consistent with agent-order and captures data and control dependencies between events. A candidate execution has no out of thin air reads if there is no cycle in the union of reads-from and depends-on.
 
 NOTE: Out of thin air reads is an artifact of axiomatic memory models. For other languages with axiomatic memory models, thin air reads have not been observed on any known hardware nor due to any known compiler transform.
 
@@ -80,7 +84,7 @@ Draft Note: This is intentionally underspecified. Precisely capturing and forbid
 
 A candidate execution has sequentially consistent atomics if there is a partial order memory-order on events with _order_ `"SeqCst"` such that:
 
-1. If a shared memory event _E<sub>1</sub>_ happens-before a shared memory event _E<sub>2</sub>_, _E<sub>1</sub> is memory-order before _E<sub>2</sub>_.
+1. If a shared memory event _E<sub>1</sub>_ happens-before a shared memory event _E<sub>2</sub>_, _E<sub>1</sub>_ is memory-order before _E<sub>2</sub>_.
 1. If a ReadSharedMemory event _R_ with _order_ `"SeqCst"` reads-from a WriteSharedMemory event _W<sub>1</sub>_ with _order_ `"SeqCst"` and _R_ and _W<sub>1</sub>_ have the same range, there is no WriteSharedMemoryEvent _W<sub>2</sub>_ with the same range such that _R_ is memory-order before _W<sub>2</sub>_ and _W<sub>2</sub>_ is memory-order before _W<sub>1</sub>_.
 1. If a ReadSharedMemory event _R_ and a WriteSharedMemory event _W_ are introduced by a single `Atomics.compareExchange` call then:
   1. Assert the _order_ of both _R_ and _W_ is `"SeqCst"`.
