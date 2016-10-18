@@ -70,7 +70,7 @@ Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a
 
 ### Candidate Executions
 
-We call a happens-before relation together with a reads-from relation a candidate execution of an agent cluster. For each program there may be many candidate executions, some of which the memory model disallows. We disallow candidate executions which exhibit out of thin air reads and lack sequential consistency for events with non-overlapping and non-subsuming ranges with _order_ `"SeqCst"`.
+We call a happens-before relation together with a reads-from relation a candidate execution of an agent cluster. For each program there may be many candidate executions, some of which the memory model disallows. We disallow candidate executions which exhibit out of thin air reads and [[[ or? ]]] lack sequential consistency for events with non-overlapping and non-subsuming ranges with _order_ `"SeqCst"`.  [[[ I know for a fact I do not understand this paragraph.   I the last sentence intended to be a NOTE?  Or is this section meant to be a supersection of the following two? ]]]
 
 ### No Out of Thin Air Reads
 
@@ -82,7 +82,7 @@ Draft Note: This is intentionally underspecified. Precisely capturing and forbid
 
 ### Sequentially Consistent Atomics
 
-A candidate execution has sequentially consistent atomics if there is a partial order memory-order on events with _order_ `"SeqCst"` such that:
+A candidate execution has sequentially consistent atomics if there is a partial order memory-order on events with _order_ `"SeqCst"` such that:  [[[ All of the following must hold? ]]]
 
 1. If a shared memory event _E<sub>1</sub>_ happens-before a shared memory event _E<sub>2</sub>_, _E<sub>1</sub>_ is memory-order before _E<sub>2</sub>_.
 1. If a ReadSharedMemory event _R_ with _order_ `"SeqCst"` reads-from a WriteSharedMemory event _W<sub>1</sub>_ with _order_ `"SeqCst"` and _R_ and _W<sub>1</sub>_ have the same range, there is no WriteSharedMemoryEvent _W<sub>2</sub>_ with the same range such that _R_ is memory-order before _W<sub>2</sub>_ and _W<sub>2</sub>_ is memory-order before _W<sub>1</sub>_.
@@ -91,7 +91,11 @@ A candidate execution has sequentially consistent atomics if there is a partial 
   1. _R_ is memory-order before _W_, and
   1. There is no other shared memory event _E_ such that _R_ is memory-order before _E_ and _E_ is memory-order before _W_.
 
+[[[ Instead of compareExchange specifically, perhaps include all read-modify-write ops.  I guess this will need more rigor anyhow in how it's exposed to the rest of the semantics. ]]]
+
 NOTE: Unlike C++, there is no total memory ordering for all `"SeqCst"` events. Executions require that memory-order be total for all `"SeqCst"` events that is reads-from with other `"SeqCst"` events of the same range. Executions do not require that overlapping `"SeqCst"` events that race be totally ordered.
+
+[[[ That note is very confusing. First, I suggest we leave C++ out of it.  Second, is this the same thing you said before about "correctly synchronized atomics"?  Or something else? ]]]
 
 ### Valid Executions
 
@@ -111,9 +115,13 @@ ReadSharedMemory(_order<sub>1</sub>_, _block<sub>1</sub>_, _byteIndex<sub>1</sub
     1. Let the <em>l</em>th byte in _v_ be _W_'s value for the <em>l</em>th byte in its _bytes_.
   1. Return _v_.
 
+[[[ 3.iii is wrong, since the write may be to a different range so it's not necessarily the write's l'th byte. ]]]
+
 NOTE 1: These are not runtime semantics. Weak consistency models permit causality paradoxes and non-multiple copy atomic observable behavior that are not representable in the non-speculative step-by-step semantics labeled "Runtime Semantics" in ECMA262. Thought of another way, sequential evaluation of a single agent gives an initial partial ordering to ReadSharedMemory and WriteSharedMemory events. These events, and events from every other agent in the agent cluster, must be partially ordered with each other according to the rules above, and then the order must be validated. ReadSharedMemory and WriteMemoryEvents are only well-defined when given an execution.
 
 NOTE 2: In an execution, a `"SeqCst"` ReadSharedMemory event _R_ that synchronizes-with a `"SeqCst"` WriteSharedMemory event _W_ means that _R_ reads-from the singleton set containing _W_. This ensures access atomicity for synchronized pairs of atomics in the "choice semantics" above.
+
+[[[ We want a note about access-atomicity for racing non-atomic accesses ]]]
 
 ### Sequential Consistency for Data Race Free Programs
 
