@@ -1,6 +1,6 @@
 # Introduction
 
-SharedArrayBuffer provides two strengths of memory operations: atomic and non-atomic. Correctly synchronized atomic operations are sequentially consistent, i.e., there is a global total ordering of memory operations that all agents observe. Non-atomic operations are globally unordered, i.e. they are only ordered by sequential agent order. Incorrectly synchronized atomic operations, such as two racing writes to overlapping but not equal location ranges, behave as if they were non-atomic. Currently, no weak atomic ordering semantics, such as release-acquire, is supported.
+SharedArrayBuffer provides two strengths of memory operations: atomic and non-atomic. Correctly synchronized atomic operations are sequentially consistent, i.e., there is a global total ordering of atomic memory operations that all agents observe. Non-atomic operations are globally unordered, i.e. they are only ordered by sequential agent order. Incorrectly synchronized atomic operations, such as two racing writes to overlapping but not equal location ranges, behave as if they were non-atomic. Currently, no weak atomic ordering semantics, such as release-acquire, is supported.
 
 We hope this enables non-atomic operations to be compiled to bare stores and loads on target architectures, and atomics to be compiled to ensure sequential consistency in the usual way, such as sequential consistency-guaranteeing instructions or double fencing.
 
@@ -10,7 +10,7 @@ The memory consistency model (hereinafter "memory model") aims to define the ord
 
 The memory model describes the allowed orderings of SharedArrayBuffer events (hereinafter "events") and host-provided events (e.g., those arising from `postMessage`). We represent SharedArrayBuffer events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation. Allowed values for _order_ are `"SeqCst"`, `"Init"`, or `"None"`.
 
-Let the range of an event be the byte locations in the interval [_byteIndex_, _byteIndex_ + _elementSize). We define the following say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Two events' ranges are disjoint when they do not have the same _block_.
+Let the range of an event be the byte locations in the interval [_byteIndex_, _byteIndex_ + _elementSize_). We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Two events' ranges are disjoint when they do not have the same _block_.
 
 These events are ordered by two relations: happens-before and reads-from, defined mutually recursively as follows.
 
@@ -42,6 +42,8 @@ NOTE 1: The additional-synchronizes-with relation allows the host to provide add
 
 NOTE 2: Not all events with _order_ `"SeqCst"` related by reads-from are related by synchronizes-with. Only those events that also have the same range are related by synchronizes-with.
 
+[[[ The Init machinery is plausible but insufficient for reasons discussed earlier, ie, typically memory will be "re-initialized" with normal writes as part of normal program execution, not with these magic initializing stores.  ]]]
+
 ### happens-before
 
 The least partial order such that that:
@@ -56,17 +58,21 @@ The least partial order such that that:
 A function from ReadSharedMemory events to a List of WriteSharedMemory events such that:
 
 1. For each ReadSharedMemory event _R_:
-  1. There is a List of WriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
+  1. There is a List [[[ of length equal to the range of R? ]]] of WriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
   1. For each byte location _l_ in _R_'s range:
     1. Let _W<sub>l</sub>_ be the <em>l</em>th event in _Ws_.
     1. _W<sub>l</sub>_ has _l_ in its range, and
     1. It is not the case that _R_ happens-before _W<sub>l</sub>_, and
-    1. There is no WriteSharedMemory event _V_ that has _l_ in its range such that _W<sub>l</sub>_ happens-before _V_ and _V_ happens-before _R_.
+    1. There is no WriteSharedMemory event _V_ [[[ that has been observed by the agent that issued R ]]] that has _l_ in its range such that _W<sub>l</sub>_ happens-before _V_ and _V_ happens-before _R_.
   1. If _R_ has _order_ `"SeqCst"` and there is an event _W_ in _Ws_ that has _order_ `"SeqCst"` and the same range as _R_ then:
     1. For each byte location _l_ in _R_'s range:
       1. Let _W<sub>l</sub>_ be the <em>l</em>th event in _Ws_.
       1. _W_ and _W<sub>l</sub>_ are the same event.
     1. NOTE: This prohibits a `"SeqCst"` read event from reading a value composed of bytes from different `"SeqCst"` write events on the same range.
+
+[[[ Clause 1.ii seems fine, it says we observe the last byte that has reached us at each location.   Clause 1.iii.b is not correct however.  Consider an agent that issues a SeqCst write to [0..3] followed by a None write (maybe Unordered would be the better name) to [1], say.  Suppose another agent observes both of those in a read.  The read must have both writes in its Ws since it must observe the latter for the value at [1] but needs the other for the other three bytes.  Now the condition at 1.iii is fulfilled with W being the write to [0..3] but at I==1 Wl will be the write to [1].  ]]]
+
+[[[ As a strictly editorial matter it would be better to use another letter than ell because github renders it as a cursive capital I. ]]]
 
 ### reads-from
 
