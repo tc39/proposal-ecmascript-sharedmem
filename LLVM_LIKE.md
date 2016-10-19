@@ -96,6 +96,8 @@ Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a
 1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ is a WriteSharedMemory event, and
 1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges, the same range, or one event's range subsumes the other's.
 
+[[[ This would be a good place to use "disjoint", which is otherwise going unused.  ]]]
+
 Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a data race if they are in a race and additionally, any of the following conditions holds.
 
 1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ does not have _order_ `"SeqCst"`, or
