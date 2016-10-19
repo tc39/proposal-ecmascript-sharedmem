@@ -53,6 +53,8 @@ The least partial order such that that:
     1. If _E<sub>1</sub>_ is agent-order before _E<sub>2</sub>_ in the agent-order of _a_, then _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
     1. If _E<sub>1</sub>_ synchronizes-with _E<sub>2</sub>_, then _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
 
+[[[ Also include transitivity probably. ]]]
+
 ### reads-bytes-from
 
 A function from ReadSharedMemory events to a List of WriteSharedMemory events such that:
