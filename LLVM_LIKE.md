@@ -22,7 +22,7 @@ The total order of SharedArrayBuffer events in a single agent during a particula
 
 The least relation between pairs of events such that:
 
-1. For each pair of ReadSharedMemory event _R_ and WriteSharedMemory _W_ such that _R_ has _order_ `"SeqCst"` and that _R_ reads-from _W_:
+1. For each pair of ReadSharedMemory event _R_ and WriteSharedMemory event _W_ such that _R_ has _order_ `"SeqCst"` and that _R_ reads-from _W_:
   1. If _W_ has _order_ `"SeqCst"` and _R_ and _W_ have the same range then:
     1. Assert: There is no other WriteSharedMemory event _V_ such that _R_ reads-from _V_.
     1. _R_ synchronizes-with _W_.
@@ -48,7 +48,7 @@ The least partial order such that that:
 
 1. For each pair of events _E<sub>1</sub>_ and _E<sub>2</sub>_:
   1. For each agent _a_ in the agent cluster:
-    1. If _E<sub>1</sub>_ is agent-order before _E<sub>2</sub>_ in the agent-order of _a_, then _E_<sub>1</sub>_ happens-before _E_<sub>2</sub>_.
+    1. If _E<sub>1</sub>_ is agent-order before _E<sub>2</sub>_ in the agent-order of _a_, then _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
     1. If _E<sub>1</sub>_ synchronizes-with _E<sub>2</sub>_, then _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
 
 ### reads-bytes-from
@@ -90,7 +90,7 @@ Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a
 1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ is a WriteSharedMemory event, and
 1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges, the same range, or one event's range subsumes the other's.
 
-Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a data race if they are in a race and additionally, any of the following conditions hold.
+Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a data race if they are in a race and additionally, any of the following conditions holds.
 
 1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ does not have _order_ `"SeqCst"`, or
 1. _E<sub>1</sub>_ and _E<sub>2</sub>_ do not have the same range.
@@ -144,7 +144,7 @@ ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_)
     1. Let the <em>l</em>th byte in _v_ be _W<sub>l</sub>_'s value for the <em>l</em>th byte in its _bytes_.
   1. Return _v_.
 
-NOTE 1: These are not "Runtime Semantics". Weak consistency models permit causality paradoxes and non-multiple copy atomic observable behavior that are not representable in the non-speculative step-by-step semantics labeled "Runtime Semantics" in ECMA262. Thought of another way, sequential evaluation of a single agent gives an initial partial ordering to ReadSharedMemory and WriteSharedMemory events. These events, and events from every other agent in the agent cluster, must be partially ordered with each other according to the rules above, and then the order must be validated . ReadSharedMemory and WriteMemoryEvents are only well-defined when given an execution.
+NOTE 1: These are not "Runtime Semantics". Weak consistency models permit causality paradoxes and non-multiple copy atomic observable behavior that are not representable in the non-speculative step-by-step semantics labeled "Runtime Semantics" in ECMA262. Thought of another way, sequential evaluation of a single agent gives an initial partial ordering to ReadSharedMemory and WriteSharedMemory events. These events, and events from every other agent in the agent cluster, must be then partially ordered with each other according to invariants above to form candidate executions. Finally, these candidate executions must be validated to see which are allowed. ReadSharedMemory and WriteMemoryEvents are only well-defined when given an execution.
 
 NOTE 2: In an execution, a `"SeqCst"` ReadSharedMemory event _R_ that synchronizes-with a `"SeqCst"` WriteSharedMemory event _W_ means that _R_ reads-from a single _W_. This ensures access atomicity for synchronized atomic reads.
 
