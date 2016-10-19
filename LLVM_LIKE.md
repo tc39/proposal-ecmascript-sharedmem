@@ -119,7 +119,7 @@ Draft Note: This is intentionally underspecified. Precisely capturing and forbid
 
 Let the set of viable atomic events be the set of events with _order_ `"SeqCst"` or `"Init"` that are not in a data race with any other event.
 
-A candidate execution has sequentially consistent atomics if there is a total order memory-order such that:
+A candidate execution has sequentially consistent atomics if there is a total order memory-order [[[ the preceding four words do not scan ]]] such that:
 
 1. For each pair of events _E<sub>1</sub>_ and _E<sub>2</sub>_ in the set of viable atomic events:
   1. If _E<sub>1</sub>_ happens-before _E<sub>2</sub>_ then:
