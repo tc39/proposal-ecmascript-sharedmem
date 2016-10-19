@@ -42,6 +42,8 @@ NOTE 1: The additional-synchronizes-with relation allows the host to provide add
 
 NOTE 2: Not all events with _order_ `"SeqCst"` related by reads-from are related by synchronizes-with. Only those events that also have the same range are related by synchronizes-with.
 
+[[[ 1.i.a does not hold because of the bug in read-bytes-from but I only mention that to track it.  ]]]
+
 [[[ The Init machinery is plausible but insufficient for reasons discussed earlier, ie, typically memory will be "re-initialized" with normal writes as part of normal program execution, not with these magic initializing stores.  ]]]
 
 ### happens-before
