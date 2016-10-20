@@ -78,7 +78,7 @@ The least relation between pairs of events such that:
 
 ### Initial Values
 
-For each byte location _l_ in a _block_, there is a WriteSharedMemory(`"Init"`, _block_, _l_, 1, _v0<sub>l</sub>_) event for a host-provided value _v0<sub>l</sub>_ such that it is happens-before all other events with _l_ in their ranges.
+For each byte location _b_ in a _block_, there is a WriteSharedMemory(`"Init"`, _block_, _b_, 1, _v0<sub>b</sub>_) event for a host-provided value _v0<sub>b</sub>_ such that it is happens-before all other events with _b_ in their ranges.
 
 [[[ This is a start but it's going to be tricky to make this work for us in the context of translating from C++ code, since memory will be recycled without the SAB being freed and reallocated, and we need a way to apply this mechanism to recycled memory.  I wouldn't get hung up on this quite yet but it will be a headache.  There are few solutions here. ]]]
 
