@@ -8,7 +8,7 @@ The memory consistency model (hereinafter "memory model") aims to define the ord
 
 # Model
 
-The memory model describes the allowed orderings of SharedArrayBuffer events (hereinafter "events") and host-provided events (e.g., those arising from `postMessage`). We represent SharedArrayBuffer events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation. Allowed values for _order_ are `"SeqCst"`, `"Init"`, or `"Unordered"`.
+The memory model describes the allowed orderings of SharedArrayBuffer events (hereinafter "events") and host-provided events (e.g., those arising from `postMessage`). We represent SharedArrayBuffer events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) that occur during evaluation. Allowed values for _order_ are `"SeqCst"`, `"Init"`, or `"Unordered"`.
 
 Let the range of an event be the byte locations in the interval [_byteIndex_, _byteIndex_ + _elementSize_). Two ranges are equal when they are byte location-wise equal. Two ranges are overlapping when they are not equal and the intersection of byte locations between them is non-empty. Two events' ranges are disjoint when they do not have the same _block_ or their ranges are neither equal nor overlapping.
 
