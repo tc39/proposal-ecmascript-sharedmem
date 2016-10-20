@@ -8,9 +8,9 @@ The memory consistency model (hereinafter "memory model") aims to define the ord
 
 # Model
 
-The memory model describes the allowed orderings of SharedArrayBuffer events (hereinafter "events") and host-provided events (e.g., those arising from `postMessage`). We represent SharedArrayBuffer events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation. Allowed values for _order_ are `"SeqCst"`, `"Init"`, or `"None"`.
+The memory model describes the allowed orderings of SharedArrayBuffer events (hereinafter "events") and host-provided events (e.g., those arising from `postMessage`). We represent SharedArrayBuffer events as ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) and WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) metafunctions that occur during evaluation. Allowed values for _order_ are `"SeqCst"`, `"Init"`, or `"Unordered"`.
 
-Let the range of an event be the byte locations in the interval [_byteIndex_, _byteIndex_ + _elementSize_). We say these ranges are overlapping, equal, subsumed, or disjoint, which mean the usual things. Two events' ranges are disjoint when they do not have the same _block_.
+Let the range of an event be the byte locations in the interval [_byteIndex_, _byteIndex_ + _elementSize_). Two ranges are equal when they are byte location-wise equal. Two ranges are overlapping when they are not equal and the intersection of byte locations between them is non-empty. Two events' ranges are disjoint when they do not have the same _block_ or their ranges are neither equal nor overlapping.
 
 These events are ordered by two relations: happens-before and reads-from, defined mutually recursively as follows.
 
@@ -23,8 +23,7 @@ The total order of SharedArrayBuffer events in a single agent during a particula
 The least relation between pairs of events such that:
 
 1. For each pair of ReadSharedMemory event _R_ and WriteSharedMemory event _W_ such that _R_ has _order_ `"SeqCst"` and that _R_ reads-from _W_:
-  1. If _W_ has _order_ `"SeqCst"` and _R_ and _W_ have the same range then:
-    1. Assert: There is no other WriteSharedMemory event _V_ such that _R_ reads-from _V_.
+  1. If _W_ has _order_ `"SeqCst"` and _R_ and _W_ have equal ranges then:
     1. _R_ synchronizes-with _W_.
   1. Otherwise, if _W_ has _order_ `"Init"` then:
     1. Let _allInitReads_ be true.
@@ -40,9 +39,7 @@ The least relation between pairs of events such that:
 
 NOTE 1: The additional-synchronizes-with relation allows the host to provide additional synchronization mechanisms, such as `postMessage` between HTML workers.
 
-NOTE 2: Not all events with _order_ `"SeqCst"` related by reads-from are related by synchronizes-with. Only those events that also have the same range are related by synchronizes-with.
-
-[[[ 1.i.a does not hold because of the bug in read-bytes-from but I only mention that to track it.  ]]]
+NOTE 2: Not all events with _order_ `"SeqCst"` related by reads-from are related by synchronizes-with. Only those events that also have equal ranges are related by synchronizes-with.
 
 [[[ The Init machinery is plausible but insufficient for reasons discussed earlier, ie, typically memory will be "re-initialized" with normal writes as part of normal program execution, not with these magic initializing stores.  ]]]
 
@@ -52,31 +49,24 @@ The least partial order such that that:
 
 1. For each pair of events _E<sub>1</sub>_ and _E<sub>2</sub>_:
   1. For each agent _a_ in the agent cluster:
-    1. If _E<sub>1</sub>_ is agent-order before _E<sub>2</sub>_ in the agent-order of _a_, then _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
-    1. If _E<sub>1</sub>_ synchronizes-with _E<sub>2</sub>_, then _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
-
-[[[ Also include transitivity probably. ]]]
+    1. If _E<sub>1</sub>_ is agent-order before _E<sub>2</sub>_ in the agent-order of _a_ then:
+      1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
+    1. If _E<sub>1</sub>_ synchronizes-with _E<sub>2</sub>_ then:
+      1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
+  1. If there is an event _E<sub>3</sub>_ such that _E<sub>1</sub>_ happens-before _E<sub>3</sub>_ and _E<sub>3</sub>_ happens-before _E<sub>2</sub>_ then:
+    1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
 
 ### reads-bytes-from
 
 A function from ReadSharedMemory events to a List of WriteSharedMemory events such that:
 
 1. For each ReadSharedMemory event _R_:
-  1. There is a List [[[ of length equal to the range of R? ]]] of WriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
-  1. For each byte location _l_ in _R_'s range:
-    1. Let _W<sub>l</sub>_ be the <em>l</em>th event in _Ws_.
-    1. _W<sub>l</sub>_ has _l_ in its range, and
-    1. It is not the case that _R_ happens-before _W<sub>l</sub>_, and
-    1. There is no WriteSharedMemory event _V_ [[[ that has been observed by the agent that issued R ]]] that has _l_ in its range such that _W<sub>l</sub>_ happens-before _V_ and _V_ happens-before _R_.
-  1. If _R_ has _order_ `"SeqCst"` and there is an event _W_ in _Ws_ that has _order_ `"SeqCst"` and the same range as _R_ then:
-    1. For each byte location _l_ in _R_'s range:
-      1. Let _W<sub>l</sub>_ be the <em>l</em>th event in _Ws_.
-      1. _W_ and _W<sub>l</sub>_ are the same event.
-    1. NOTE: This prohibits a `"SeqCst"` read event from reading a value composed of bytes from different `"SeqCst"` write events on the same range.
-
-[[[ Clause 1.ii seems fine, it says we observe the last byte that has reached us at each location.   Clause 1.iii.b is not correct however.  Consider an agent that issues a SeqCst write to [0..3] followed by a None write (maybe Unordered would be the better name) to [1], say.  Suppose another agent observes both of those in a read.  The read must have both writes in its Ws since it must observe the latter for the value at [1] but needs the other for the other three bytes.  Now the condition at 1.iii is fulfilled with W being the write to [0..3] but at I==1 Wl will be the write to [1].  ]]]
-
-[[[ As a strictly editorial matter it would be better to use another letter than ell because github renders it as a cursive capital I. ]]]
+  1. There is a List of length equal to the range of R of WriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
+  1. For each byte location _b_ in _R_'s range:
+    1. Let _W<sub>b</sub>_ be the <em>b</em>th event in _Ws_.
+    1. _W<sub>b</sub>_ has _b_ in its range, and
+    1. It is not the case that _R_ happens-before _W<sub>b</sub>_, and
+    1. There is no WriteSharedMemory event _V_ that has _b_ in its range such that _W<sub>b</sub>_ happens-before _V_ and _V_ happens-before _R_.
 
 ### reads-from
 
@@ -88,24 +78,9 @@ The least relation between pairs of events such that:
 
 ### Initial Values
 
-For each byte location _l_ in a _block_, there is a WriteSharedMemory(`"Init"`, _block_, _l_, 1, _v0<sub>l</sub>_) event for a host-provided value _v0<sub>l</sub>_ such that it is happens-before all other WriteSharedMemory events with _l_ in their ranges.
+For each byte location _l_ in a _block_, there is a WriteSharedMemory(`"Init"`, _block_, _l_, 1, _v0<sub>l</sub>_) event for a host-provided value _v0<sub>l</sub>_ such that it is happens-before all other events with _l_ in their ranges.
 
 [[[ This is a start but it's going to be tricky to make this work for us in the context of translating from C++ code, since memory will be recycled without the SAB being freed and reallocated, and we need a way to apply this mechanism to recycled memory.  I wouldn't get hung up on this quite yet but it will be a headache.  There are few solutions here. ]]]
-
-### Races
-
-Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a race if all of the following conditions hold.
-
-1. It is not the case that _E<sub>1</sub>_ happens-before _E<sub>2</sub>_ or _E<sub>2</sub>_ happens-before _E<sub>1</sub>_, and
-1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ is a WriteSharedMemory event, and
-1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges, the same range, or one event's range subsumes the other's.
-
-[[[ This would be a good place to use "disjoint", which is otherwise going unused.  ]]]
-
-Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a data race if they are in a race and additionally, any of the following conditions holds.
-
-1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ does not have _order_ `"SeqCst"`, or
-1. _E<sub>1</sub>_ and _E<sub>2</sub>_ do not have the same range.
 
 ### Candidate Executions
 
@@ -121,26 +96,40 @@ Draft Note: This is intentionally underspecified. Precisely capturing and forbid
 
 ### Sequentially Consistent Atomics
 
-Let the set of viable atomic events be the set of events with _order_ `"SeqCst"` or `"Init"` that are not in a data race with any other event.
-
 A candidate execution has sequentially consistent atomics if there is a total order _memory-order_ such that:
 
-1. For each pair of events _E<sub>1</sub>_ and _E<sub>2</sub>_ in the set of viable atomic events:
+1. For each pair of events _E<sub>1</sub>_ and _E<sub>2</sub>_ in the set of events with _order_ `"SeqCst'` or `"Init"`:
   1. If _E<sub>1</sub>_ happens-before _E<sub>2</sub>_ then:
     1. _E<sub>1</sub>_ is memory-order before _E<sub>2</sub>_.
-  1. If _E<sub>1</sub>_ is a ReadSharedMemory event _R_ and _E<sub>2</sub>_ is a WriteSharedMemory event _W_ such that _R_ reads-from _W_ then:
+  1. If _E<sub>1</sub>_ is a ReadSharedMemory event _R_ and _E<sub>2</sub>_ is a WriteSharedMemory event _W_ such that _R_ synchronizes-with _W_ then:
     1. Assert: _R_ has _order_ `"SeqCst"`.
-    1. There is no WriteSharedMemory event _V_ with the same range as _R_ such that _R_ is memory-order before _V_ and _V_ is memory-order before _W_.
+    1. There is no WriteSharedMemory event _V_ with equal range as _R_ such that _W_ is memory-order before _V_ and _V_ is memory-order before _R_.
+    1. NOTE: This clause constrains `"SeqCst"` events on equal ranges, not all `"SeqCst"` events.
   1. If _E<sub>1</sub>_ is a ReadSharedMemory event _R_ and _E<sub>2</sub>_ is a WriteSharedMemory event _W_ such that _R_ and _W_ are introduced by a single read-modify-write API call (e.g., `Atomics.compareExchange`) then:
     1. Assert: _R_ and _W_ have _order_ `"SeqCst"`.
     1. _R_ is memory-order before _W_, and
     1. There is no event _E_ such that _R_ is memory-order before _E_ and _E_ is memory-order before _W_.
 
-NOTE: There is no total memory ordering for all events with _order_ `"SeqCst"`. Executions do not require that racing `"SeqCst"` events with overlapping ranges (i.e., those that participate in a data race) be totally ordered.
-
 ### Valid Executions
 
 A candidate execution is valid (hereinafter an "execution") if it has no out of thin air reads and has sequentially consistent atomics.
+
+### Races
+
+Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a race if all of the following conditions hold.
+
+1. It is not the case that _E<sub>1</sub>_ happens-before _E<sub>2</sub>_ or _E<sub>2</sub>_ happens-before _E<sub>1</sub>_, and
+1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ is a WriteSharedMemory event, and
+1. _E<sub>1</sub>_ and _E<sub>2</sub>_ do not have disjoint ranges.
+
+Two shared memory events _E<sub>1</sub>_ and _E<sub>2</sub>_ are said to be in a data race if they are in a race and additionally, any of the following conditions holds.
+
+1. At least one of _E<sub>1</sub>_ or _E<sub>2</sub>_ does not have _order_ `"SeqCst"`, or
+1. _E<sub>1</sub>_ and _E<sub>2</sub>_ have overlapping ranges.
+
+We say an execution is data race free if it has no data races between any two memory operation events. A program is data race free if all its executions are data race free.
+
+NOTE: The memory model supports sequential consistency for data race free programs.
 
 ### Semantics of ReadSharedMemory and WriteSharedMemory
 
@@ -148,25 +137,38 @@ Given an execution, the semantics of ReadSharedMemory and WriteSharedMemory is a
 
 ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_)
 
-  1. Let _Ws_ be the list of events such that this ReadSharedMemory event reads-from.
-  1. Let _v_ be 0.
-  1. For _l_ from 0 to _elementSize_-1:
-    1. Let _W<sub>l</sub>_ be the <em>l</em>th event in _Ws_.
-    1. Assert that _W<sub>l</sub>_ is a WriteSharedMemory event with the same _block_.
-    1. Let the <em>l</em>th byte in _v_ be _W<sub>l</sub>_'s value for the <em>l</em>th byte in its _bytes_.
-  1. Return _v_.
+1. Let _Ws_ be the list of events such that this ReadSharedMemory event reads-from.
+1. Let _v_ be 0.
+1. For _b_ from 0 to _elementSize_-1:
+  1. Let _W<sub>b</sub>_ be the <em>b</em>th event in _Ws_.
+  1. Assert that _W<sub>b</sub>_ is a WriteSharedMemory event with the same _block_.
+  1. Let the <em>b</em>th byte in _v_ be _W<sub>b</sub>_'s value for the <em>b</em>th byte in its _bytes_.
+1. Return _v_.
 
-NOTE 1: These are not "Runtime Semantics". Weak consistency models permit causality paradoxes and non-multiple copy atomic observable behavior that are not representable in the non-speculative step-by-step semantics labeled "Runtime Semantics" in ECMA262. Thought of another way, sequential evaluation of a single agent gives an initial partial ordering to ReadSharedMemory and WriteSharedMemory events. These events, and events from every other agent in the agent cluster, must be then partially ordered with each other according to invariants above to form candidate executions. Finally, these candidate executions must be validated to see which are allowed. ReadSharedMemory and WriteMemoryEvents are only well-defined when given an execution.
+NOTE 1: These are not "Runtime Semantics". Weak consistency models permit causality paradoxes and non-multiple copy atomic observable behavior that are not representable in the non-speculative step-by-step semantics labeled "Runtime Semantics" in ECMA262. Thought of another way, sequential evaluation of a single agent gives an initial partial ordering to ReadSharedMemory and WriteSharedMemory events. These events, and events from every other agent in the agent cluster, must be then partially ordered with each other according to invariants above to form candidate executions. Finally, these candidate executions must be validated to determine which are allowed. ReadSharedMemory and WriteMemoryEvents are only well-defined when given an execution.
 
-NOTE 2: In an execution, a `"SeqCst"` ReadSharedMemory event _R_ that synchronizes-with a `"SeqCst"` WriteSharedMemory event _W_ means that _R_ reads-from a single _W_. This ensures access atomicity for synchronized atomic reads.
+In an execution, a ReadSharedMemory event _R_ with _order_ `"SeqCst"` is access atomic when it reads-from a single WriteSharedMemory event _W_ with _order_ `"SeqCst"` with equal range.
 
-NOTE 3: In an execution, a ReadSharedMemory event that participates in a data race may reads-from multiple, different WriteSharedMemory events. The value read is composed of bytes from these WriteSharedMemory events, which does not guarantee access atomicity for the read.
+NOTE 2: Neither the synchronizes-with relation nor the "Sequentially Consistent Atomics" requirement guarantees access atomicity for atomic events. Both are concerned with ordering of atomic operations on equal ranges, but it is possible to have sequentially consistent equal-ranged atomics without access atomicity. For example, consider the following program where U8 and U16 are aliased 1-byte and 2-byte views on the same shared memory block.
 
-### Sequential Consistency for Data Race Free Programs
+```
+W1: U16[a] = 1; W2: U8[a] = 2; || R: observe(U16[a]);
+```
 
-We say an execution is data race free if it has no data races between any two memory operation events. A program is data race free if all its executions are data race free.
+A candidate execution where all of the following hold is a valid execution.
 
-The memory model implies that all executions of all data race free programs are sequentially consistent.
+- `R` synchronizes-with `W1`
+- `R` reads-from `W1`
+- `R` reads-from `W2`
+- `W1` is _memory-order_ before `W2` and `W2` is _memory-order_ before `R`.
+
+`W2` is allowed to come between `W1` and `R` in _memory-order_ because it and `R` do not have equal ranges. Thus, `R` may read a value composed of bytes written by both `W1` and `W2`.
+
+Note that this candidate execution is not data race free.
+
+In a data race free execution, a `"SeqCst"` ReadSharedMemory event _R_ that synchronizes-with a `"SeqCst"` WriteSharedMemory event _W_ means that _R_ reads-from a single _W_, guaranteeing access atomicity.
+
+In an execution, an `"Unordered"` ReadSharedMemory event or a ReadSharedMemory event that participates in a data race may reads-from multiple, different WriteSharedMemory events. The value read is composed of bytes from these WriteSharedMemory events, which does not guarantee access atomicity for the read.
 
 # Compiler Guidelines
 
