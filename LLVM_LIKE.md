@@ -41,6 +41,8 @@ NOTE 1: The additional-synchronizes-with relation allows the host to provide add
 
 NOTE 2: Not all events with _order_ `"SeqCst"` related by reads-from are related by synchronizes-with. Only those events that also have equal ranges are related by synchronizes-with.
 
+[[[ It is probably worth noting that even if R synchronizes-with W, R may still read-from other writes (overlapping but non-subsumbing writes that happened after W and are observed by the reader).  I have no problem with this, in fact it seems like an elegant solution to the conundrum of overlapping and subrange writes, but it will be surprising to readers I expect. ]]]
+
 [[[ The Init machinery is plausible but insufficient for reasons discussed earlier, ie, typically memory will be "re-initialized" with normal writes as part of normal program execution, not with these magic initializing stores.  ]]]
 
 ### happens-before
