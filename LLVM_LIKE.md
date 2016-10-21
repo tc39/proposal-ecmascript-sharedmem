@@ -52,7 +52,7 @@ The least partial order such that that:
     1. If _E<sub>1</sub>_ is agent-order before _E<sub>2</sub>_ in the agent-order of _a_ then:
       1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
     1. If _E<sub>1</sub>_ synchronizes-with _E<sub>2</sub>_ then:
-      1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
+      1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.  [[[ Presumably E2 h-b E1 since E1 is the read and E2 the prior write ]]]
   1. If there is an event _E<sub>3</sub>_ such that _E<sub>1</sub>_ happens-before _E<sub>3</sub>_ and _E<sub>3</sub>_ happens-before _E<sub>2</sub>_ then:
     1. _E<sub>1</sub>_ happens-before _E<sub>2</sub>_.
 
@@ -79,6 +79,8 @@ The least relation between pairs of events such that:
 ### Initial Values
 
 For each byte location _b_ in a _block_, there is a WriteSharedMemory(`"Init"`, _block_, _b_, 1, _v0<sub>b</sub>_) event for a host-provided value _v0<sub>b</sub>_ such that it is happens-before all other events with _b_ in their ranges.
+
+[[[ The bytes should be specified as zero, this is how a SharedArrayBuffer is initialized, and given that it cannot (by spec) be communicated other than by a host event there will be a proper h-b relationship between its creation in one thread and any other thread reading from it.  So readers can count on seeing zeroes.  Unless you count on these "Init" writes to be applied more broadly. ]]]
 
 [[[ This is a start but it's going to be tricky to make this work for us in the context of translating from C++ code, since memory will be recycled without the SAB being freed and reallocated, and we need a way to apply this mechanism to recycled memory.  I wouldn't get hung up on this quite yet but it will be a headache.  There are few solutions here. ]]]
 
@@ -137,7 +139,7 @@ Given an execution, the semantics of ReadSharedMemory and WriteSharedMemory is a
 
 ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_)
 
-1. Let _Ws_ be the list of events such that this ReadSharedMemory event reads-from.
+1. Let _Ws_ be the list of events that this ReadSharedMemory event reads-from.
 1. Let _v_ be 0.
 1. For _b_ from 0 to _elementSize_-1:
   1. Let _W<sub>b</sub>_ be the <em>b</em>th event in _Ws_.
