@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-10-24 -- Add Tear Free Aligned Reads requirement to valid executions; fixed Access Atomicity to impart that the memory model only solves ordering of events and that access atomicity is an orthogonal property.
   <li>2016-10-24 -- Rewrote memory model, again, to be axiomatic.
   <li>2016-07-22 -- Editorial fixes.
   <li>2016-07-21 -- Replace [[SharedArrayBufferData]] and [[SharedArrayBufferByteLength]] with [[ArrayBufferData]] and [[ArrayBufferByteLength]]; remove specialization that was based on the removed properties and instead use type checks with IsSharedArrayBuffer in ArrayBuffer, SharedArrayBuffer, and Atomics methods; spec that Shared Data Blocks are distinguishable (by unspecified means) from regular Data Blocks and use this to defined IsSharedArrayBuffer.
@@ -924,11 +925,14 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="MemoryModel.CandidateExecutions">
       <h1>Candidate Executions</h1>
       <p>A <dfn>candidate execution</dfn> of an agent cluster is a set of Shared Data Block events together with a happens-before relation and a reads-from relation.</p>
+      <emu-note>
+        <p>Because happens-before is a superset of agent-order, candidate executions are consistent with the single-thread evaluation semantics of ECMA262.</p>
+      </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
       <h1>depends-on</h1>
-      <p>A host-provided relation on Shared Data Block events that is consistent with the agent-order of each agent in the agent cluster that captures data and control dependencies between events.</p>
+      <p>A host-provided relation on Shared Data Block events that is consistent with the agent-order of each agent in the agent cluster that captures semantic data and control dependencies between events.</p>
 
       <emu-note>
         <p>The dependence relation may differ between implementations of ECMAScript.</p>
@@ -940,7 +944,7 @@ These call AllocateTypedArray with a specified length:
       <p>A candidate execution has no out of thin air reads if there is no cycle in the union of the relations reads-from and depends-on.</p>
 
       <emu-note>
-        <p>Out of thin air reads is an artifact of axiomatic memory models. For other languages with axiomatic memory models, thin air reads have not been observed on any known hardware nor due to any known compiler transform.</p>
+        <p>Out of thin air reads is an artifact of memory models rather than implementation reality. For other languages with similar memory models, thin air reads have not been observed on any known hardware nor due to any known compiler transform.</p>
       </emu-note>
 
       <emu-note>
@@ -949,9 +953,30 @@ These call AllocateTypedArray with a specified length:
       </emu-note>
     </emu-clause>
 
+    <emu-clause id="MemoryModel.TearFreeAlignedReads">
+      <h1>Tear Free Aligned Reads</h1>
+      <p>A candidate execution has tear free for aligned reads if the following conditions hold.</p>
+      <emu-alg>
+        1. For each ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) or ReadModifyWriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_) event _R_:
+          1. Let _r_ be the remainder of _byteIndex_ ÷ _elementSize_.
+          1. Assert: _r_ is a nonnegative integer.
+          1. If _r_ is *0* then
+            1. For each event _W_ such that _R_ reads-from _W_:
+              1. If _R_ and _W_ have equal ranges then there is no _V_ with equal range such that _W_ is not _V_ and _R_ reads-from _V_.
+      </emu-alg>
+
+      <emu-note>
+        <p>Events that have non-*0* remainders are unaligned, and events that have *0* remainders are aligned. Unaligned events are introduced by using `DataView` instances, and aligned events are introduced by using `TypedArray` instances.</p>
+      </emu-note>
+
+      <emu-note>
+        <p>Intuitively, this requirement says when a memory range is accessed in an aligned fashion, a single write event on that range must "win" when in a data race with other write events with equal ranges. More precisely, this requirement says an aligned read event cannot read a value composed of bytes from multiple, different write events all with equal ranges. It is possible, however, for an aligned read event to read from multiple write events with overlapping ranges. See Access Atomicity below.</p>
+      </emu-note>
+    </emu-clause>
+
     <emu-clause id="MemoryModel.MemoryOrder" aoid="memory-order">
       <h1>memory-order</h1>
-      <p>A total order on Shared Data Block events with _order_ `"SeqCst"` or `"Init"` such that the following conditions hold.</p>
+      <p>A total order on the set of Shared Data Block events with _order_ `"SeqCst"` or `"Init"` such that the following conditions hold.</p>
 
       <emu-alg>
         1. For each pair of events _E_ and _D_ in the subset of events with _order_ `"SeqCst"` or `"Init"`:
@@ -970,7 +995,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.ValidExecutions">
       <h1>Valid Executions</h1>
-      <p>A candidate execution is a valid execution if it has no out of thin air reads and has sequentially consistent atomics.</p>
+      <p>A candidate execution is a valid execution if it has no out of thin air reads, has tear free aligned reads, and has sequentially consistent atomics.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.Races" aoid="race">
@@ -1073,9 +1098,26 @@ These call AllocateTypedArray with a specified length:
 
       <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event.</p>
 
-      <p>Neither the synchronizes-with relation nor the Sequentially Consistent Atomics requirement guarantees access atomicity for atomic events. Both are concerned with ordering of atomic operations on equal ranges, but it is possible to have sequentially consistent equal-ranged atomics without access atomicity. For example, consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
+      <p>The Tear Free Aligned Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
 
-      <pre>W1: U16[a] = 1; W2: U8[a] = 2; || R: observe(U16[a]);</pre>
+      <pre>   W1: U16[a] = 1; W2: U8[a] = 2;
+|| W3: U16[a] = 3;
+||  R: observe(U16[a]);</pre>
+
+      <p>A candidate execution where all the following hold is a valid execution.</p>
+
+      <ul>
+        <li>`R` reads-from `W1`</li>
+        <li>`R` reads-from `W2`</li>
+      </ul>
+
+      <p>`R` reads a value composed of bytes from `W1` and `W2`, and is thus not access atomic. At the same time, it does not read-from both `W2` and `W3`, and thus is tear free.</p>
+
+      <p>Similarly, neither the synchronizes-with relation, the Sequentially Consistent Atomics requirement guarantees access atomicity for atomic events. Both are concerned with ordering of atomic operations on equal ranges, but it is possible to have sequentially consistent equal-ranged atomics without access atomicity. For example, consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
+
+      <pre>   W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, a, 2);
+|| W3: Atomics.store(U16, a, 3);
+||  R: observe(Atomics.load(U16, a));</pre>
 
       <p>A candidate execution where all of the following hold is a valid execution.</p>
 
@@ -1083,14 +1125,28 @@ These call AllocateTypedArray with a specified length:
         <li>`R` synchronizes-with `W1`</li>
         <li>`R` reads-from `W1`</li>
         <li>`R` reads-from `W2`</li>
-        <li>`W1` is memory-order before `W2` and `W2` is memory-order before `R`.</li>
+        <li>`W1` is memory-order before `W2` and `W2` is memory-order before `R` and `R` is memory-order before `W3`</li>
       </ul>
 
       <p>`W2` is allowed to come between `W1` and `R` in memory-order because it and `R` do not have equal ranges. Thus, `R` may read a value composed of bytes written by both `W1` and `W2`.</p>
 
-      <p>Note that this candidate execution is not data race free.</p>
+      <p>Finally, data race freedom and sequential consistency do not imply access atomicity. Consider the following program with a single agent.</p>
 
-      <p>Data race free executions guarantee access atomicity for `"SeqCst"` events. In such executions, `"SeqCst"` events _R_ and _W_ such that _W_ synchronizes-with _R_ means that _R_ reads-from _W_ and no other events.</p>
+      <pre>W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, a, 2); R: observe(Atomics.load(U16, a));</pre>
+
+      <p>The only valid execution is as follows.</p>
+
+      <ul>
+        <li>`R` synchronizes-with `W1`</li>
+        <li>`R` reads-from `W1`</li>
+        <li>`R` reads-from `W2`</li>
+        <li>`W1` is memory-order before `W2` and `W2` is memory-order before `R`</li>
+      </ul>
+
+      <p>All valid executions of the program are data race free, since there is a single thread. But `R` is not access atomic since it reads-from multiple events.</p>
+
+      <p>The central problem the memory model solves is the ordering of memory events. The SharedArrayBuffer API's lack of type discipline and allowance of overlapping accesses makes access atomicity an orthogonal property from event ordering.</p>
+      <p>A program wishing to avoid reasoning about access atomicity or wishing to guarantee all its aligned and atomic accesses are access atomic should avoid accesses on overlapping ranges. When a program does not use address ranges in an overlapping fashion, aligned and atomic accesses are access atomic.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.SeqCst">
@@ -1510,7 +1566,7 @@ These call AllocateTypedArray with a specified length:
 
   <emu-clause id="Codegen">
     <h1>Code Generation Guidelines</h1>
-    <p>For architectures no weaker than ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86 and load-link/store-conditional instructions on ARM.</p>
+    <p>For architectures with memory models no weaker than those of ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86 and load-link/store-conditional instructions on ARM.</p>
   </emu-clause>
 </emu-clause>
 
