@@ -600,7 +600,7 @@ These call AllocateTypedArray with a specified length:
           1. <ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true* then</ins>
             1. <ins>Let _rmwEvent_ be a Shared Data Block event ReadModifyWriteSharedMemory(`"SeqCst"`, _block_, _byteIndex_, _elementSize_, _rawBytes_, _op_).</ins>
             1. <ins>Introduce _rmwEvent_.</ins>
-            1. <ins>Let _rawBytesModified_ be the value of _rmwEvent_ in _execution_.</ins>
+            1. <ins>Let _rawBytesRead_ be the value of _rmwEvent_ in _execution_.</ins>
           1. <ins>Else,</ins>
             1. <ins>Let _rawBytesRead_ be a List containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
             1. <ins>Let _rawBytesModified_ be _op_(_rawBytesRead_, _rawBytes_).</ins>
@@ -1044,17 +1044,23 @@ These call AllocateTypedArray with a specified length:
           1. Assert: _W_ is a has _byteLocation_ in its range.
           1. If _W_ is a WriteSharedMemory(_orderW_, _block_, _byteIndexW_, _elementSizeW_, _bytesW_) event then
             1. Let _byte_ be _bytesW_[_byteLocation_].
-          1. Otherwise:
-            1. Assert: _W_ is a ReadModifyWriteSharedMemory event.
-            1. Let _bytesRMW_ be the value of _W_ in _execution_.
-            1. Let _byte_ be _bytesRMW_[_byteLocation_].
+          1. Else,
+            1. Assert: _W_ is a ReadModifyWriteSharedMemory(`"SeqCst"`, _block_, _byteIndexRMW_, _elementSizeRMW_, _bytesRMW_, _op_) event.
+            1. Let _bytesRead_ be the value of _W_ in _execution_.
+            1. Let _bytesModified_ be _op_(_bytesRead_, _bytesRMW_).
+            1. Let _byte_ be _bytesModified_[_byteLocation_].
           1. Append _byte_ to _bytesRead_.
           1. Increment _byteLocation_ by 1.
         1. Return _bytesRead_.
       </emu-alg>
 
       <emu-note>
+        <p>The semantic function _op_ is given by the function properties on the Atomics object that introduce ReadModifyWriteSharedMemory events.</p>
+      </emu-note>
+
+      <emu-note>
         <p>This subroutine composes a List of write events into a List of byte values. It is used in the event semantics of ReadSharedMemory and ReadModifyWriteSharedMemory events.</p>
+      </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.ReadSharedMemory" aoid="ReadSharedMemory">
@@ -1084,12 +1090,11 @@ These call AllocateTypedArray with a specified length:
         1. Assert: _order_ is `"SeqCst"`.
         1. Let _Ws_ be the List of Shared Data Block events such that this event reads-from _Ws_.
         1. Assert: _Ws_ has length equal to _elementSize_.
-        1. Let _bytesRead_ be the value of ComposeWriteEventBytes(_block_, _byteIndex_, _Ws_) in _execution_.
-        1. Return _op_(_bytesRead_, _bytes_).
+        1. Return ComposeWriteEventBytes(_block_, _byteIndex_, _Ws_) in _execution_.
       </emu-alg>
 
       <emu-note>
-        <p>The semantic function _op_ is given by the function properties on the Atomics object that introduce ReadModifyWriteSharedMemory events.</p>
+        <p>The value of ReadModifyWriteSharedMemory events is the value read, before modification by _op_. The modification itself is captured by ComposeWriteEventBytes.</p>
       </emu-note>
     </emu-clause>
 
