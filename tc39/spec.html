@@ -587,7 +587,7 @@ These call AllocateTypedArray with a specified length:
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetModifySetValueInBuffer" aoid="GetModifySetValueInBuffer">
         <h1><ins>GetModifySetValueInBuffer( _arrayBuffer_, _byteIndex_, _type_, _value_, _op_ [, _isLittleEndian_] )</ins></h1>
         <p>This is a new abstract operation.</p>
-        <p><ins>The abstract operation GetModifySetValueInBuffer takes six parameters, An ArrayBuffer or SharedArrayBuffer _arrayBuffer_, an integer _byteIndex_, a String _type_, a semantic function _op_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps given a valid execution _execution_ (see the Atomics memory model):</ins></p>
+        <p><ins>The abstract operation GetModifySetValueInBuffer takes six parameters, An ArrayBuffer or SharedArrayBuffer _arrayBuffer_, a nonnegative integer _byteIndex_, a String _type_, a semantic function _op_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps given a valid execution _execution_ (see the Atomics memory model):</ins></p>
 
         <emu-alg>
           1. <ins>Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.</ins>
