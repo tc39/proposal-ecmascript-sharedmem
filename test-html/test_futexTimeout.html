@@ -29,7 +29,7 @@ var w = new Array(2);
 
 for ( var i=0 ; i < w.length ; i++ ) {
     w[i] = new Worker("futexTimeout_slave.js");
-    w[i].postMessage(["start", mem.buffer, WAITLOC], [mem.buffer]);
+    w[i].postMessage(["start", mem.buffer, WAITLOC]);
     w[i].onmessage = function (ev) {
         var x = ev.data;
         if (Array.isArray(x) && x[0] == "msg")

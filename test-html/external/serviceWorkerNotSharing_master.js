@@ -51,7 +51,7 @@ function runTest() {
             setTimeout(function () {
 		try {
                     msg("# Sending SAB of length 236 to worker");
-                    theWorker.postMessage(sab, [sab]);
+                    theWorker.postMessage(sab);
 		    msg("# Did send SAB to worker without exception ");
 		}
 		catch (e) {

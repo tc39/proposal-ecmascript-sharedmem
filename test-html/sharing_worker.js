@@ -7,7 +7,7 @@ var sab = new SharedArrayBuffer(4096);
 
 onmessage = function (ev) {
     if (ev.data === "START") {
-	postMessage(sab, [sab]);
+	postMessage(sab);
 	return;
     }
 

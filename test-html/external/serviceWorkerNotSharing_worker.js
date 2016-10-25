@@ -47,7 +47,7 @@ function sendToMaster(didTimeout) {
 	if (didTimeout)
 	    theMaster.postMessage("# Timed out waiting for a message from master");
 	theMaster.postMessage("# Sending SAB of length 200 to master");
-	theMaster.postMessage(sab, [sab]);
+	theMaster.postMessage(sab);
 	theMaster.postMessage("# Did send SAB to master without exception");
 	setTimeout(function () {
 	    let ia = new Int32Array(sab);

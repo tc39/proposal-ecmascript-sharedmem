@@ -44,7 +44,7 @@ onmessage = function (ev) {
 
     postMessage("Starting workers");
     for ( var w in ws )
-	ws[w].postMessage({id: w, sab: sab}, [sab]);
+	ws[w].postMessage({id: w, sab: sab});
 
     setTimeout(waitUntilDone, 0);
 }

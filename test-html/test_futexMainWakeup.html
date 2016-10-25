@@ -22,7 +22,7 @@ something is wrong.
 <script>
 var mem = new Int32Array(new SharedArrayBuffer(4));
 var worker = new Worker("futexMainWakeup-worker.js");
-worker.postMessage(["start", mem.buffer], [mem.buffer]);
+worker.postMessage(["start", mem.buffer]);
 worker.onmessage = function (ev) {
     msg(String(ev.data));
 }

@@ -36,7 +36,7 @@ function runTest() {
 
     if (!w) {
         w = new Worker("futexWakeInInterrupt-worker.js");
-        w.postMessage([mem.buffer], [mem.buffer]);
+        w.postMessage([mem.buffer]);
         setTimeout(runTest, 500);
         return;
     }

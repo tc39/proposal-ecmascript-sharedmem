@@ -23,7 +23,7 @@ function runTest() {
     // it tries to transmit shared memory.
 
     try {
-	w.port.postMessage(sab, [sab]);
+	w.port.postMessage(sab);
     }
     catch (e) {
 	msg("SUCCESS - Failed to send in master");

@@ -21,7 +21,7 @@ onconnect = function (ev) {
 
     setTimeout(function () {
 	try {
-	    port.postMessage(sab, [sab]);
+	    port.postMessage(sab);
 	} catch (e) {
 	    port.postMessage("SUCCESS - Failed to send in worker");
 	}

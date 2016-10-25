@@ -30,8 +30,8 @@ var mem = new Int32Array(new SharedArrayBuffer(4));
 
 function runTest() {
     try {
-        w.postMessage(mem.buffer, [mem.buffer]);
-        w.postMessage(mem, [mem.buffer]);
+        w.postMessage(mem.buffer);
+        w.postMessage(mem);
         msg("DONE");
     }
     catch (e) {
