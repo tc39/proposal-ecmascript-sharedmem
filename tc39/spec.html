@@ -127,10 +127,10 @@ comments.</p>
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
             1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block then
-              1. <ins>Let _readEvent_ be a Shared Data Block event ReadSharedMemory(`"Unordered"`, _fromBlock_, _fromIndex_, *1*).</ins>
+              1. <ins>Let _readEvent_ be a Shared Data Block event ReadSharedMemory(`"Unordered"`, *true*, _fromBlock_, _fromIndex_, *1*).</ins>
               1. <ins>Introduce _readEvent_.</ins>
               1. <ins>Let _bytes_ be a List of length *1* that contains a nondeterministically chosen byte value.</ins>
-              1. <ins>Let _writeEvent_ be a Shared Data Block event WriteSharedMemory(`"Unordered"`, _toBlock_, _toIndex_, *1*, _bytes[0]_).</ins>
+              1. <ins>Let _writeEvent_ be a Shared Data Block event WriteSharedMemory(`"Unordered"`, *true*, _toBlock_, _toIndex_, *1*, _bytes[0]_).</ins>
               1. <ins>Introduce _writeEvent_.</ins>
             1. <ins>Otherwise, set _toBlock_[_toIndex_] to _fromBlock_[_fromIndex_].</inbs>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
@@ -146,7 +146,7 @@ comments.</p>
           1. Assert: _size_ >= 0.
           1. Let _db_ be a new Shared Data Block value consisting of _size_ bytes. If it is impossible to create such a Shared Data Block, throw a *RangeError* exception.
           1. For each index _i_ of _db_:
-            1. Introduce a Shared Data Block event WriteSharedMemory(`"Init"`, _db_, _i_, *1*, *0*).
+            1. Introduce a Shared Data Block event WriteSharedMemory(`"Init"`, *true*, _db_, _i_, *1*, *0*).
           1. Return _db_.
         </emu-alg>
       </emu-clause>
@@ -494,9 +494,9 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetValueFromBuffer" aoid="GetValueFromBuffer">
-        <h1>GetValueFromBuffer( _arrayBuffer_, _byteIndex_, _type_, <ins>_order_</ins> [, _isLittleEndian_] ) (<a href="https://tc39.github.io/ecma262/#sec-getvaluefrombuffer">ES7 24.1.1.5</a>)</h1>
+        <h1>GetValueFromBuffer( _arrayBuffer_, _byteIndex_, _type_, <ins>_isTypedArray_, _order_</ins> [, _isLittleEndian_] ) (<a href="https://tc39.github.io/ecma262/#sec-getvaluefrombuffer">ES7 24.1.1.5</a>)</h1>
         <p>This algorithm is modified as follows:</p>
-        <p>The abstract operation GetValueFromBuffer takes <del>four</del><ins>five</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, <ins>a String _order_,</ins> and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <p>The abstract operation GetValueFromBuffer takes <del>four</del><ins>six</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, <ins>a Boolean _isTypedArray_, a String _order_,</ins> and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
         <emu-alg>
           1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
           1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
@@ -504,7 +504,8 @@ These call AllocateTypedArray with a specified length:
           1. Let _block_ be _arrayBuffer_.[[ArrayBufferData]].
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true* then</ins>
-            1. <ins>Let _readEvent_ be a Shared Data Block event ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_).</ins>
+            1. <ins>Let _noTear_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.
+            1. <ins>Let _readEvent_ be a Shared Data Block event ReadSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_).</ins>
             1. <ins>Introduce _readEvent_.</ins>
             1. <ins>Let _rawValue_ be a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
           1. <ins>Else, let _rawValue_ be a List containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
@@ -525,8 +526,10 @@ These call AllocateTypedArray with a specified length:
           1. <del>Return the Number value that corresponds to _intValue_.</del> <ins>Return _value_.</ins>
         </emu-alg>
 
-        <p>All existing uses of the form GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, _isLittleEndian_) are changed to <ins>GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, `"Unordered"`, _isLittleEndian_).</ins></p>
-        <p>All existing uses of the form GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_) are changed to <ins>GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, `"Unordered"`).</ins></p>
+        <p>All existing uses of the form GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, _isLittleEndian_) in TypedArray methods and abstract operations are changed to <ins>GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, *true*, `"Unordered"`, _isLittleEndian_).</ins></p>
+        <p>All existing uses of the form GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, _isLittleEndian_) in non-TypedArray methods and abstract operations are changed to <ins>GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, *false*, `"Unordered"`, _isLittleEndian_).</ins></p>
+        <p>All existing uses of the form GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_) in TypedArray methods and abstract operations are changed to <ins>GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, *true*, `"Unordered"`).</ins></p>
+        <p>All existing uses of the form GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_) in non-TypedArray methods and abstract operations are changed to <ins>GetValueFromBuffer(_arrayBuffer_, _byteIndex_, _type_, *false*, `"Unordered"`).</ins></p>
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.NumberToRawBytes" aoid="NumberToRawBytes">
@@ -550,9 +553,9 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.SetValueInBuffer" aoid="SetValueInBuffer">
-        <h1>SetValueInBuffer( _arrayBuffer_, _byteIndex_, _type_, _value_, <ins>_order_</ins> [, _isLittleEndian_] ) (<a href="https://tc39.github.io/ecma262/#sec-setvalueinbuffer">ES7 24.1.1.6</a>)</h1>
+        <h1>SetValueInBuffer( _arrayBuffer_, _byteIndex_, _type_, _value_, <ins>_isTypedArray_, _order_</ins> [, _isLittleEndian_] ) (<a href="https://tc39.github.io/ecma262/#sec-setvalueinbuffer">ES7 24.1.1.6</a>)</h1>
         <p>This algorithm is modified as follows:</p>
-        <p>The abstract operation SetValueInBuffer takes <del>five</del><ins>six</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, <ins>a String _order_,</ins> a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
+        <p>The abstract operation SetValueInBuffer takes <del>five</del><ins>seven</ins> parameters, an ArrayBuffer <ins>or SharedArrayBuffer</ins> _arrayBuffer_, an integer _byteIndex_, a String _type_, a Number _value_, <ins>a Boolean _isTypedArray_, a String _order_,</ins> and optionally a Boolean _isLittleEndian_. This operation performs the following steps:</p>
 
         <emu-alg>
           1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
@@ -575,13 +578,16 @@ These call AllocateTypedArray with a specified length:
             1. <del>Else,</del>
               1. <del>Let _rawBytes_ be a List containing the _n_-byte binary 2's complement encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.</del>
           1. <del>Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true*, then</ins>
-            1. <ins>Introduce a Shared Data Block event WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _rawBytes_).</ins>
+            1. <ins>Let _noTear_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.
+            1. <ins>Introduce a Shared Data Block event WriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _rawBytes_).</ins>
           1. <ins>Else, store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</ins>
           1. Return NormalCompletion(*undefined*).
         </emu-alg>
 
-        <p>All existing uses of the form SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, _isLittleEndian_) are changed to <ins>SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, `"Unordered"`, _isLittleEndian_).</ins></p>
-        <p>All existing uses of the form SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_) are changed to <ins>SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, `"Unordered"`).</ins></p>
+        <p>All existing uses of the form SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, _isLittleEndian_) in TypedArray methods and abstract operations are changed to <ins>SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, *true*, `"Unordered"`, _isLittleEndian_).</ins></p>
+        <p>All existing uses of the form SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, _isLittleEndian_) in non-TypedArray methods and abstract operations are changed to <ins>SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, *false*, `"Unordered"`, _isLittleEndian_).</ins></p>
+        <p>All existing uses of the form SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_) in TypedArray methods and abstract operations are changed to <ins>SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, *true*, `"Unordered"`).</ins></p>
+        <p>All existing uses of the form SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_) in non-TypedArray methods and abstract operations are changed to <ins>SetValueInBuffer(_arrayBuffer_, _byteIndex_, _type_, _value_, *false*, `"Unordered"`).</ins></p>
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetModifySetValueInBuffer" aoid="GetModifySetValueInBuffer">
@@ -599,7 +605,7 @@ These call AllocateTypedArray with a specified length:
           1. <ins>If _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record.</ins>
           1. <ins>Let _rawBytes_ be NumberToRawBytes(_type_, _value_, _isLittleEndian_).</ins>
           1. <ins>Assert: IsSharedArrayBuffer(_arrayBuffer_) is *true*.</ins>
-          1. <ins>Let _rmwEvent_ be a Shared Data Block event ReadModifyWriteSharedMemory(`"SeqCst"`, _block_, _byteIndex_, _elementSize_, _rawBytes_, _op_).</ins>
+          1. <ins>Let _rmwEvent_ be a Shared Data Block event ReadModifyWriteSharedMemory(`"SeqCst"`, *true*, _block_, _byteIndex_, _elementSize_, _rawBytes_, _op_).</ins>
           1. <ins>Introduce _rmwEvent_.</ins>
           1. <ins>Let _rawBytesRead_ be the a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
           1. <ins>Let _value_ be RawBytesToNumber(_type_, _rawBytesRead_, _isLittleEndian_).</ins>
@@ -820,7 +826,7 @@ These call AllocateTypedArray with a specified length:
         No orderings weaker than sequentially consistent and stronger than unordered, such as release-acquire, are supported.
       </emu-note>
 
-      <p>A <dfn>Shared Data Block event</dfn> is a ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) event, a WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_) event, or a ReadModifyWriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_) event introduced by an abstract operation or by a Function property on the Atomics object. Allowed values for _order_ are `"SeqCst"`, `"Unordered"`, and `"Init"`. ReadModifyWriteSharedMemory events always have _order_ `"SeqCst"`. These events may be referred to simply as ReadSharedMemory, WriteSharedMemory or ReadModifyWriteSharedMemory events. Additionally, Shared Data Block events include host-specific events.</p>
+      <p>A <dfn>Shared Data Block event</dfn> is a ReadSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_) event, a WriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_) event, or a ReadModifyWriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_) event introduced by an abstract operation or by a Function property on the Atomics object. Allowed values for _order_ are `"SeqCst"`, `"Unordered"`, and `"Init"`. ReadModifyWriteSharedMemory events always have _order_ `"SeqCst"`. These events may be referred to simply as ReadSharedMemory, WriteSharedMemory or ReadModifyWriteSharedMemory events. Additionally, Shared Data Block events include host-specific events.</p>
 
       <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the List of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges their neither equal nor overlapping.</p>
 
@@ -991,7 +997,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.InitialValue">
       <h1>Initial Values</h1>
-      <p>For a candidate execution _execution_, for each byte location _b_ in a Shared Data Block _block_, there is a WriteSharedMemory(`"Init"`, _block_, _b_, *1*, _v0_) event for some host-provided value _v0_ such that it happens-before all other Shared Data Block events with _b_ in their ranges in _execution_.[[EventSet]].</p>
+      <p>For a candidate execution _execution_, for each byte location _b_ in a Shared Data Block _block_, there is a WriteSharedMemory(`"Init"`, *true*, _block_, _b_, *1*, _v0_) event for some host-provided value _v0_ such that it happens-before all other Shared Data Block events with _b_ in their ranges in _execution_.[[EventSet]].</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
@@ -1013,10 +1019,10 @@ These call AllocateTypedArray with a specified length:
         1. Let _bytesRead_ be an empty List.
         1. For each element _W_ of _Ws_ in List order:
           1. Assert: _W_ is a has _byteLocation_ in its range.
-          1. If _W_ is a WriteSharedMemory(_orderW_, _block_, _byteIndexW_, _elementSizeW_, _bytesW_) event then
+          1. If _W_ is a WriteSharedMemory(_orderW_, _noTearW_, _block_, _byteIndexW_, _elementSizeW_, _bytesW_) event then
             1. Let _byte_ be _bytesW_[_byteLocation_].
           1. Else,
-            1. Assert: _W_ is a ReadModifyWriteSharedMemory(`"SeqCst"`, _block_, _byteIndexRMW_, _elementSizeRMW_, _bytesRMW_, _op_) event.
+            1. Assert: _W_ is a ReadModifyWriteSharedMemory(`"SeqCst"`, _noTearRMW_, _block_, _byteIndexRMW_, _elementSizeRMW_, _bytesRMW_, _op_) event.
             1. Let _bytesRead_ be the value of _W_ in _execution_.
             1. Let _bytesModified_ be _op_(_bytesRead_, _bytesRMW_).
             1. Let _byte_ be _bytesModified_[_byteLocation_].
@@ -1035,8 +1041,8 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="MemoryModel.ReadSharedMemory" aoid="ReadSharedMemory">
-      <h1>ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_)</h1>
-      <p>A ReadSharedMemory event has a payload of four values, a String _order_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a nonnegative integer _elementSize_.</p>
+      <h1>ReadSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_)</h1>
+      <p>A ReadSharedMemory event has a payload of five values, a String _order_, a Boolean _noTear_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a nonnegative integer _elementSize_.</p>
       <p>The value of a ReadSharedMemory event is determined using the following steps given a candidate execution _execution_.</p>
 
       <emu-alg>
@@ -1048,18 +1054,19 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="MemoryModel.WriteSharedMemory" aoid="WriteSharedMemory">
-      <h1>WriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_)</h1>
-      <p>A WriteSharedMemory event has a payload of five values, a String _order_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a nonnegative integer _elementSize_, and a List _bytes_.</p>
+      <h1>WriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_)</h1>
+      <p>A WriteSharedMemory event has a payload of six values, a String _order_, a Boolean _noTear_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a nonnegative integer _elementSize_, and a List _bytes_.</p>
       <p>A WriteSharedMemory event has no value. It participates in the relational constraints of, and is read from by a ReadSharedMemory or ReadModifyWriteSharedMemory event in, a candidate execution.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.ReadModifyWriteSharedMemory" aoid="ReadModifyWriteSharedMemory">
-      <h1>ReadModifyWriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_)</h1>
-      <p>A ReadSharedMemory event has a payload of six values, a String _order_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a nonnegative integer _elementSize_, a List _bytes_, and a semantic function _op_.</p>
+      <h1>ReadModifyWriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_)</h1>
+      <p>A ReadSharedMemory event has a payload of seven values, a String _order_, a Boolean _noTear_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a nonnegative integer _elementSize_, a List _bytes_, and a semantic function _op_.</p>
       <p>The value of a ReadModifyWriteSharedMemory event is determined using the following steps given a candidate execution _execution_.</p>
 
       <emu-alg>
         1. Assert: _order_ is `"SeqCst"`.
+        1. Assert: _noTear_ is *true*.
         1. Let reads-from be _execution_.[[ReadsFrom]].
         1. Let _Ws_ be the List of Shared Data Block events such that this event reads-from _Ws_.
         1. Assert: _Ws_ has length equal to _elementSize_.
@@ -1096,24 +1103,19 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="MemoryModel.TearFreeAlignedReads">
-      <h1>Tear Free Aligned Reads</h1>
-      <p>A candidate execution _execution_ has tear free aligned reads if the following conditions hold.</p>
+      <h1>Tear Free Reads</h1>
+      <p>A candidate execution _execution_ has tear free reads if the following conditions hold.</p>
       <emu-alg>
         1. Let reads-from be _execution_.[[ReadsFrom]].
-        1. For each ReadSharedMemory(_order_, _block_, _byteIndex_, _elementSize_) or ReadModifyWriteSharedMemory(_order_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_) event _R_ in _execution_.[[EventSet]]:
-          1. Let _r_ be the remainder of _byteIndex_ ÷ _elementSize_.
-          1. Assert: _r_ is a nonnegative integer.
-          1. If _r_ is *0* then
-            1. For each event _W_ such that _R_ reads-from _W_:
-              1. If _R_ and _W_ have equal ranges then there is no _V_ with equal range such that _W_ is not _V_ and _R_ reads-from _V_.
+        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in _execution_.[[EventSet]]:
+          1. If _R_'s _noTear_ value is *true* then
+            1. Assert that the remainder of _R_'s _byteIndex_ ÷ _R_'s _elementSize_ is *0*.
+            1. For each event _W_ such that _R_ reads-from _W_ and _W_'s _noTear_ value is *true*:
+              1. If _R_ and _W_ have equal ranges then there is no _V_ such that _V_ and _W_ have equal range, _V_'s _noTear_ is *true*, _W_ is not _V_, and _R_ reads-from _V_.
       </emu-alg>
 
       <emu-note>
-        <p>Events that have non-*0* remainders are unaligned, and events that have *0* remainders are aligned. Unaligned events are introduced by using `DataView` instances, and aligned events are introduced by using `TypedArray` instances.</p>
-      </emu-note>
-
-      <emu-note>
-        <p>Intuitively, this requirement says when a memory range is accessed in an aligned fashion, a single write event on that range must "win" when in a data race with other write events with equal ranges. More precisely, this requirement says an aligned read event cannot read a value composed of bytes from multiple, different write events all with equal ranges. It is possible, however, for an aligned read event to read from multiple write events with overlapping ranges. See Access Atomicity below.</p>
+        <p>Intuitively, this requirement says when a memory range is accessed in an aligned fashion via a TypedArray instead of a DataView, a single write event on that range must "win" when in a data race with other write events with equal ranges. More precisely, this requirement says an aligned read event cannot read a value composed of bytes from multiple, different write events all with equal ranges. It is possible, however, for an aligned read event to read from multiple write events with overlapping ranges. See Access Atomicity below.</p>
       </emu-note>
     </emu-clause>
 
@@ -1145,7 +1147,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. _execution_ has valid chosen reads, and
         1. _execution_ has no out of thin air reads, and
-        1. _execution_ has tear free aligned reads, and
+        1. _execution_ has tear free reads, and
         1. _execution_ has sequentially consistent atomics.
       </emu-alg>
 
@@ -1192,7 +1194,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event.</p>
 
-      <p>The Tear Free Aligned Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
+      <p>The Tear Free Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
 
       <pre>   W1: U16[a] = 1; W2: U8[a] = 2;
 || W3: U16[a] = 3;
