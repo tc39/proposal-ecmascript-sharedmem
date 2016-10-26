@@ -812,7 +812,7 @@ These call AllocateTypedArray with a specified length:
     <p>The memory model is defined as relational constraints on events introduced by abstract operations on SharedArrayBuffer or by methods on the Atomics object during an evaluation.</p>
 
     <emu-note>
-      <p>This section provides an axiomatic model on events introduced by the abstract operations on SharedArrayBuffers. It bears stressing that the model is not expressible algorithmically like the rest of this specification. The nondeterministic introduction of events by abstract operations is the interface between the operational semantics of ECMAScript evaluation and the denotational semantics of the axiomatic memory model. The semantics of these events is defined by considering graphs of all events in an evaluation. These are neither Static Semantics nor Runtime Semantics. There is no demonstrated algorithmic implementation, but instead a set of constraints that determine if a particular event graph is allowed or disallowed.</p>
+      <p>This section provides an axiomatic model on events introduced by the abstract operations on SharedArrayBuffers. It bears stressing that the model is not expressible algorithmically, unlike the rest of this specification. The nondeterministic introduction of events by abstract operations is the interface between the operational semantics of ECMAScript evaluation and the denotational semantics of the axiomatic memory model. The semantics of these events is defined by considering graphs of all events in an evaluation. These are neither Static Semantics nor Runtime Semantics. There is no demonstrated algorithmic implementation, but instead a set of constraints that determine if a particular event graph is allowed or disallowed.</p>
 
       <p>(Spec draft note) Acknowledgement: The description of many fundamentals and sequentially consistent and unordered orderings are inspired by the LLVM memory model.</p>
     </emu-note>
@@ -844,7 +844,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[NoTear]]</td>
               <td>A Boolean</td>
-              <td>Whether this event is allowed to read from multiple write events on the same range.</td>
+              <td>Whether this event is allowed to read from multiple write events on the equal range.</td>
             </tr>
             <tr>
               <td>[[Block]]</td>
@@ -881,7 +881,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[NoTear]]</td>
               <td>A Boolean</td>
-              <td>Whether this event is allowed to be read from multiple read events on the same range.</td>
+              <td>Whether this event is allowed to be read from multiple read events on the equal range.</td>
             </tr>
             <tr>
               <td>[[Block]]</td>
@@ -943,7 +943,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[Payload]]</td>
               <td>A List</td>
-              <td>The List of byte values to be passed to [[ModifyOp].</td>
+              <td>The List of byte values to be passed to [[ModifyOp]].</td>
             </tr>
             <tr>
               <td>[[ModifyOp]]</td>
@@ -954,7 +954,7 @@ These call AllocateTypedArray with a specified length:
         </table>
       </emu-table>
 
-      <p>These events introduced are introduced an abstract operation or by a Function property on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
+      <p>These events are introduced by an abstract operation or by a Function property on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
 
       <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the List of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges their neither equal nor overlapping.</p>
 
@@ -962,7 +962,7 @@ These call AllocateTypedArray with a specified length:
         <p>Examples of host-specific synchronizing events that should be accounted for are: sending a SharedArrayBuffer from one agent to another (e.g., by `postMessage` in a browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory.</p>
       </emu-note>
 
-      <p>Shared Data Block events are ordered by the relations defined mutually recursively below.</p>
+      <p>Shared Data Block events are ordered within candidate executions by the relations defined mutually recursively below.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.CandidateExecutions">
@@ -1083,7 +1083,7 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
-        1. Let synchronizes-before be _execution_.[[SynchronizesWith]].
+        1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
         1. For each pair of events _E_ and _D_ in _execution_.[[EventSet]]:
           1. For each agent _a_ in the agent cluster:
             1. Let agent-order be _execution_.[[AgentOrders]](a).
@@ -1146,7 +1146,7 @@ These call AllocateTypedArray with a specified length:
         1. Let _byteLocation_ be _byteIndex_.
         1. Let _bytesRead_ be an empty List.
         1. For each element _W_ of _Ws_ in List order:
-          1. Assert: _W_ is a has _byteLocation_ in its range.
+          1. Assert: _W_ has _byteLocation_ in its range.
           1. If _W_ is a WriteSharedMemory event then
             1. Let _byte_ be _W_.[[Payload]][_byteLocation_].
           1. Else,
@@ -1298,9 +1298,9 @@ These call AllocateTypedArray with a specified length:
 
       <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event.</p>
 
-      <p>The Tear Free Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
+      <p>The Tear Free Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block and `a` and `b` represent the same memory address (scaled appropriately for the data type).</p>
 
-      <pre>   W1: U16[a] = 1; W2: U8[a] = 2;
+      <pre>   W1: U16[a] = 1; W2: U8[b] = 2;
 || W3: U16[a] = 3;
 ||  R: observe(U16[a]);</pre>
 
@@ -1315,7 +1315,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>Similarly, neither the synchronizes-with relation, the Sequentially Consistent Atomics requirement guarantees access atomicity for atomic events. Both are concerned with ordering of atomic operations on equal ranges, but it is possible to have sequentially consistent equal-ranged atomics without access atomicity. For example, consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
 
-      <pre>   W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, a, 2);
+      <pre>   W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, b, 2);
 || W3: Atomics.store(U16, a, 3);
 ||  R: observe(Atomics.load(U16, a));</pre>
 
@@ -1332,7 +1332,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>Finally, data race freedom and sequential consistency do not imply access atomicity. Consider the following program with a single agent.</p>
 
-      <pre>W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, a, 2); R: observe(Atomics.load(U16, a));</pre>
+      <pre>W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, b, 2); R: observe(Atomics.load(U16, a));</pre>
 
       <p>The only valid execution is as follows.</p>
 
@@ -1559,10 +1559,10 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.compareExchange">
       <h1>Atomics.compareExchange( _typedArray_, _index_, _expectedValue_, _replacementValue_ )</h1>
-      <p>Let `compareExchange` denote a semantic function of two List of byte values arguments that returns the second argument if the first argument is element-wise equal to the List of byte values corresponding to _replacementValue_.</p>
+      <p>Let `compareExchange` denote a semantic function of two List of byte values arguments that returns the second argument if the first argument is element-wise equal to the List of byte values corresponding to _expectedValue_.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
-        1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `compareExchange`);
+        1. Return AtomicReadModifyWrite(_typedArray_, _index_, _replacementValue_, `compareExchange`);
       </emu-alg>
     </emu-clause>
 
