@@ -110,6 +110,8 @@ comments.</p>
 
       <p>The semantics of Shared Data Blocks is defined using Shared Data Block events by the Atomics memory model. Abstract operations below act as the interface between evaluation semantics and the event semantics of the memory model. The operations thus introduce ReadSharedMemory, WriteSharedMemory, and ReadModifyWriteSharedMemory events. Because of the axiomatic nature of the memory model, the values of these events are not known until the set of all events is known. The operations thus also nondeterministically read any possible Number value of a particular type during evaluation. The events introduced during an evaluation form a graph. The event graph together with the nondeterministically chosen values and other relations defined in the memory model form a candidate execution. The memory model does not admit all candidate executions; the allowed candidate executions are called valid executions, or simply executions. There is at least one valid execution for a given evaluation.</p>
 
+      <p>A Shared Data Block event are modeled by Records, defined in the Atomics memory model. The <dfn>current candidate execution</dfn> is a candidate execution agreed upon by all agents in an agent cluster during evaluation.</p>
+
       <emu-note>
         <p>One may think of the evaluation semantics of ECMAScript as a generating function for candidate executions. The memory model then prunes invalid executions from the set of candidate executions. A single-agent ECMAScript program that does not use SharedArrayBuffer (and, for simplicity, ignoring other sources of nondeterminism such as `Math.random()`) always has exactly one candidate execution, which is also a valid execution. A multi-agent ECMAScript program that uses SharedArrayBuffer has many candidate executions and at least one valid execution.</p>
       </emu-note>
@@ -127,11 +129,9 @@ comments.</p>
           1. Assert: _toIndex_+_count_ &le; _toSize_.
           1. Repeat, while _count_&gt;0
             1. <del>Set _toBlock_[_toIndex_] to the value of _fromBlock_[_fromIndex_].</del><br><ins>If _fromBlock_ is a Shared Data Block then
-              1. <ins>Let _readEvent_ be a Shared Data Block event ReadSharedMemory(`"Unordered"`, *true*, _fromBlock_, _fromIndex_, *1*).</ins>
-              1. <ins>Introduce _readEvent_.</ins>
               1. <ins>Let _bytes_ be a List of length *1* that contains a nondeterministically chosen byte value.</ins>
-              1. <ins>Let _writeEvent_ be a Shared Data Block event WriteSharedMemory(`"Unordered"`, *true*, _toBlock_, _toIndex_, *1*, _bytes[0]_).</ins>
-              1. <ins>Introduce _writeEvent_.</ins>
+              1. <ins>Add ReadSharedMemory{[[Order]]: `"Unordered"`, [[NoTear]]: *true*, [[Block]]: _fromBlock_, [[ByteIndex]]: _fromIndex_, [[ElementSize]]: *1*} to the current candidate execution's [[EventSet]].</ins>
+              1. <ins>Add WriteSharedMemory{[[Order]]: `"Unordered"`, [[NoTear]]: *true*, [[Block]]: _toBlock_, [[ByteIndex]]: _toIndex_, [[ElementSize]]: *1*, [[Payload]]: _bytes[0]_} to the current candidate execution's [[EventSet]].</ins>
             1. <ins>Otherwise, set _toBlock_[_toIndex_] to _fromBlock_[_fromIndex_].</inbs>
             1. Increment _toIndex_ and _fromIndex_ each by 1.
             1. Decrement _count_ by 1.
@@ -146,7 +146,7 @@ comments.</p>
           1. Assert: _size_ >= 0.
           1. Let _db_ be a new Shared Data Block value consisting of _size_ bytes. If it is impossible to create such a Shared Data Block, throw a *RangeError* exception.
           1. For each index _i_ of _db_:
-            1. Introduce a Shared Data Block event WriteSharedMemory(`"Init"`, *true*, _db_, _i_, *1*, *0*).
+            1. Add WriteSharedMemory{[[Order]]: `"Init"`, [[NoTear]]: *true*, [[Block]]: _db_, [[ByteIndex]]: _i_, [[ElementSize]]: *1*, [[Payload]]: *0*} to the current candidate execution's [[EventSet]].
           1. Return _db_.
         </emu-alg>
       </emu-clause>
@@ -505,8 +505,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true* then</ins>
             1. <ins>Let _noTear_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.
-            1. <ins>Let _readEvent_ be a Shared Data Block event ReadSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_).</ins>
-            1. <ins>Introduce _readEvent_.</ins>
+            1. <ins>Add ReadSharedMemory{[[Order]]: _order_, [[NoTear]]: _noTear_, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_} to the current candidate execution's [[EventSet]].</ins>
             1. <ins>Let _rawValue_ be a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
           1. <ins>Else, let _rawValue_ be a List containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</ins>
           1. If _isLittleEndian_ is not present, set _isLittleEndian_ to <del>either *true* or *false*. The choice is implementation dependent and should be the alternative that is most efficient for the implementation. An implementation must use the same value each time this step is executed and the same value must be used for the corresponding step in the SetValueInBuffer abstract operation</del> <ins>the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record</ins>.
@@ -579,7 +578,7 @@ These call AllocateTypedArray with a specified length:
               1. <del>Let _rawBytes_ be a List containing the _n_-byte binary 2's complement encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.</del>
           1. <del>Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true*, then</ins>
             1. <ins>Let _noTear_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.
-            1. <ins>Introduce a Shared Data Block event WriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _rawBytes_).</ins>
+            1. <ins>Add WriteSharedMemory{[[Order]]: _order_, [[NoTear]]: _noTear_, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_} to the current candidate execution's [[EventSet]].</ins>
           1. <ins>Else, store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</ins>
           1. Return NormalCompletion(*undefined*).
         </emu-alg>
@@ -605,8 +604,7 @@ These call AllocateTypedArray with a specified length:
           1. <ins>If _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record.</ins>
           1. <ins>Let _rawBytes_ be NumberToRawBytes(_type_, _value_, _isLittleEndian_).</ins>
           1. <ins>Assert: IsSharedArrayBuffer(_arrayBuffer_) is *true*.</ins>
-          1. <ins>Let _rmwEvent_ be a Shared Data Block event ReadModifyWriteSharedMemory(`"SeqCst"`, *true*, _block_, _byteIndex_, _elementSize_, _rawBytes_, _op_).</ins>
-          1. <ins>Introduce _rmwEvent_.</ins>
+          1. <ins>Add ReadModifyWriteSharedMemory{[[Order]]: `"SeqCst"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_, [[ModifyOp]]: _op_} to the current candidate execution's [[EventSet]].</ins>
           1. <ins>Let _rawBytesRead_ be the a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
           1. <ins>Let _value_ be RawBytesToNumber(_type_, _rawBytesRead_, _isLittleEndian_).</ins>
           1. <ins>Return _value_.</ins>
@@ -823,10 +821,138 @@ These call AllocateTypedArray with a specified length:
       <p>Shared memory accesses (reads and writes) are divided into two groups, atomic accesses and data accesses, defined below. Atomic accesses are sequentially consistent, i.e., there is a total ordering of events agreed upon by all agents in an agent cluster. Non-atomic accesses do not have a total ordering agreed upon by all agents, i.e., unordered.</p>
 
       <emu-note>
-        No orderings weaker than sequentially consistent and stronger than unordered, such as release-acquire, are supported.
+        <p>No orderings weaker than sequentially consistent and stronger than unordered, such as release-acquire, are supported.</p>
       </emu-note>
 
-      <p>A <dfn>Shared Data Block event</dfn> is a ReadSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_) event, a WriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_) event, or a ReadModifyWriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_) event introduced by an abstract operation or by a Function property on the Atomics object. Allowed values for _order_ are `"SeqCst"`, `"Unordered"`, and `"Init"`. ReadModifyWriteSharedMemory events always have _order_ `"SeqCst"`. These events may be referred to simply as ReadSharedMemory, WriteSharedMemory or ReadModifyWriteSharedMemory events. Additionally, Shared Data Block events include host-specific events.</p>
+      <p>A <dfn>Shared Data Block event</dfn> is either a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory Record.</p>
+
+      <emu-table id="table-readsharedmemory-fields" caption="ReadSharedMemory Event Fields">
+        <table>
+          <tbody>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+              <th>Meaning</th>
+            </tr>
+            <tr>
+              <td>[[Order]]</td>
+              <td>`"SeqCst"`, `"Unordered"`, or `"Init"`.</td>
+              <td>The weakest ordering guaranteed by the memory model for the event.</td>
+            </tr>
+            <tr>
+              <td>[[NoTear]]</td>
+              <td>A Boolean</td>
+              <td>Whether this event is allowed to read from multiple write events on the same range.</td>
+            </tr>
+            <tr>
+              <td>[[Block]]</td>
+              <td>A Shared Data Block</td>
+              <td>The block the event operates on.</td>
+            </tr>
+            <tr>
+              <td>[[ByteIndex]]</td>
+              <td>A nonnegative integer</td>
+              <td>The byte address of the read in [[Block]].</td>
+            </tr>
+            <tr>
+              <td>[[ElementSize]]</td>
+              <td>A nonnegative integer</td>
+              <td>The size of the read.</td>
+            </tr>
+          </tbody>
+        </table>
+      </emu-table>
+
+      <emu-table id="table-writesharedmemory-fields" caption="WriteSharedMemory Event Fields">
+        <table>
+          <tbody>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+              <th>Meaning</th>
+            </tr>
+            <tr>
+              <td>[[Order]]</td>
+              <td>`"SeqCst"`, `"Unordered"`, or `"Init"`.</td>
+              <td>The weakest ordering guaranteed by the memory model for the event.</td>
+            </tr>
+            <tr>
+              <td>[[NoTear]]</td>
+              <td>A Boolean</td>
+              <td>Whether this event is allowed to be read from multiple read events on the same range.</td>
+            </tr>
+            <tr>
+              <td>[[Block]]</td>
+              <td>A Shared Data Block</td>
+              <td>The block the event operates on.</td>
+            </tr>
+            <tr>
+              <td>[[ByteIndex]]</td>
+              <td>A nonnegative integer</td>
+              <td>The byte address of the write in [[Block]].</td>
+            </tr>
+            <tr>
+              <td>[[ElementSize]]</td>
+              <td>A nonnegative integer</td>
+              <td>The size of the write.</td>
+            </tr>
+            <tr>
+              <td>[[Payload]]</td>
+              <td>A List</td>
+              <td>The List of byte values to be read by other events.</td>
+            </tr>
+          </tbody>
+        </table>
+      </emu-table>
+
+      <emu-table id="table-rmwsharedmemory-fields" caption="ReadModifyWriteSharedMemory Event Fields">
+        <table>
+          <tbody>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+              <th>Meaning</th>
+            </tr>
+            <tr>
+              <td>[[Order]]</td>
+              <td>`"SeqCst"`</td>
+              <td>Read-modify-write events are always sequentially consistent.</td>
+            </tr>
+            <tr>
+              <td>[[NoTear]]</td>
+              <td>*true*</td>
+              <td>Read-modify-write events cannot tear.</td>
+            </tr>
+            <tr>
+              <td>[[Block]]</td>
+              <td>A Shared Data Block</td>
+              <td>The block the event operates on.</td>
+            </tr>
+            <tr>
+              <td>[[ByteIndex]]</td>
+              <td>A nonnegative integer</td>
+              <td>The byte address of the read-modify-write in [[Block]].</td>
+            </tr>
+            <tr>
+              <td>[[ElementSize]]</td>
+              <td>A nonnegative integer</td>
+              <td>The size of the write.</td>
+            </tr>
+            <tr>
+              <td>[[Payload]]</td>
+              <td>A List</td>
+              <td>The List of byte values to be passed to [[ModifyOp].</td>
+            </tr>
+            <tr>
+              <td>[[ModifyOp]]</td>
+              <td>A semantic function</td>
+              <td>A pure semantic function that returns a modified List of byte values from a read List of byte values and [[Payload]].</td>
+            </tr>
+          </tbody>
+        </table>
+      </emu-table>
+
+      <p>These events introduced are introduced an abstract operation or by a Function property on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
 
       <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the List of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges their neither equal nor overlapping.</p>
 
@@ -839,12 +965,12 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.CandidateExecutions">
       <h1>Candidate Executions</h1>
-      <p>A <dfn>candidate execution</dfn> of the evaluation of an agent cluster is a Record with the following properties.</p>
-      <emu-table id="table-candidate-execution-records" caption="Properties of Candidate Execution Records">
+      <p>A <dfn>candidate execution</dfn> of the evaluation of an agent cluster is a Record with the following fields.</p>
+      <emu-table id="table-candidate-execution-records" caption="Candidate Execution Record Fields">
         <table>
           <tbody>
             <tr>
-              <th>Property</th>
+              <th>Field</th>
               <th>Value</th>
               <th>Meaning</th>
             </tr>
@@ -856,7 +982,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[ChosenValues]]</td>
               <td>A function from events to Lists.</td>
-              <td>Maps ReadSharedMemory or ReadModifyWriteSharedMemory events to the List-of-bytes chosen nondeterministically during the evaluation.</td>
+              <td>Maps ReadSharedMemory or ReadModifyWriteSharedMemory events to the List of byte values chosen nondeterministically during the evaluation.</td>
             </tr>
             <tr>
               <td>[[AgentOrders]]</td>
@@ -904,7 +1030,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.AgentOrder" aoid="agent-order">
       <h1>agent-order</h1>
-      <p>For a candidate execution _execution_, the total introduction order of events in _execution_.[[EventSet]] in a single agent during the evaluation.</p>
+      <p>For a candidate execution _execution_, the total introduction order over the subset of events introduced by a particular agent in _execution_.[[EventSet]] during evaluation.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.HostSynchronizesWith" aoid="host-synchronizes-with">
@@ -923,14 +1049,14 @@ These call AllocateTypedArray with a specified length:
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
         1. Let reads-from be _execution_.[[ReadsFrom]].
         1. Let host-synchronizes-with be _execution_.[[HostSynchronizesWith]].
-        1. For each pair of events _R_ and _W_ in _execution_.[[EventSet]] such that _R_ has _order_ `"SeqCst"` and _R_ reads-from _W_:
+        1. For each pair of events _R_ and _W_ in _execution_.[[EventSet]] such that _R_.[[Order]] is `"SeqCst"` and _R_ reads-from _W_:
           1. Assert: _R_ is a ReadSharedMemory or ReadModifyWriteSharedMemory event.
           1. Assert: _W_ is a WriteSharedMemory or ReadModifyWriteSharedMemory event.
-          1. If _W_ has _order_ `"SeqCst"` and _R_ and _W_ have equal ranges then _W_ synchronizes-with _R_.
+          1. If _W_.[[Order]] is `"SeqCst"` and _R_ and _W_ have equal ranges then _W_ synchronizes-with _R_.
           1. Otherwise, if _W_ has _order_ `"Init"` then
             1. Let _allInitReads_ be *true*.
             1. For each event _V_ such that _R_ reads-from _V_:
-              1. If _V_ does not have _order_ `"Init"` then set _allInitReads_ to *false*.
+              1. If _V_.[[Order]] is not `"Init"` then set _allInitReads_ to *false*.
             1. If _allInitReads_ is *true* then _W_ synchronizes-with _R_.
         1. For each pair of events _E_ and _D_ in _execution_.[[EventSet]]:
           1. If _E_ host-synchronizes-with _D_ then _E_ synchronizes-with _D_.
@@ -956,7 +1082,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
         1. Let synchronizes-before be _execution_.[[SynchronizesWith]].
-        1. For each pair of Share Data Block events _E_ and _D_:
+        1. For each pair of events _E_ and _D_ in _execution_.[[EventSet]]:
           1. For each agent _a_ in the agent cluster:
             1. Let agent-order be _execution_.[[AgentOrders]](a).
             1. If _E_ is agent-order before _D_ in _a_ then _E_ happens-before _D_.
@@ -973,8 +1099,8 @@ These call AllocateTypedArray with a specified length:
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
         1. Let happens-before be _execution_.[[HappensBefore]].
         1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in _execution_.[[EventSet]]:
-          1. There is a List of length equal to _R_'s _elementSize_ of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
-          1. Let _byteLocation_ be _byteIndex_.
+          1. There is a List of length equal to _R_.[[ElementSize]] of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
+          1. Let _byteLocation_ be _R_.[[ByteIndex]].
           1. For each element _W_ of _Ws_ in List order:
             1. _W_ has _byteLocation_ in its range, and
             1. It is not the case that _R_ happens-before _W_, and
@@ -997,7 +1123,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.InitialValue">
       <h1>Initial Values</h1>
-      <p>For a candidate execution _execution_, for each byte location _b_ in a Shared Data Block _block_, there is a WriteSharedMemory(`"Init"`, *true*, _block_, _b_, *1*, _v0_) event for some host-provided value _v0_ such that it happens-before all other Shared Data Block events with _b_ in their ranges in _execution_.[[EventSet]].</p>
+      <p>For a candidate execution _execution_, for each byte location _b_ in a Shared Data Block _block_, there is a WriteSharedMemory{[[Order]]: `"Init"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _b_, [[ElementSize]]: *1*, [[Payload]]: _v0_} event for some host-provided value _v0_ such that it happens-before all other Shared Data Block events with _b_ in their ranges in _execution_.[[EventSet]].</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
@@ -1010,21 +1136,21 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="MemoryModel.ComposeWriteEventBytes" aoid="ComposeWriteEventBytes">
-      <h1>ComposeWriteEventBytes(_block_, _byteIndex_, _Ws_)</h1>
-      <p>The abstraction operation ComposeWriteEventBytes takes three arguments, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a List _Ws_.</p>
-      <p>It returns a List using the following steps given a candidate execution _execution_.</p>
+      <h1>ComposeWriteEventBytes( _execution_, _block_, _byteIndex_, _Ws_ )</h1>
+      <p>The abstraction operation ComposeWriteEventBytes takes four arguments, a candidate execution _execution_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a List _Ws_.</p>
+      <p>It returns a List using the following steps.</p>
 
       <emu-alg>
         1. Let _byteLocation_ be _byteIndex_.
         1. Let _bytesRead_ be an empty List.
         1. For each element _W_ of _Ws_ in List order:
           1. Assert: _W_ is a has _byteLocation_ in its range.
-          1. If _W_ is a WriteSharedMemory(_orderW_, _noTearW_, _block_, _byteIndexW_, _elementSizeW_, _bytesW_) event then
-            1. Let _byte_ be _bytesW_[_byteLocation_].
+          1. If _W_ is a WriteSharedMemory event then
+            1. Let _byte_ be _W_.[[Payload]][_byteLocation_].
           1. Else,
-            1. Assert: _W_ is a ReadModifyWriteSharedMemory(`"SeqCst"`, _noTearRMW_, _block_, _byteIndexRMW_, _elementSizeRMW_, _bytesRMW_, _op_) event.
-            1. Let _bytesRead_ be the value of _W_ in _execution_.
-            1. Let _bytesModified_ be _op_(_bytesRead_, _bytesRMW_).
+            1. Assert: _W_ is a ReadModifyWriteSharedMemory event.
+            1. Let _bytesRead_ be ValueOfReadEvent(_execution_, _W_).
+            1. Let _bytesModified_ be _W_.[[ModifyOp]](_bytesRead_, _W_.[[Payload]]).
             1. Let _byte_ be _bytesModified_[_byteLocation_].
           1. Append _byte_ to _bytesRead_.
           1. Increment _byteLocation_ by 1.
@@ -1032,7 +1158,7 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
 
       <emu-note>
-        <p>The semantic function _op_ is given by the function properties on the Atomics object that introduce ReadModifyWriteSharedMemory events.</p>
+        <p>The semantic function [[ModifyOp]] is given by the function properties on the Atomics object that introduce ReadModifyWriteSharedMemory events.</p>
       </emu-note>
 
       <emu-note>
@@ -1040,42 +1166,18 @@ These call AllocateTypedArray with a specified length:
       </emu-note>
     </emu-clause>
 
-    <emu-clause id="MemoryModel.ReadSharedMemory" aoid="ReadSharedMemory">
-      <h1>ReadSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_)</h1>
-      <p>A ReadSharedMemory event has a payload of five values, a String _order_, a Boolean _noTear_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a nonnegative integer _elementSize_.</p>
-      <p>The value of a ReadSharedMemory event is determined using the following steps given a candidate execution _execution_.</p>
+    <emu-clause id="MemoryModel.ValueOfReadEvent" aoid="ValueOfReadEvent">
+      <h1>ValueOfReadEvent( _execution_, _R_ )</h1>
+      <p>The abstract operation ValueOfReadEvent takes two arguments, a candidate execution _execution_ and a Shared Data Block event _R_.</p>
+      <p>It returns a List using the following steps.</p>
 
       <emu-alg>
+        1. Assert: _R_ is a ReadSharedMemory or ReadModifyWriteSharedMemory event.
         1. Let reads-from be _execution_.[[ReadsFrom]].
-        1. Let _Ws_ be the List of events such that this event reads-from _Ws_.
-        1. Assert: _Ws_ has length equal to _elementSize_.
-        1. Return ComposeWriteEventBytes(_block_, _byteIndex_, _Ws_) in _execution_.
+        1. Let _Ws_ be the List of events such that _R_ reads-from _Ws_.
+        1. Assert: _Ws_ has length equal to _R_.[[ElementSize]].
+        1. Return ComposeWriteEventBytes(_execution_, _R_.[[Block]], _R_.[[ByteIndex]], _Ws_).
       </emu-alg>
-    </emu-clause>
-
-    <emu-clause id="MemoryModel.WriteSharedMemory" aoid="WriteSharedMemory">
-      <h1>WriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_)</h1>
-      <p>A WriteSharedMemory event has a payload of six values, a String _order_, a Boolean _noTear_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a nonnegative integer _elementSize_, and a List _bytes_.</p>
-      <p>A WriteSharedMemory event has no value. It participates in the relational constraints of, and is read from by a ReadSharedMemory or ReadModifyWriteSharedMemory event in, a candidate execution.</p>
-    </emu-clause>
-
-    <emu-clause id="MemoryModel.ReadModifyWriteSharedMemory" aoid="ReadModifyWriteSharedMemory">
-      <h1>ReadModifyWriteSharedMemory(_order_, _noTear_, _block_, _byteIndex_, _elementSize_, _bytes_, _op_)</h1>
-      <p>A ReadSharedMemory event has a payload of seven values, a String _order_, a Boolean _noTear_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, a nonnegative integer _elementSize_, a List _bytes_, and a semantic function _op_.</p>
-      <p>The value of a ReadModifyWriteSharedMemory event is determined using the following steps given a candidate execution _execution_.</p>
-
-      <emu-alg>
-        1. Assert: _order_ is `"SeqCst"`.
-        1. Assert: _noTear_ is *true*.
-        1. Let reads-from be _execution_.[[ReadsFrom]].
-        1. Let _Ws_ be the List of Shared Data Block events such that this event reads-from _Ws_.
-        1. Assert: _Ws_ has length equal to _elementSize_.
-        1. Return ComposeWriteEventBytes(_block_, _byteIndex_, _Ws_) in _execution_.
-      </emu-alg>
-
-      <emu-note>
-        <p>The value of ReadModifyWriteSharedMemory events is the value read, before modification by _op_. The modification itself is performed by ComposeWriteEventBytes.</p>
-      </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.ValidChosenReads">
@@ -1084,7 +1186,7 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. For each ReadSharedMemory and ReadModifyWriteSharedMemory event _R_ in _execution_.[[EventSet]]:
-           1. _execution_.[[ChosenValues]](_R_) is equal to the value of _R_.
+           1. _execution_.[[ChosenValues]](_R_) is equal to ValueOfReadEvent(_execution_, _R_).
       </emu-alg>
     </emu-clause>
 
@@ -1108,10 +1210,10 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Let reads-from be _execution_.[[ReadsFrom]].
         1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in _execution_.[[EventSet]]:
-          1. If _R_'s _noTear_ value is *true* then
-            1. Assert that the remainder of _R_'s _byteIndex_ ÷ _R_'s _elementSize_ is *0*.
-            1. For each event _W_ such that _R_ reads-from _W_ and _W_'s _noTear_ value is *true*:
-              1. If _R_ and _W_ have equal ranges then there is no _V_ such that _V_ and _W_ have equal range, _V_'s _noTear_ is *true*, _W_ is not _V_, and _R_ reads-from _V_.
+          1. If _R_.[[NoTear]] is *true* then
+            1. Assert that the remainder of _R_.[[ByteIndex]] ÷ _R_.[[ElementSize]] is *0*.
+            1. For each event _W_ such that _R_ reads-from _W_ and _W_.[[NoTear]] value is *true*:
+              1. If _R_ and _W_ have equal ranges then there is no _V_ such that _V_ and _W_ have equal range, _V_.[[NoTear]] is *true*, _W_ is not _V_, and _R_ reads-from _V_.
       </emu-alg>
 
       <emu-note>
@@ -1126,7 +1228,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
-        1. For each pair of events _E_ and _D_ in the subset of events with _order_ `"SeqCst"` or `"Init"` in _execution_.[[EventSet]]:
+        1. For each pair of events _E_ and _D_ in the subset of events with [[Order]] `"SeqCst"` or `"Init"` in _execution_.[[EventSet]]:
           1. If _E_ happens-before _D_ then _E_ is memory-order before _D_.
           1. If _E_ synchronizes-with _D_ then
             1. Assert: _D_ has _order_ `"SeqCst"`.
@@ -1179,7 +1281,7 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. _E_ and _D_ are in a race in _execution_, and
-        1. At least one of _E_ or _D_ does not have _order_ `"SeqCst"` or _E_ and _D_ have overlapping ranges.
+        1. At least one of _E_ or _D_ does not have [[Order]] `"SeqCst"` or _E_ and _D_ have overlapping ranges.
       </emu-alg>
     </emu-clause>
 
@@ -1247,7 +1349,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.SeqCst">
       <h1>Sequential Consistency (informative)</h1>
-      <p>The memory model guarantees sequential consistency of all Shared Data Block events for data race free programs.</p>
+      <p>The memory model guarantees sequential consistency of all events for data race free programs.</p>
       <emu-note>
         <p>A formal proof of the property requires the host to provide a depends-on relation that prohibits out of thin air reads.</p>
       </emu-note>
@@ -1417,7 +1519,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.ReadModifyWrite" aoid="AtomicReadModifyWrite">
       <h1>AtomicReadModifyWrite( _typedArray_, _index_, _value_, _op_ )</h1>
-      <p>AtomicReadModifyWrite is a semantic function that atomically loads a value, combines it with another value, and stores the result of the combination.  It returns the loaded value.  It is parameterized by the (pure) combining operation _op_ that takes two List-of-bytes arguments and returns a List-of-bytes.  The following steps are taken:</p>
+      <p>AtomicReadModifyWrite is a semantic function that atomically loads a value, combines it with another value, and stores the result of the combination.  It returns the loaded value.  It is parameterized by the (pure) combining operation _op_ that takes two List of byte values arguments and returns a List of byte values.  The following steps are taken:</p>
       <emu-alg>
         1. Let _buffer_ be ? ValidateSharedIntegerTypedArray(_typedArray_).
         1. Let _i_ be ? ValidateAtomicAccess(_typedArray_, _index_).
@@ -1437,7 +1539,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.add">
       <h1>Atomics.add( _typedArray_, _index_, _value_ )</h1>
-      <p>Let `add` denote a semantic function of two List-of-bytes arguments that applies the addition operation to the Number values corresponding to the List-of-bytes arguments and returns a List-of-bytes corresponding to the result of that operation.</p>
+      <p>Let `add` denote a semantic function of two List of byte values arguments that applies the addition operation to the Number values corresponding to the List of byte values arguments and returns a List of byte values corresponding to the result of that operation.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `add`).
@@ -1446,7 +1548,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.and">
       <h1>Atomics.and( _typedArray_, _index_, _value_ )</h1>
-      <p>Let `and` denote a semantic function of two List-of-bytes arguments that applies the bitwise-and operation element-wise to the two arguments and returns a List-of-bytes corresponding to the result of that operation.</p>
+      <p>Let `and` denote a semantic function of two List of byte values arguments that applies the bitwise-and operation element-wise to the two arguments and returns a List of byte values corresponding to the result of that operation.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `and`).
@@ -1455,7 +1557,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.compareExchange">
       <h1>Atomics.compareExchange( _typedArray_, _index_, _expectedValue_, _replacementValue_ )</h1>
-      <p>Let `compareExchange` denote a semantic function of two List-of-bytes arguments that returns the second argument if the first argument is element-wise equal to the List-of-bytes corresponding to _replacementValue_.</p>
+      <p>Let `compareExchange` denote a semantic function of two List of byte values arguments that returns the second argument if the first argument is element-wise equal to the List of byte values corresponding to _replacementValue_.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `compareExchange`);
@@ -1464,7 +1566,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.exchange">
       <h1>Atomics.exchange( _typedArray_, _index_, _value_ )</h1>
-      <p>Let `second` denote a semantic function of two List-of-bytes arguments that returns its second argument.</p>
+      <p>Let `second` denote a semantic function of two List of byte values arguments that returns its second argument.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `second`).
@@ -1516,13 +1618,13 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in <emu-xref href="#table-49"></emu-xref> for _arrayTypeName_.
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
-        1. Return GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_, `"SeqCst"`).
+        1. Return GetValueFromBuffer(_buffer_, _indexedPosition_, _elementType_, *true*, `"SeqCst"`).
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.or">
       <h1>Atomics.or( _typedArray_, _index_, _value_ )</h1>
-      <p>Let `or` denote a semantic function of two List-of-bytes arguments that applies the bitwise-or operation element-wise to the two arguments and returns a List-of-bytes corresponding to the result of that operation.</p>
+      <p>Let `or` denote a semantic function of two List of byte values arguments that applies the bitwise-or operation element-wise to the two arguments and returns a List of byte values corresponding to the result of that operation.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `or`).
@@ -1541,13 +1643,13 @@ These call AllocateTypedArray with a specified length:
         1. Let _elementType_ be the String value of the Element Type value in Table 49 for _arrayTypeName_.
         1. Let _offset_ be _typedArray_.[[ByteOffset]].
         1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
-        1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_, `"SeqCst"`).
+        1. Perform SetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _v_, *true*, `"SeqCst"`).
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="Atomics.sub">
       <h1>Atomics.sub( _typedArray_, _index_, _value_ )</h1>
-      <p>Let `subtract` denote a semantic function of two List-of-bytes arguments that applies the subtraction operation to the Number values corresponding to the List-of-bytes arguments and returns a List-of-bytes corresponding to the result of that operation.</p>
+      <p>Let `subtract` denote a semantic function of two List of byte values arguments that applies the subtraction operation to the Number values corresponding to the List of byte values arguments and returns a List of byte values corresponding to the result of that operation.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `subtract`).
@@ -1616,7 +1718,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.xor">
       <h1>Atomics.xor( _typedArray_, _index_, _value_ )</h1>
-      <p>Let `xor` denote a semantic function of two List-of-bytes arguments that applies the bitwise-xor operation element-wise to the two arguments and returns a List-of-bytes corresponding to the result of that operation.</p>
+      <p>Let `xor` denote a semantic function of two List of byte values arguments that applies the bitwise-xor operation element-wise to the two arguments and returns a List of byte values corresponding to the result of that operation.</p>
       <p>The following steps are taken:</p>
       <emu-alg>
         1. Return AtomicReadModifyWrite(_typedArray_, _index_, _value_, `xor`).
