@@ -116,7 +116,7 @@ We depend on access-atomicity in some cases, but this should not impact implemen
 
 TC39 discussed the memory model at several meetings and some desiderata were enumerated.  Here is a list, with some discussion.
 
-#### Correcness
+#### Correctness
 
 The call for "correctness" means that instead of informal prose and/or pseudocode there should be a formalization of the memory model that we can trust because it's mathematical and we have proven its correctness.  We're currently far away from having that.
 
