@@ -152,7 +152,7 @@ comments.</p>
           1. Assert: _size_ >= 0.
           1. Let _db_ be a new Shared Data Block value consisting of _size_ bytes. If it is impossible to create such a Shared Data Block, throw a *RangeError* exception.
           1. Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.
-          1. Let _eventList be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().
+          1. Let _eventList_ be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().
           1. For each index _i_ of _db_:
             1. Append WriteSharedMemory{[[Order]]: `"Init"`, [[NoTear]]: *true*, [[Block]]: _db_, [[ByteIndex]]: _i_, [[ElementSize]]: *1*, [[Payload]]: *0*} to _eventList.
           1. Return _db_.
@@ -525,9 +525,10 @@ These call AllocateTypedArray with a specified length:
           1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
           1. <del>Let _rawValue_ be a List of _elementSize_ containing, in order, the _elementSize_ sequence of bytes starting with _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true* then</ins>
             1. <ins>Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.</ins>
-            1. <ins>Let _eventList be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().</ins>
+            1. <ins>Let _eventList_ be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().</ins>
             1. <ins>Let _noTear_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.
             1. <ins>Let _rawValue_ be a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
+            1. <ins>NOTE: In implementations, _rawValue_ is the result of a non-atomic or atomic read instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.</ins>
             1. <ins>Let _readEvent_ be ReadSharedMemory{[[Order]]: _order_, [[NoTear]]: _noTear_, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_}.</ins>
             1. <ins>Append _readEvent_ to _eventList.</ins>
             1. <ins>Append {[[Event]]: _readEvent_, [[ChosenValue]]: _rawValue_} to _execution_.[[ChosenValues]].</ins>
@@ -602,7 +603,7 @@ These call AllocateTypedArray with a specified length:
               1. <del>Let _rawBytes_ be a List containing the _n_-byte binary 2's complement encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.</del>
           1. <del>Store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</del><br><ins>If IsSharedArrayBuffer(_arrayBuffer_) is *true*, then</ins>
             1. <ins>Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.</ins>
-            1. <ins>Let _eventList be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().</ins>
+            1. <ins>Let _eventList_ be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().</ins>
             1. <ins>Let _noTear_ be *true* if _isTypedArray_ is *true* and _type_ is `"Int8"`, `"Uint8"`, `"Int16"`, `"Uint16"`, `"Int32"`, or `"Uint32"`, otherwise *false*.
             1. <ins>Append WriteSharedMemory{[[Order]]: _order_, [[NoTear]]: _noTear_, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_} to _eventList.</ins>
           1. <ins>Else, store the individual bytes of _rawBytes_ into _block_, in order, starting at _block_[_byteIndex_].</ins>
@@ -631,8 +632,9 @@ These call AllocateTypedArray with a specified length:
           1. <ins>Let _rawBytes_ be NumberToRawBytes(_type_, _value_, _isLittleEndian_).</ins>
           1. <ins>Assert: IsSharedArrayBuffer(_arrayBuffer_) is *true*.</ins>
           1. <ins>Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.</ins>
-          1. <ins>Let _eventList be the [[EventList]] field of the element in _execution_.[[AgentOrders]] whose [[AgentSignifier]] is AgentSignifier().</ins>
+          1. <ins>Let _eventList_ be the [[EventList]] field of the element in _execution_.[[AgentOrders]] whose [[AgentSignifier]] is AgentSignifier().</ins>
           1. <ins>Let _rawBytesRead_ be the a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
+          1. <ins>NOTE: In implementations, _rawBytesRead_ is the result of a load-link or of an operand of a read-modify-write instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.</ins>
           1. <ins>Let _rmwEvent_ be ReadModifyWriteSharedMemory{[[Order]]: `"SeqCst"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_, [[ModifyOp]]: _op_}.</ins>
           1. <ins>Append _rmwEvent_ to _eventList.</ins>
           1. <ins>Append {[[Event]]: _rmwEvent_, [[ChosenValue]]: _rawBytesRead_} to _execution_.[[ChosenValues]].</ins>
@@ -835,14 +837,58 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="MemoryModel">
     <h1>Memory Model</h1>
 
-    <p>The memory consistency model, or memory model, specifies the possible orderings of Shared Data Block events, arising via accessing TypedArray instances backed by a SharedArrayBuffer and via methods on the Atomics object. When the program has no data races (defined more precisely below), the ordering of events appears as sequentially consistent, i.e., as an interleaving of actions from each agent. When the program has data races, shared memory operations may appear sequentially inconsistent. For example, programs may exhibit causality-violating behavior and other astonishments. These astonishments arise from compiler transforms and the design of CPUs (e.g., out-of-order execution and speculation). The memory model defines both the precise conditions under which a program exhibits sequentially consistent behavior as well as the allowable effects of data races.</p>
+    <emu-note>
+      <p>(Spec draft notes)</p>
+      <h2>What We Talk About When We Talk About Atomicity</h2>
+      <p>Atomicity means two things. One, it means that an action is indivisible. For example, writing a value to memory should write the whole value all at once. This is called access atomicity. Two, it means the timing with which different threads can observe a memory access, i.e., the ordering of memory events. For example, on x86, a memory write becomes visible to all cores other than the writing core at exactly the same time. On ARM, a memory write may become visible to other cores at different times. This is called copy atomicity.</p>
+
+      <p>Access atomicity is the easier problem. Hardware provides access atomic instructions that provide the guarantee. Copy atomicity much more difficult. Memory models concern themselves with prescribing some flavor of copy atomicity by ordering memory operations. Access atomicity may be thought of as an orthogonal property that is applied on top of the memory model.</p>
+
+      <h2>Intuitions for the Memory Model</h2>
+      <p>The memory model proper is a set of relational constraints on a set of memory events. The memory events correspond to read, write, and read-modify-write operations. Most readers' mental models of computation tend to be operational in that they show meaning by describing what each step of a computation does, in algorithmic fashion. ECMA262, excluding this section, is specified in this operational fashion. The memory model, in contrast, corresponds closer to classical logic rather than constructive logic, in that they show meaning by describing a set of axiomatic constraints that must be satisfied. Instead of constructing an algorithm that builds up the possible memory values, the model describes the set of all possible allowed memory values of a program directly via relational constraints.</p>
+
+      <p>Thought of another way, the operational model of ECMA262 constructs an execution that is correct by construction. The memory model instead is a filter on <em>all</em> executions. Some of those executions may not be correct, and the correct ones are exactly the ones that are allowed by the memory model.</p>
+
+      <p>The model is best understood in two parts: the axiomatic part and the interfacing with the rest of ECMA262.</p>
+
+      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behavior that are exhibited on weak hardware like ARM and Power. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers reasoning about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The dual goal of the model is to fully define the semantics of races as well as enable SC-DRF reasoning.</p>
+
+      <p>To understand the axiomatic model, assume that there is a set of events that correspond to some evaluation of a program. The evaluation gives an initial partial ordering of these events called agent-order: if an event _E_ was evaluated before _D_ in some thread, then _E_ must come before _D_ in agent-order. Along with the set of events and agent-order is a function that maps read events to write events, reads-from. This function says which reads read from which writes during the evaluation. These three things make up a candidate execution, which is the input to the model. The model's job is to further order those events in such a way that candidate executions we should be able to observe on hardware are deemed valid, i.e., allowed, and executions that cannot be observed are deemed invalid, i.e. disallowed.</p>
+
+      <p>The partial order agent-order only orders events from the same thread. From this order we will build a new partial order called happens-before, which additionally relates pairs of correctly synchronized events. Data races, then, are precisely the events that are not relatable by happens-before. To build happens-before, we start by relating atomic reads that reads-from atomic writes on the same memory location. These pairs are considered correctly synchronized. The happens-before partial order then includes all pairs from agent-order and synchronizes-with, as well as pairs of events that are transitively related.</p>
+
+      <p>The SharedArrayBuffer API raises the difficulty that it allows aliased access on the same memory location via different sizes. That is, a read event can reads-from multiple write events, resulting in reading a composite value of bytes written by multiple events. Problematically, hardware often cannot guarantee the atomicity of concurrent accesses that happen on overlapping locations. To this end the model only guarantees atomic reads and writes on exactly the same memory range to be synchronized. Atomic reads and writes on overlapping locations may behave as if they were non-atomic.</p>
+
+      <p>After happens-before, we have one last constraint on synchronized atomics to enable SC-DRF reasoning. Recall that sequential consistency is an interleaving. Mathematically, this is equivalent to putting events in a total order (i.e., a sequence). Thus the model requires that valid executions have a total ordering of correctly synchronized atomic events called memory-order.</p>
+
+      <p>These relations and orders mutually constrain each other so that they are coherent. The coherence constraints roughly correspond to the intuition that a read event cannot read from a write event that's "too old", in the sense that there's another write event on the memory location that happens-after the write event that was read from.</p>
+
+      <p>Putting all of these together nets us a decision procedure that can decide if a candidate execution is valid or not.</p>
+
+      <p>Having this is not yet enough. How does this set of memory events arise in the first place? How do we connect this decision procedure, which acts on all possible executions, with the evaluation semantics of ECMA262?</p>
+
+      <p>To connect the axiomatic semantics to the operational semantics, the operational semantics are made nondeterministic. Instead of constructing a single, valid execution, the nondeterministic operational semantics constructs <em>all</em> candidate executions. This is captured by GetValueFromBuffer returning any possible byte value when operating on SharedArrayBuffers. It bears stressing that this is the stuff of semantics and not actual implementations. Implementations will simply return the value that the corresponding hardware load instruction returns. But the hardware may act astonishingly due to the sophistication of their implementation and seemingly read values from e.g., the future, or a branch not taken. One may think of this nondeterminism as treating the reads on shared memory as black boxes. Up front, it reads <em>something</em>, the exact value of which is unknown until later, when we apply the memory model decision procedure.</p>
+
+      <p>With this nondeterminism the evaluation semantics can also accumulate events simply as a side effect of performing operations on SharedArrayBuffers. It does so by accumulating events and chosen values in the [[EventLists]] and [[ChosenValues]] fields in a candidate execution Record during SetValueInBuffer., to be passed to the memory model. The model then validates that the chosen values were not completely bogus in addition to all the constraints described above. It bears restressing that this reified candidate execution record and validation are purely formal mechanisms. Implementations will simply return what is read by hardware.</p>
+
+      <p>So what we talk about when we talking about the meaning of a program that uses SharedArrayBuffer is the <em>set</em> of valid executions. To wit, the evaluation semantics first generates the set of all possible candidate executions, then the memory model filters out the invalid ones. The remaining executions is the meaning of the program. A program always has at least one valid execution.</p>
+
+      <h2>Advice for Programmers</h2>
+      <p>Keep programs data race free, i.e., make it so that it is impossible for there to be concurrent non-atomic operations on the same memory location. Data race free programs have interleaving semantics where each step in the evaluation semantics of each agent are interleaved with each other. For data race free programs, it is not necessary to understand the details of the memory model. The details are unlikely to build intuition that will help one to better write JavaScript. It is the author's opinion that trying to exploit the semantics of races for performance is ill-advised and likely to be incorrect.</p>
+
+      <h2>Advice for Implementers</h2>
+      <p>While the memory model is prescriptive by nature, it is intended to allow non-atomic accesses to be compiled to bare stores and loads and atomic accesses to be compiled in the "obvious way" on the underlying hardware. The intention is thus descriptive; the model must allow enough executions such that the astonishing effects that bare stores and loads on hardware with weak memory models exhibit are not prohibited. If an obvious implementation is found to be non-compliant, the bug is likely in the memory model and not the implementation.</p>
+
+      <h2>Acknowledgements</h2>
+      <p>Many of the fundamentals and relations described here are inspired by the LLVM memory model. Hardware intuition comes in no small part from the wonderful work from Peter Sewell's Cambridge group. Many thanks to Alan Jeffrey and Michael Sullivan for reviewing drafts.</p>
+    </emu-note>
+
+    <p>The memory consistency model, or memory model, specifies the possible orderings of Shared Data Block events, arising via accessing TypedArray instances backed by a SharedArrayBuffer and via methods on the Atomics object. When the program has no data races (defined more precisely below), the ordering of events appears as sequentially consistent, i.e., as an interleaving of actions from each agent. When the program has data races, shared memory operations may appear sequentially inconsistent. For example, programs may exhibit causality-violating behavior and other astonishments. These astonishments arise from compiler transforms and the design of CPUs (e.g., out-of-order execution and speculation). The memory model defines both the precise conditions under which a program exhibits sequentially consistent behavior as well as the possible values read from data races. To wit, there is no undefined behavior.</p>
 
     <p>The memory model is defined as relational constraints on events introduced by abstract operations on SharedArrayBuffer or by methods on the Atomics object during an evaluation.</p>
 
     <emu-note>
-      <p>This section provides an axiomatic model on events introduced by the abstract operations on SharedArrayBuffers. It bears stressing that the model is not expressible algorithmically, unlike the rest of this specification. The nondeterministic introduction of events by abstract operations is the interface between the operational semantics of ECMAScript evaluation and the denotational semantics of the axiomatic memory model. The semantics of these events is defined by considering graphs of all events in an evaluation. These are neither Static Semantics nor Runtime Semantics. There is no demonstrated algorithmic implementation, but instead a set of constraints that determine if a particular event graph is allowed or disallowed.</p>
-
-      <p>(Spec draft note) Acknowledgement: The description of many fundamentals and sequentially consistent and unordered orderings are inspired by the LLVM memory model.</p>
+      <p>This section provides an axiomatic model on events introduced by the abstract operations on SharedArrayBuffers. It bears stressing that the model is not expressible algorithmically, unlike the rest of this specification. The nondeterministic introduction of events by abstract operations is the interface between the operational semantics of ECMAScript evaluation and the axiomatic semantics of the memory model. The semantics of these events is defined by considering graphs of all events in an evaluation. These are neither Static Semantics nor Runtime Semantics. There is no demonstrated algorithmic implementation, but instead a set of constraints that determine if a particular event graph is allowed or disallowed.</p>
     </emu-note>
 
     <emu-clause id="MemoryModel.Relations">
@@ -1323,7 +1369,8 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. For each ReadSharedMemory and ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
-           1. _execution_.[[ChosenValues]](_R_) is equal to ValueOfReadEvent(_execution_, _R_).
+          1. Let _chosenValue_ be the element of _execution_.[[ChosenValues]] whose [[Event]] field is _R_.
+          1. _chosenValue_ is equal to ValueOfReadEvent(_execution_, _R_).
       </emu-alg>
     </emu-clause>
 
@@ -1349,7 +1396,7 @@ These call AllocateTypedArray with a specified length:
         1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
           1. If _R_.[[NoTear]] is *true* then
             1. Assert that the remainder of _R_.[[ByteIndex]] ÷ _R_.[[ElementSize]] is *0*.
-            1. For each event _W_ such that _R_ reads-from _W_ and _W_.[[NoTear]] value is *true*:
+            1. For each event _W_ such that _R_ reads-from _W_ and _W_.[[NoTear]] is *true*:
               1. If _R_ and _W_ have equal ranges then there is no _V_ such that _V_ and _W_ have equal range, _V_.[[NoTear]] is *true*, _W_ is not _V_, and _R_ reads-from _V_.
       </emu-alg>
 
@@ -1439,7 +1486,7 @@ These call AllocateTypedArray with a specified length:
     <emu-clause id="MemoryModel.AccessAtomicity">
       <h1>Access Atomicity (informative)</h1>
 
-      <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event.</p>
+      <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event. In the memory model, write events have no force beyond being read from by read events and thus have no notion of being access atomic. This differs from the colloquial notion of access atomicity, which usually means if a write or read was performed by hardware atomically.</p>
 
       <p>The Tear Free Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block and `a` and `b` represent the same memory address (scaled appropriately for the data type).</p>
 
