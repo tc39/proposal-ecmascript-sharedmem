@@ -854,7 +854,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>The model is best understood in two parts: the axiomatic part and the interfacing with the rest of ECMA262.</p>
 
-      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behavior that are exhibited on weak hardware like ARM and Power. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers to reason about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The dual goal of this model is to fully define the semantics of races as well as enable SC-DRF reasoning.</p>
+      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behavior that is exhibited on weak hardware like ARM and Power. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers to reason about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The dual goal of this model is to fully define the semantics of races as well as enable SC-DRF reasoning.</p>
 
       <p>To understand the axiomatic model, assume that there is a set of events that correspond to some evaluation of a program. The evaluation gives an initial partial ordering of these events called agent-order: if an event _E_ was evaluated before _D_ in some thread, then _E_ must come before _D_ in agent-order. Along with the set of events and agent-order is a map from read events to write events called reads-from. This map says which reads read from which writes during the evaluation. These three things make up a candidate execution, which is the input to the model. The model's job is to further order those events in such a way that candidate executions can be observed on hardware are deemed valid, i.e., allowed, and executions that cannot be observed are deemed invalid, i.e. disallowed.</p>
 
@@ -1047,7 +1047,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[ElementSize]]</td>
               <td>A nonnegative integer</td>
-              <td>The size of the write.</td>
+              <td>The size of the read-modify-write.</td>
             </tr>
             <tr>
               <td>[[Payload]]</td>
@@ -1065,7 +1065,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>These events are introduced by an abstract operation or by a Function property on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
 
-      <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the Set of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges their neither equal nor overlapping.</p>
+      <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the Set of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges are neither equal nor overlapping.</p>
 
       <emu-note>
         <p>Examples of host-specific synchronizing events that should be accounted for are: sending a SharedArrayBuffer from one agent to another (e.g., by `postMessage` in a browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory. It is assumed those events are appended to agent-order during evaluation like the other SharedArrayBuffer events.</p>
