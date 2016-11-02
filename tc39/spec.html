@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-11-02 -- Expand compiler and codegen guidelines.
   <li>2016-10-28 -- Add an informal preface to the memory model section.
   <li>2016-10-28 -- Make candidate executions more precise, formally define relations and orders.
   <li>2016-10-25 -- Fix Tear Free Aligned Reads to distinguish TypedArray vs DataView provenance instead of just alignment.
@@ -136,6 +137,7 @@ comments.</p>
               1. <ins>Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.</ins>
               1. <ins>Let _eventList_ be the [[EventList]] field of the element in _execution_.[[EventLists]] whose [[AgentSignifier]] is AgentSignifier().</ins>
               1. <ins>Let _bytes_ be a List of length *1* that contains the nondeterministically chosen byte value.</ins>
+              1. <ins>NOTE: In implementations, _bytes_ is the result of a non-atomic read instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.</ins>
               1. <ins>Let _readEvent_ be ReadSharedMemory{ [[Order]]: `"Unordered"`, [[NoTear]]: *true*, [[Block]]: _fromBlock_, [[ByteIndex]]: _fromIndex_, [[ElementSize]]: *1* }.</ins>
               1. <ins>Append _readEvent_ to _eventList_.</ins>
               1. <ins>Append WriteSharedMemory{ [[Order]]: `"Unordered"`, [[NoTear]]: *true*, [[Block]]: _toBlock_, [[ByteIndex]]: _toIndex_, [[ElementSize]]: *1*, [[Payload]]: _bytes_ } to the _eventList_.</ins>
@@ -214,8 +216,8 @@ comments.</p>
             <td>A candidate execution Record</td>
             <td>See the Atomics memory model.</td>
           </tr>
-       </tbody>
-     </table>
+        </tbody>
+      </table>
     </emu-table>
 
     <p>Once the values of [[Signifier]], [[IsLockFree1]], and
@@ -641,8 +643,7 @@ These call AllocateTypedArray with a specified length:
           1. <ins>Let _rmwEvent_ be ReadModifyWriteSharedMemory{ [[Order]]: `"SeqCst"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_, [[ModifyOp]]: _op_ }.</ins>
           1. <ins>Append _rmwEvent_ to _eventList_.</ins>
           1. <ins>Append { [[Event]]: _rmwEvent_, [[ChosenValue]]: _rawBytesRead_ } to _execution_.[[ChosenValues]].</ins>
-          1. <ins>Let _value_ be RawBytesToNumber(_type_, _rawBytesRead_, _isLittleEndian_).</ins>
-          1. <ins>Return _value_.</ins>
+          1. <ins>Return RawBytesToNumber(_type_, _rawBytesRead_, _isLittleEndian_).</ins>
         </emu-alg>
       </emu-clause>
     </emu-clause> <!-- abstract -->
@@ -845,24 +846,24 @@ These call AllocateTypedArray with a specified length:
       <h2>What We Talk About When We Talk About Atomicity</h2>
       <p>Atomicity means two things. One, it means that an action is indivisible. For example, writing a value to memory should write the whole value all at once. This is called access atomicity. Two, it means the timing with which different threads can observe a memory access, i.e., the ordering of memory events. For example, on x86, a memory write becomes visible to all cores other than the writing core at exactly the same time. On ARM, a memory write may become visible to other cores at different times. This is called copy atomicity.</p>
 
-      <p>Access atomicity is the easier problem. Hardware provides access atomic instructions that provide the guarantee. Copy atomicity is more difficult. Memory models concern themselves with prescribing some flavor of copy atomicity by ordering memory operations. Access atomicity may be thought of as an orthogonal property that is applied on top of the memory model.</p>
+      <p>Access atomicity is the easier problem. Hardware provides access atomic instructions that provide the guarantee. Copy atomicity is more difficult. Memory models concern themselves with prescribing some flavor of copy atomicity by ordering memory events. Access atomicity may be thought of as an orthogonal property that is applied on top of the memory model.</p>
 
       <h2>Intuitions for the Memory Model</h2>
-      <p>The memory model proper is a set of relational constraints on a set of memory events. The memory events correspond to read, write, and read-modify-write operations. Most readers' mental models of computation tend to be operational in that they show meaning by describing what each step of a computation does, in algorithmic fashion. ECMA262, excluding this section, is specified in this operational fashion. The memory model, in contrast, corresponds is a set of axiomatic constraints that must be satisfied. Instead of constructing an algorithm that builds up the possible memory values, the model describes the set of all possible allowed memory values of a program directly via relational constraints.</p>
+      <p>The memory model proper is a set of relational constraints on a set of memory events. The memory events correspond to read, write, and read-modify-write operations. The usual, intuitive semantic model of programs is operational: a program's meaning is the steps it takes and what each step does, in algorithmic fashion. ECMA262, excluding this section, is specified operationally. The memory model, in contrast, corresponds is a set of axiomatic constraints that must be satisfied: a program's meaning is mathematical objects that satisfy those constraints. Instead of constructing an algorithm that builds up the possible memory values, the model describes the set of all possible allowed memory values of a program directly via relational constraints.</p>
 
       <p>Thought of another way, the operational model of ECMA262 constructs an execution that is correct by construction. The memory model instead is a filter on <em>all</em> executions. Some of those executions may not be correct, and the correct ones are exactly the ones that are allowed by the memory model.</p>
 
       <p>The model is best understood in two parts: the axiomatic part and the interfacing with the rest of ECMA262.</p>
 
-      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behavior that is exhibited on weak hardware like ARM and Power. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers to reason about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The dual goal of this model is to fully define the semantics of races as well as enable SC-DRF reasoning.</p>
+      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behavior that are exhibited on weak hardware like ARM and Power and result from compiler transformations. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers to reason about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The first goal of this model is to enable SC-DRF reasoning. For non-data race free programs, the memory model aims to give unambiguous meaning to those data races. The second goal of this model is to fully specify the semantics of data races.</p>
 
-      <p>To understand the axiomatic model, assume that there is a set of events that correspond to some evaluation of a program. The evaluation gives an initial partial ordering of these events called agent-order: if an event _E_ was evaluated before _D_ in some thread, then _E_ must come before _D_ in agent-order. Along with the set of events and agent-order is a map from read events to write events called reads-from. This map says which reads read from which writes during the evaluation. These three things make up a candidate execution, which is the input to the model. The model's job is to further order those events in such a way that candidate executions can be observed on hardware are deemed valid, i.e., allowed, and executions that cannot be observed are deemed invalid, i.e. disallowed.</p>
+      <p>To understand the axiomatic model, we start with the input to the model, candidate executions. Assume that there is a set of shared memory events (reads and writes) that correspond to some evaluation of a program. The evaluation gives an initial partial ordering of these events called agent-order: if an event _E_ was evaluated before _D_ in some thread, then _E_ must come before _D_ in agent-order. Along with the set of events and agent-order is a map from read events to write events called reads-from. This map says which reads read from which writes during the evaluation. These three things make up a candidate execution, which is the input to the model. The model's job is to further order those events in such a way that candidate executions that can be observed on actual hardware are deemed valid, i.e., allowed, and executions that cannot be observed are deemed invalid, i.e. disallowed.</p>
 
       <p>The partial order agent-order only orders events from the same thread. From this order we will build a new partial order called happens-before, which additionally relates pairs of correctly synchronized events across threads. To build happens-before, we start by relating atomic reads that reads-from atomic writes on the same memory location. These pairs are considered correctly synchronized. The happens-before partial order then includes all pairs from agent-order and synchronizes-with, as well as pairs of events that are transitively related. Data races, then, are precisely the events that are not relatable by happens-before.</p>
 
       <p>The SharedArrayBuffer API raises the difficulty that it allows aliased access on the same memory location via different sizes. That is, a read event can reads-from multiple write events, resulting in reading a composite value of bytes written by multiple events. Problematically, hardware often cannot guarantee the atomicity of concurrent accesses that happen on overlapping locations. To this end the model only guarantees atomic reads and writes on exactly the same memory range to be synchronized. Atomic reads and writes on overlapping locations may behave as if they were non-atomic. The memory model fully specifies the possible composite values that may be read. Together with the definition of data races, we have a fully defined semantics for data races.</p>
 
-      <p>After happens-before, we need one last constraint on synchronized atomics to enable SC-DRF reasoning. Recall that sequential consistency is an interleaving. Mathematically, this is equivalent to putting events in a total order (i.e., a sequence). Thus the model requires that valid executions have a total ordering of correctly synchronized atomic events called memory-order.</p>
+      <p>In addition to happens-before, we need one last constraint on synchronized atomics to enable SC-DRF reasoning. Recall that sequential consistency is an interleaving. Mathematically, this is equivalent to putting events in a total order (i.e., a sequence). Thus the model requires that valid executions have a total ordering of correctly synchronized atomic events called memory-order.</p>
 
       <p>These relations and orders mutually constrain each other so that they are coherent. The coherence constraints roughly correspond to the intuition that a read event cannot read from a write event that's "too old", in the sense that there's another write event on the memory location that happens-after the write event that was read from.</p>
 
@@ -870,59 +871,14 @@ These call AllocateTypedArray with a specified length:
 
       <p>The decision procedure alone is not yet enough. How does a set of memory events arise in the first place? How do we connect this decision procedure, which acts on all possible executions, with the evaluation semantics of ECMA262?</p>
 
-      <p>To connect the axiomatic semantics to the operational semantics, the operational semantics are made nondeterministic. Instead of constructing a single, valid execution, the nondeterministic operational semantics constructs <em>all</em> candidate executions. This is captured by GetValueFromBuffer returning any possible byte value when operating on SharedArrayBuffers. It bears stressing that this is the stuff of semantics and not actual implementations. Implementations will simply return the value that the corresponding hardware load instruction returns. But the hardware may act astonishingly due to the sophistication of their implementation and seemingly read values from e.g., the future, or a branch not taken. One may think of this nondeterminism as treating the reads on shared memory as black boxes. Up front, it reads <em>something</em>, the exact value of which is unknown until later, when we apply the memory model decision procedure.</p>
+      <p>To connect the axiomatic semantics to the operational semantics, the operational semantics are made nondeterministic. Instead of constructing a single, valid execution, the nondeterministic operational semantics constructs <em>all</em> candidate executions. This is captured by GetValueFromBuffer returning any possible byte value when operating on SharedArrayBuffers. It bears stressing that this is the stuff of semantics and not actual implementations. Implementations will simply return the value that the corresponding hardware load instruction returns. But the hardware, the compiler, or both, may act astonishingly due to the sophistication of their implementation and seemingly read values from e.g., the future, or a branch not taken. One may think of this nondeterminism as treating the reads on shared memory as black boxes (e.g., an opaque cache interface on a CPU). Up front, it reads <em>something</em>, the exact value of which is unknown until later, when we apply the memory model decision procedure.</p>
 
-      <p>With this nondeterminism the evaluation semantics can accumulate events simply as a side effect of performing operations on SharedArrayBuffers. Events and nondeterministically chosen values are accumulated in the [[EventLists]] and [[ChosenValues]] fields in a candidate execution Record during SetValueInBuffer. The model then validates that the chosen values were not completely bogus in addition to all the constraints described above. It bears restressing that this reified candidate execution record and validation are purely formal mechanisms. Implementations will simply return what is read by hardware.</p>
+      <p>With this nondeterminism the evaluation semantics can accumulate events as a side effect of performing operations on SharedArrayBuffers. Events and nondeterministically chosen values are accumulated in the [[EventLists]] and [[ChosenValues]] fields in a candidate execution record during SetValueInBuffer. The model then validates that the chosen values were not completely bogus in addition to all the constraints described above. It bears restressing that this reified candidate execution record and validation are purely formal mechanisms. Implementations will simply return what is read by hardware.</p>
 
       <p>So what we talk about when we talk about the meaning of a program that uses SharedArrayBuffer is the <em>set</em> of valid executions. To wit, the evaluation semantics first generates the set of all possible candidate executions, then the memory model filters out the invalid ones. The remaining executions is the meaning of the program. A program always has at least one valid execution.</p>
-
-      <h2>Advice for Programmers</h2>
-
-      <p>Keep programs data race free, i.e., make it so that it is impossible for there to be concurrent non-atomic operations on the same memory location. Data race free programs have interleaving semantics where each step in the evaluation semantics of each agent are interleaved with each other. For data race free programs, it is not necessary to understand the details of the memory model. The details are unlikely to build intuition that will help one to better write JavaScript.</p>
-
-      <p>More generally, even if a program is not data race free it may have predictable behavior, so long as atomic operations are not involved in any data races and the operations that race all have the same access size.  The simplest way to arrange for atomics not to be involved in races is to ensure that different memory cells are used by atomic and non-atomic operations and that atomic accesses of different sizes are not used to access the same cells at the same time.  Effectively, the program should treat shared memory as strongly typed as much as possible.  One still cannot depend on the ordering and timing of non-atomic accesses that race, but if memory is treated as strongly typed the racing accesses will not "tear" (bits of their values will not be mixed). </p>
-
-      <h2>Advice for Implementers</h2>
-
-      <p>While the memory model is prescriptive by nature, it is intended to allow obvious code generation. Non-atomic accesses are intended to map to bare stores and loads and atomic accesses to the obvious instructions on the underlying hardware. The intention is thus descriptive; the model must allow enough executions such that the astonishing effects that bare stores and loads on hardware with weak memory models exhibit are not prohibited. If an obvious code generation strategy is found to be non-compliant, the bug is likely in the memory model and not the implementation.</p>
-
-      <p>Specifically, the memory model is intended to allow code generation as follows.  There are some ground rules:</p>
-
-      <ul>
-        <li> Every atomic operation in the program is assumed to be necessary.
-        <li> Atomic operations are never rearranged with each other or with non-atomic operations.
-        <li> Functions are always assumed to perform atomic operations.
-        <li> Atomic operations are never implemented as read-modify-write operations on larger data, but as non-lock-free atomics if the platform does not have atomic operations of the appropriate size.  (We already assume that every platform has normal memory access operations of every interesting size.)
-      </ul>
-
-      <p> With that in mind, naive code generation uses these patterns:</p>
-
-      <ul>
-        <li> Regular loads and stores compile to single load and store instructions.
-        <li> Lock-free atomic loads and stores compile to a full (sequentially consistent) fence, a regular load or store, and a full fence.
-        <li> Lock-free atomic read-modify-write accesses compile to a full fence, an atomic read-modify-write instruction sequence, and a full fence.
-        <li> Non-lock-free atomics compile to a spinlock acquire, a full fence, a series of non-atomic load and store instructions, a full fence, and a spinlock release.
-      </ul>
-
-      <p>That mapping is correct so long as an atomic operation on an address range does not race with a non-atomic write or with an atomic operation of different size.  However, that is all we need: the memory model effectively demotes the atomic operations involved in a race to non-atomic status.  On the other hand, the naive mapping is quite strong: it allows atomic operations to be used as sequentially consistent fences, which the memory model does not actually guarantee.</p>
-        
-      <p>A number of local improvements to those basic patterns are also intended to be legal:</p>
-
-      <ul>
-        <li>There are obvious platform-dependent improvements that remove redundant fences.  For example, on x86 the fences around lock-free atomic loads and stores can always be omitted except for the fence following a store, and no fence is needed for lock-free read-modify-write instructions, as these all use LOCK-prefixed instructions.  On many platforms there are fences of several strengths, and weaker fences can be used in certain contexts without destroying sequential consistency.
-
-        <li>Most modern platforms support lock-free atomics for all the data sizes required by ECMAScript atomics.  Should non-lock-free atomics be needed, the fences surrounding the body of the atomic operation can usually be folded into the lock and unlock steps.  The simplest solution for non-lock-free atomics is to have a single lock word per SharedArrayBuffer.
-
-        <li>There are also more complicated platform-dependent local improvements, requiring some code analysis.  For example, two back-to-back fences often have the same effect as a single fence, so if code is generated for two atomic operations in sequence, only a single fence need separate them.  On x86, even a single fence separating atomic stores can be omitted, as the fence following a store is only needed to separate the store from a subsequent load.
-      </ul>
-
-      <p>One informative reference about local improvements is <a href="http://www.cl.cam.ac.uk/~pes20/cpp/cpp0xmappings.html">the writeup from the Cambridge Relaxed Memory Group</a>.</p>
-      
-      <p>On the other hand, the restrictions the memory model places on compiler optimizations are less obvious. To this end there is an section below titled Compiler Transform Guidelines, designed to give informal descriptions of restrictions on optimizations that follow from the memory model.</p>
-
     </emu-note>
 
-    <p>The memory consistency model, or memory model, specifies the possible orderings of Shared Data Block events, arising via accessing TypedArray instances backed by a SharedArrayBuffer and via methods on the Atomics object. When the program has no data races (defined more precisely below), the ordering of events appears as sequentially consistent, i.e., as an interleaving of actions from each agent. When the program has data races, shared memory operations may appear sequentially inconsistent. For example, programs may exhibit causality-violating behavior and other astonishments. These astonishments arise from compiler transforms and the design of CPUs (e.g., out-of-order execution and speculation). The memory model defines both the precise conditions under which a program exhibits sequentially consistent behavior as well as the possible values read from data races. To wit, there is no undefined behavior.</p>
+    <p>The memory consistency model, or memory model, specifies the possible orderings of Shared Data Block events, arising via accessing TypedArray instances backed by a SharedArrayBuffer and via methods on the Atomics object. When the program has no data races (defined below), the ordering of events appears as sequentially consistent, i.e., as an interleaving of actions from each agent. When the program has data races, shared memory operations may appear sequentially inconsistent. For example, programs may exhibit causality-violating behavior and other astonishments. These astonishments arise from compiler transforms and the design of CPUs (e.g., out-of-order execution and speculation). The memory model defines both the precise conditions under which a program exhibits sequentially consistent behavior as well as the possible values read from data races. To wit, there is no undefined behavior.</p>
 
     <p>The memory model is defined as relational constraints on events introduced by abstract operations on SharedArrayBuffer or by methods on the Atomics object during an evaluation.</p>
 
@@ -989,7 +945,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[NoTear]]</td>
               <td>A Boolean</td>
-              <td>Whether this event is allowed to read from multiple write events on the equal range.</td>
+              <td>Whether this event is allowed to read from multiple write events on equal range as this event.</td>
             </tr>
             <tr>
               <td>[[Block]]</td>
@@ -1026,7 +982,7 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[NoTear]]</td>
               <td>A Boolean</td>
-              <td>Whether this event is allowed to be read from multiple read events on the equal range.</td>
+              <td>Whether this event is allowed to be read from multiple read events with equal range as this event.</td>
             </tr>
             <tr>
               <td>[[Block]]</td>
@@ -1099,7 +1055,7 @@ These call AllocateTypedArray with a specified length:
         </table>
       </emu-table>
 
-      <p>These events are introduced by an abstract operation or by a Function property on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
+      <p>These events are introduced by abstract operations or by methods on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
 
       <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the Set of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges are neither equal nor overlapping.</p>
 
@@ -1227,7 +1183,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.EventSet" aoid="EventSet">
       <h1>EventSet( _execution_ )</h1>
-      <p>EventSet takes one argument, a candidate execution _execution_, and performs the following steps.</p>
+      <p>The abstract operation EventSet takes one argument, a candidate execution _execution_, and performs the following steps.</p>
       <emu-alg>
         1. Let _events_ be an empty Set.
         1. For each element _eventList_ in _execution_.[[EventLists]]:
@@ -1248,7 +1204,7 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
 
       <emu-note>
-        <p>Each agent introduces events in a total order during the evaluation. This is the union of those total orders.</p>
+        <p>Each agent introduces events in a per-agent total order during the evaluation. This is the union of those total orders.</p>
       </emu-note>
     </emu-clause>
 
@@ -1303,7 +1259,7 @@ These call AllocateTypedArray with a specified length:
         1. Let agent-order be _execution_.[[AgentOrder]].
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
         1. For each pair of events _E_ and _D_ in EventSet(_execution_):
-          1. If _E_ is agent-order before _D_ in _a_ then _E_ happens-before _D_.
+          1. If _E_ is agent-order before _D_ then _E_ happens-before _D_.
           1. If _E_ synchronizes-with _D_ then _E_ happens-before _D_.
           1. If _E_.[[Order]] is `"Init"` and _E_ and _D_ have overlapping ranges then:
             1. Assert: _D_.[[Order]] is not `"Init"`.
@@ -1344,10 +1300,6 @@ These call AllocateTypedArray with a specified length:
         1. For each pair of events _R_ and _W_ in EventSet(_execution_):
           1. If _R_ reads-bytes-from a List of WriteSharedMemory events _Ws_ that contains _W_ then _R_ reads-from _W_.
       </emu-alg>
-
-      <emu-note>
-        <p>This is a function from events to Lists of events.</p>
-      </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
@@ -1395,8 +1347,8 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. Assert: _R_ is a ReadSharedMemory or ReadModifyWriteSharedMemory event.
-        1. Let reads-from be _execution_.[[ReadsFrom]].
-        1. Let _Ws_ be the List of events such that _R_ reads-from _Ws_.
+        1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
+        1. Let _Ws_ be the List of events such that _R_ reads-bytes-from _Ws_.
         1. Assert: _Ws_ has length equal to _R_.[[ElementSize]].
         1. Return ComposeWriteEventBytes(_execution_, _R_.[[Block]], _R_.[[ByteIndex]], _Ws_).
       </emu-alg>
@@ -1415,7 +1367,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.NoOutOfThinAirReads">
       <h1>No Out of Thin Air Reads</h1>
-      <p>A candidate execution has no out of thin air reads if there is no cycle in the union of the relations _execution_.[[ReadsFrom]] and _execution_.[[DependsOn]].</p>
+      <p>A candidate execution has no out of thin air reads if there is no cycle in the union of the Relations _execution_.[[ReadsFrom]] and _execution_.[[DependsOn]].</p>
 
       <emu-note>
         <p>Out of thin air reads is an artifact of memory models rather than implementation reality. For other languages with similar memory models, thin air reads have not been observed on any known hardware nor due to any known compiler transform.</p>
@@ -1957,8 +1909,16 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
   </emu-clause>
 
+  <emu-clause id="ProgrammerGuidelines">
+    <h1>Programmer Guidelines</h1>
+
+    <p>Keep programs data race free, i.e., make it so that it is impossible for there to be concurrent non-atomic operations on the same memory location. Data race free programs have interleaving semantics where each step in the evaluation semantics of each agent are interleaved with each other. For data race free programs, it is not necessary to understand the details of the memory model. The details are unlikely to build intuition that will help one to better write JavaScript.</p>
+
+    <p>More generally, even if a program is not data race free it may have predictable behavior, so long as atomic operations are not involved in any data races and the operations that race all have the same access size.  The simplest way to arrange for atomics not to be involved in races is to ensure that different memory cells are used by atomic and non-atomic operations and that atomic accesses of different sizes are not used to access the same cells at the same time.  Effectively, the program should treat shared memory as strongly typed as much as possible.  One still cannot depend on the ordering and timing of non-atomic accesses that race, but if memory is treated as strongly typed the racing accesses will not "tear" (bits of their values will not be mixed).</p>
+  </emu-clause>
+
   <emu-clause id="CompilerTransforms">
-    <h1>Compiler Transform Guidelines</h1>
+    <h1>Compiler Transformation Guidelines</h1>
 
     <emu-note>
       <p>(Spec draft notes)</p>
@@ -1971,23 +1931,25 @@ These call AllocateTypedArray with a specified length:
 
       <p>Frequently these transformations are hard to judge. Can an `"Unordered"` load be moved out of a loop? Even if the loop's termination condition depends on the loaded value? The load is necessarily racy, and the memory model gives some meaning to races; can we depend on that meaning here?</p>
 
-      <p>The rough, informal intuition is as follows. The memory model defines the set of possible values a shared memory read event in a multi-agent program may read. Transformations should not result in a read event reading values that were not in the original set. But transformations are allowed to cause an observable read event to read from only a non-empty subset of the original set of values. (A transformation cannot make an observable read that used to always read something read nothing.)</p>
-
       <p>With that background, we outline some rules about program transformations that are intended to be taken as normative (in that they fall out of the memory model) but which are likely not exhaustive. These rules are intended to apply to program transformations that precede the introductions of the events that make up the agent-order.</p>
     </emu-note>
 
     <p>Let an <dfn>agent-order slice</dfn> be the subset of the agent-order pertaining to a single agent.</p>
+    <p>Let <dfn>possible read values</dfn> of a read event be the set of all values of ValueOfReadEvent for that event across all valid executions.</p>
 
-    <p>Any transformation of an agent-order slice that is valid in the absence of shared memory is valid in the presence of shared memory, with the following exceptions:</p>
+    <p>Any transformation of an agent-order slice that is valid in the absence of shared memory is valid in the presence of shared memory, with the following exceptions.</p>
 
     <ul>
-      <li><em>Atomics are carved in stone</em>: Program transformations must not cause the `"SeqCst"` events in an agent-order slice to be reordered with its `"Unordered"` operations, nor its `"SeqCst"` operations to be reordered with each other, nor may a program transformation remove a `"SeqCst"` operation from the agent-order.  (In practice, the prohibition on reorderings forces a compiler to assume that every `"SeqCst"` operation is included in the final memory-order, which it would usually have to assume anyway in the absence of inter-agent program analysis.  It also forces the compiler to assume that every call where the callee's effects on the memory-order are unknown may contain `"SeqCst"` operations.)</li>
+      <li><em>Atomics are carved in stone</em>: Program transformations must not cause the `"SeqCst"` events in an agent-order slice to be reordered with its `"Unordered"` operations, nor its `"SeqCst"` operations to be reordered with each other, nor may a program transformation remove a `"SeqCst"` operation from the agent-order.
+        <p>(In practice, the prohibition on reorderings forces a compiler to assume that every `"SeqCst"` operation is a synchronization and included in the final memory-order, which it would usually have to assume anyway in the absence of inter-agent program analysis. It also forces the compiler to assume that every call where the callee's effects on the memory-order are unknown may contain `"SeqCst"` operations.)</p></li>
 
-      <li><em>Reads must be stable</em>: Any given shared memory read must only observe a single value. (For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read. A transformation known as rematerialization can violate this rule.)</li>
+      <li><em>Reads must be stable</em>: Any given shared memory read must only observe a single value in an execution.
+        <p>(For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read. A transformation known as rematerialization can violate this rule.)</p></li>
 
-      <li><em>Writes must be stable</em>: All observable writes to shared memory must follow from program semantics. (For example, a transformation may not introduce certain observable writes, such as by using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or writing a just-read value back to the location it was read from, if that location could have been overwritten by another agent after the read.)</li>
+      <li><em>Writes must be stable</em>: All observable writes to shared memory must follow from program semantics in an execution.
+        <p>(For example, a transformation may not introduce certain observable writes, such as by using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or writing a just-read value back to the location it was read from, if that location could have been overwritten by another agent after the read.)</p></li>
 
-      <li><em>Writes must become visible</em>: If an agent writes to a shared memory location non-atomically then an `"Unordered"` event to the location must be inserted in the agent-order slice before the next `"SeqCst"` event is introduced by the agent, or before the agent's job ends if there is no next `"SeqCst"` event.  (For example, writes may be moved and coalesced and sometimes reordered between two "SeqCst" operations, but the transformation may not remove every write that updates a location; some write must be preserved.)</li>
+      <li><em>Possible read values must be nonempty</em>: Program transformations cannot cause the possible read values of a shared memory read to become empty.<p>(Counterintuitively, this rule in effect restricts transformations on writes, because writes have force in memory model insofar as to be read by read events. For example, writes may be moved and coalesced and sometimes reordered between two `"SeqCst"` operations, but the transformation may not remove every write that updates a location; some write must be preserved.)</p></li>
     </ul>
 
     <emu-note>
@@ -2001,7 +1963,48 @@ These call AllocateTypedArray with a specified length:
 
   <emu-clause id="Codegen">
     <h1>Code Generation Guidelines</h1>
+
     <p>For architectures with memory models no weaker than those of ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86 and load-link/store-conditional instructions on ARM.</p>
+
+    <emu-note>
+      <p>(Spec draft notes)</p>
+
+      <p>While the memory model is prescriptive by nature, it is intended to allow obvious code generation. Non-atomic accesses are intended to map to bare stores and loads and atomic accesses to the obvious instructions on the underlying hardware. The intention is thus descriptive; the model must allow enough executions such that the astonishing effects that bare stores and loads on hardware with weak memory models exhibit are not prohibited. If an obvious code generation strategy is found to be non-compliant, the bug is likely in the memory model and not the implementation.</p>
+
+      <p>Specifically, the memory model is intended to allow code generation as follows.  There are some ground rules:</p>
+
+      <ul>
+        <li> Every atomic operation in the program is assumed to be necessary.
+        <li> Atomic operations are never rearranged with each other or with non-atomic operations.
+        <li> Functions are always assumed to perform atomic operations.
+        <li> Atomic operations are never implemented as read-modify-write operations on larger data, but as non-lock-free atomics if the platform does not have atomic operations of the appropriate size.  (We already assume that every platform has normal memory access operations of every interesting size.)
+      </ul>
+
+      <p> With that in mind, naive code generation uses these patterns:</p>
+
+      <ul>
+        <li> Regular loads and stores compile to single load and store instructions.
+        <li> Lock-free atomic loads and stores compile to a full (sequentially consistent) fence, a regular load or store, and a full fence.
+        <li> Lock-free atomic read-modify-write accesses compile to a full fence, an atomic read-modify-write instruction sequence, and a full fence.
+        <li> Non-lock-free atomics compile to a spinlock acquire, a full fence, a series of non-atomic load and store instructions, a full fence, and a spinlock release.
+      </ul>
+
+      <p>That mapping is correct so long as an atomic operation on an address range does not race with a non-atomic write or with an atomic operation of different size.  However, that is all we need: the memory model effectively demotes the atomic operations involved in a race to non-atomic status.  On the other hand, the naive mapping is quite strong: it allows atomic operations to be used as sequentially consistent fences, which the memory model does not actually guarantee.</p>
+
+      <p>A number of local improvements to those basic patterns are also intended to be legal:</p>
+
+      <ul>
+        <li>There are obvious platform-dependent improvements that remove redundant fences.  For example, on x86 the fences around lock-free atomic loads and stores can always be omitted except for the fence following a store, and no fence is needed for lock-free read-modify-write instructions, as these all use LOCK-prefixed instructions.  On many platforms there are fences of several strengths, and weaker fences can be used in certain contexts without destroying sequential consistency.
+
+        <li>Most modern platforms support lock-free atomics for all the data sizes required by ECMAScript atomics.  Should non-lock-free atomics be needed, the fences surrounding the body of the atomic operation can usually be folded into the lock and unlock steps.  The simplest solution for non-lock-free atomics is to have a single lock word per SharedArrayBuffer.
+
+        <li>There are also more complicated platform-dependent local improvements, requiring some code analysis.  For example, two back-to-back fences often have the same effect as a single fence, so if code is generated for two atomic operations in sequence, only a single fence need separate them.  On x86, even a single fence separating atomic stores can be omitted, as the fence following a store is only needed to separate the store from a subsequent load.
+      </ul>
+
+      <p>One informative reference about local improvements is <a href="http://www.cl.cam.ac.uk/~pes20/cpp/cpp0xmappings.html">the writeup from the Cambridge Relaxed Memory Group</a>.</p>
+
+      <p>On the other hand, the restrictions the memory model places on compiler optimizations are less obvious. To this end please consult the Compiler Transformation Guidelines section above, designed to give informal descriptions of restrictions on optimizations that follow from the memory model.</p>
+    </emu-note>
   </emu-clause>
 </emu-clause>
 
