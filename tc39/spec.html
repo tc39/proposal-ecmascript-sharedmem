@@ -845,10 +845,10 @@ These call AllocateTypedArray with a specified length:
       <h2>What We Talk About When We Talk About Atomicity</h2>
       <p>Atomicity means two things. One, it means that an action is indivisible. For example, writing a value to memory should write the whole value all at once. This is called access atomicity. Two, it means the timing with which different threads can observe a memory access, i.e., the ordering of memory events. For example, on x86, a memory write becomes visible to all cores other than the writing core at exactly the same time. On ARM, a memory write may become visible to other cores at different times. This is called copy atomicity.</p>
 
-      <p>Access atomicity is the easier problem. Hardware provides access atomic instructions that provide the guarantee. Copy atomicity much more difficult. Memory models concern themselves with prescribing some flavor of copy atomicity by ordering memory operations. Access atomicity may be thought of as an orthogonal property that is applied on top of the memory model.</p>
+      <p>Access atomicity is the easier problem. Hardware provides access atomic instructions that provide the guarantee. Copy atomicity is more difficult. Memory models concern themselves with prescribing some flavor of copy atomicity by ordering memory operations. Access atomicity may be thought of as an orthogonal property that is applied on top of the memory model.</p>
 
       <h2>Intuitions for the Memory Model</h2>
-      <p>The memory model proper is a set of relational constraints on a set of memory events. The memory events correspond to read, write, and read-modify-write operations. Most readers' mental models of computation tend to be operational in that they show meaning by describing what each step of a computation does, in algorithmic fashion. ECMA262, excluding this section, is specified in this operational fashion. The memory model, in contrast, corresponds closer to classical logic rather than constructive logic, in that it shows meaning by describing a set of axiomatic constraints that must be satisfied. Instead of constructing an algorithm that builds up the possible memory values, the model describes the set of all possible allowed memory values of a program directly via relational constraints.</p>
+      <p>The memory model proper is a set of relational constraints on a set of memory events. The memory events correspond to read, write, and read-modify-write operations. Most readers' mental models of computation tend to be operational in that they show meaning by describing what each step of a computation does, in algorithmic fashion. ECMA262, excluding this section, is specified in this operational fashion. The memory model, in contrast, corresponds is a set of axiomatic constraints that must be satisfied. Instead of constructing an algorithm that builds up the possible memory values, the model describes the set of all possible allowed memory values of a program directly via relational constraints.</p>
 
       <p>Thought of another way, the operational model of ECMA262 constructs an execution that is correct by construction. The memory model instead is a filter on <em>all</em> executions. Some of those executions may not be correct, and the correct ones are exactly the ones that are allowed by the memory model.</p>
 
@@ -877,13 +877,11 @@ These call AllocateTypedArray with a specified length:
       <p>So what we talk about when we talk about the meaning of a program that uses SharedArrayBuffer is the <em>set</em> of valid executions. To wit, the evaluation semantics first generates the set of all possible candidate executions, then the memory model filters out the invalid ones. The remaining executions is the meaning of the program. A program always has at least one valid execution.</p>
 
       <h2>Advice for Programmers</h2>
-      <p>Keep programs data race free, i.e., make it so that it is impossible for there to be concurrent non-atomic operations on the same memory location. Data race free programs have interleaving semantics where each step in the evaluation semantics of each agent are interleaved with each other. For data race free programs, it is not necessary to understand the details of the memory model. The details are unlikely to build intuition that will help one to better write JavaScript. It is the author's opinion that trying to exploit the semantics of races for performance is ill-advised and likely to be incorrect.</p>
+      <p>Keep programs data race free, i.e., make it so that it is impossible for there to be concurrent non-atomic operations on the same memory location. Data race free programs have interleaving semantics where each step in the evaluation semantics of each agent are interleaved with each other. For data race free programs, it is not necessary to understand the details of the memory model. The details are unlikely to build intuition that will help one to better write JavaScript.</p>
 
       <h2>Advice for Implementers</h2>
-      <p>While the memory model is prescriptive by nature, it is intended to allow non-atomic accesses to be compiled to bare stores and loads and atomic accesses to be compiled in the "obvious way" on the underlying hardware. The intention is thus descriptive; the model must allow enough executions such that the astonishing effects that bare stores and loads on hardware with weak memory models exhibit are not prohibited. If an obvious implementation is found to be non-compliant, the bug is likely in the memory model and not the implementation.</p>
-
-      <h2>Acknowledgements</h2>
-      <p>Many of the fundamentals and relations described here are inspired by the LLVM memory model. Hardware intuition comes in no small part from the wonderful work from Peter Sewell's Cambridge group. Many thanks to Alan Jeffrey and Michael Sullivan for reviewing drafts.</p>
+      <p>While the memory model is prescriptive by nature, it is intended to allow obvious code generation. Non-atomic accesses are intended to map to bare stores and loads and atomic accesses to the obvious instructions on the underlying hardware. The intention is thus descriptive; the model must allow enough executions such that the astonishing effects that bare stores and loads on hardware with weak memory models exhibit are not prohibited. If an obvious code generation strategy is found to be non-compliant, the bug is likely in the memory model and not the implementation.</p>
+      <p>On the other hand, the restrictions the memory model places on compiler optimizations are less obvious. To this end there is an section below titled Compiler Transform Guidelines, designed to give informal descriptions of restrictions on optimizations that follow from the memory model.</p>
     </emu-note>
 
     <p>The memory consistency model, or memory model, specifies the possible orderings of Shared Data Block events, arising via accessing TypedArray instances backed by a SharedArrayBuffer and via methods on the Atomics object. When the program has no data races (defined more precisely below), the ordering of events appears as sequentially consistent, i.e., as an interleaving of actions from each agent. When the program has data races, shared memory operations may appear sequentially inconsistent. For example, programs may exhibit causality-violating behavior and other astonishments. These astonishments arise from compiler transforms and the design of CPUs (e.g., out-of-order execution and speculation). The memory model defines both the precise conditions under which a program exhibits sequentially consistent behavior as well as the possible values read from data races. To wit, there is no undefined behavior.</p>
@@ -1923,40 +1921,44 @@ These call AllocateTypedArray with a specified length:
 
   <emu-clause id="CompilerTransforms">
     <h1>Compiler Transform Guidelines</h1>
-    <p>Given a host-defined notion of observable behavior of programs, the following restrictions apply to compiler transforms for non-atomics operations.</p>
+
+    <emu-note>
+      <p>(Spec draft notes)</p>
+
+      <p>The memory model provides precise semantics for shared memory events, but it does without fixing its various relations. It prescribes what memory values may be observed for each event, but does not require, e.g., agent-order, to be fixed. Indeed, transformations performed by the ECMAScript implementation or hardware may change agent-order and the other relations. Consider a single agent running in isolation. In the single-agent case, all semantics-preserving transformations are allowed, but, being semantics-preserving, they are not observable to the agent. To contrast, in the multi-agent case, those same transformations may become observable by other agents via shared memory accesses.</p>
+
+      <p>The question arises as to which transformations that are allowed in a multi-agent setting, where transformations that affect shared memory writes are observable by other agents. An agent that writes 0 to `x` and then writes 1 to `y` can be transformed in a single-agent setting to one that writes 1 to `y` and then writes 0 to `x`. But is that a legal transformation if those variables are in shared memory and another agent might observe the order of writes? The transformation would affect the agent-order locally and the happens-before relation globally. And does the answer depend on whether `x` and `y` are written with `"SeqCst"` operations or not?</p>
+
+      <p>It is desirable to allow most program transformations that are valid in a single-agent setting in a multi-agent setting, to ensure that the performance of each agent in a multi-agent program is as good as it would be in a single-agent setting. (There seems to be broad agreement in the programming language design community that that is the right trade-off.)  But "most" does not mean "all". In the example above, if `x` or `y` (or both) were intended to be `"SeqCst"` writes, and the writes were reordered, not only might happens-before be affected, but also synchronizes-with and memory-order, and a program that before transformations was data-race-free and sequentially consistent might no longer be so. In contrast, if `x` and `y` were both `"Unordered"` then in a data-race-free program the change in write order would not be observable at all.</p>
+
+      <p>Frequently these transformations are hard to judge. Can an `"Unordered"` load be moved out of a loop? Even if the loop's termination condition depends on the loaded value? The load is necessarily racy, and the memory model gives some meaning to races; can we depend on that meaning here?</p>
+
+      <p>The rough, informal intuition is as follows. The memory model defines the set of possible values a shared memory read event in a multi-agent program may read. Transformations should not result in a read event reading values that were not in the original set. But transformations are allowed to cause an observable read event to read from only a non-empty subset of the original set of values. (A transformation cannot make an observable read that used to always read something read nothing.)</p>
+
+      <p>With that background, we outline some rules about program transformations that are intended to be taken as normative (in that they fall out of the memory model) but which are likely not exhaustive. These rules are intended to apply to program transformations that precede the introductions of the events that make up the agent-order.</p>
+    </emu-note>
+
+    <p>Let an <dfn>agent-order slice</dfn> be the subset of the agent-order pertaining to a single agent.</p>
+
+    <p>Any transformation of an agent-order slice that is valid in the absence of shared memory is valid in the presence of shared memory, with the following exceptions:</p>
 
     <ul>
-      <li>An API call introducing a single Shared Data Block event that affects observable behavior cannot be transformed into API calls introducing multiple Shared Data Block events.
-      <li>API calls introducing WriteSharedMemory or ReadModifyWriteSharedMemory events that affect observable behavior may not have their ranges narrowed.
-      <li>API calls introducing WriteSharedMemory or ReadModifyWriteSharedMemory events that affect observable behavior may not be removed.
-      <li>API calls introducing WriteSharedMemory or ReadModifyWriteSharedMemory events that both affect observable behavior and would not have otherwise arisen may not be introduced.
+      <li><em>Atomics are carved in stone</em>: Program transformations must not cause the `"SeqCst"` events in an agent-order slice to be reordered with its `"Unordered"` operations, nor its `"SeqCst"` operations to be reordered with each other, nor may a program transformation remove a `"SeqCst"` operation from the agent-order.  (In practice, the prohibition on reorderings forces a compiler to assume that every `"SeqCst"` operation is included in the final memory-order, which it would usually have to assume anyway in the absence of inter-agent program analysis.  It also forces the compiler to assume that every call where the callee's effects on the memory-order are unknown may contain `"SeqCst"` operations.)</li>
+
+      <li><em>Reads must be stable</em>: Any given shared memory read must only observe a single value. (For example, if what is semantically a single read in the program is executed multiple times then the program is subsequently allowed to observe only one of the values read. A transformation known as rematerialization can violate this rule.)</li>
+
+      <li><em>Writes must be stable</em>: All observable writes to shared memory must follow from program semantics. (For example, a transformation may not introduce certain observable writes, such as by using read-modify-write operations on a larger location to write a smaller datum, writing a value to memory that the program could not have written, or writing a just-read value back to the location it was read from, if that location could have been overwritten by another agent after the read.)</li>
+
+      <li><em>Writes must become visible</em>: If an agent writes to a shared memory location non-atomically then an `"Unordered"` event to the location must be inserted in the agent-order slice before the next `"SeqCst"` event is introduced by the agent, or before the agent's job ends if there is no next `"SeqCst"` event.  (For example, writes may be moved and coalesced and sometimes reordered between two "SeqCst" operations, but the transformation may not remove every write that updates a location; some write must be preserved.)</li>
     </ul>
 
     <emu-note>
-      <p>API calls introducing Shared Data Block events may be introduced, elided, or merged if they do not affect observable behavior of the program. For example, nonbinding prefetches of cache lines, assuming correctness of invalidations, are allowed. Contrastingly, rematerializing an observable read is not. For example, the following two programs are not equivalent.</p>
-
-      <pre>let x = M[a]; if (x) observe(x);</pre>
-
-      <p>and</p>
-
-      <pre>if (M[a]) observe(M[a]);</pre>
+      <p>(Spec draft note) These rules are technically stronger than what the memory model implies. For example, for the <em>atomics are carved in stone</em> rule, the memory model only implies that `"SeqCst"` events that synchronizes-with other events be totally ordered. In practice, compilers cannot perform inter-agent program analysis and must assume every atomic call gives rise to `"SeqCst"` events that synchronizes-with other events.</p>
     </emu-note>
 
-    <p>The following additional restrictions apply to compiler transforms for atomic operations.</p>
+    <p>The rules apply only to shared memory accesses, so an implementation that knows the program is not accessing shared memory will not be affected by them.  In practice, the optimizations that are affected by the rules are of limited value, and a practical implementation could avoid those optimizations even for non-shared memory without significant impact.</p>
 
-    <ul>
-      <li>API calls introducing `"SeqCst"` events that affect observable behavior may not be reordered.
-    </ul>
-
-    <p>The following additional restriction apply to compiler transforms for data race free programs.</p>
-
-    <ul>
-      <li>API calls introducing Shared Data Block events that do not affect observable behavior may not be transformed to API calls that result in shared memory events that affect observable behavior.
-    </ul>
-
-    <emu-note>
-      <p>(Spec draft note): This proviso is intended to prohibit transforms that leak information.</p>
-    </emu-note>
+    <p>Examples of transformations that remain valid are: merging multiple non-atomic reads from the same location, reordering non-atomic reads, introducing speculative non-atomic reads, merging multiple non-atomic writes to the same location, reordering non-atomic writes to different locations, and hoisting non-atomic reads out of loops even if that affects termination. Note in general that aliased TypedArrays make it hard to prove that locations are different.</p>
   </emu-clause>
 
   <emu-clause id="Codegen">
