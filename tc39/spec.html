@@ -1740,18 +1740,21 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="Atomics.compareExchange">
       <h1>Atomics.compareExchange( _typedArray_, _index_, _expectedValue_, _replacementValue_ )</h1>
-      <p>Let `compareExchange` denote a semantic closure of two List of byte values arguments that returns the second argument if the first argument is element-wise equal to the value computed by the following steps:</p>
-      <emu-alg>
-        1. Let _buffer_ be ? ValidateSharedIntegerTypedArray(_typedArray_).
-        1. Let _expected_ be ? ToInteger(_expectedValue_).
-        1. Let _arrayTypeName_ be _typedArray_.[[TypedArrayName]].
-        1. Let _convOp_ be the conversion operation specified in <emu-xref href="#table-49"></emu-xref> for _arrayTypeName_.
-        1. Return _convOp_ (_expected_).
-      </emu-alg>
-
       <p>The following steps are taken:</p>
       <emu-alg>
-        1. Return AtomicReadModifyWrite(_typedArray_, _index_, _replacementValue_, `compareExchange`);
+        1. Let _buffer_ be ? ValidateSharedIntegerTypedArray(_typedArray_).
+        1. Let _i_ be ? ValidateAtomicAccess(_typedArray_, _index_).
+        1. Let _expected_ be ? ToInteger(_expectedValue_).
+        1. Let _replacement_ be ? ToInteger(_replacementValue_).
+        1. Let _arrayTypeName_ be _typedArray_.[[TypedArrayName]].
+        1. Let _convOp_ be the conversion operation specified in <emu-xref href="#table-49"></emu-xref> for _arrayTypeName_.
+        1. Let _expectedBytes_ be _convOp_ (_expected_).
+        1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for _arrayTypeName_.
+        1. Let _elementType_ be the String value of the Element Type value in <emu-xref href="#table-49"></emu-xref> for _arrayTypeName_.
+        1. Let _offset_ be _typedArray_.[[ByteOffset]].
+        1. Let _indexedPosition_ be (_i_ &times; _elementSize_) + _offset_.
+        1. Let `compareExchange` denote a semantic function of two List of byte values arguments that returns the second argument if the first argument is element-wise equal to _expectedBytes_.
+        1. Return GetModifySetValueInBuffer(_buffer_, _indexedPosition_, _elementType_, _replacement_, `compareExchange`).
       </emu-alg>
     </emu-clause>
 
