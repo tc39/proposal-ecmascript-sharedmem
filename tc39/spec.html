@@ -855,11 +855,11 @@ These call AllocateTypedArray with a specified length:
 
       <p>The model is best understood in two parts: the axiomatic part and the interfacing with the rest of ECMA262.</p>
 
-      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behavior that are exhibited on weak hardware like ARM and Power and result from compiler transformations. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers to reason about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The first goal of this model is to enable SC-DRF reasoning. For non-data race free programs, the memory model aims to give unambiguous meaning to those data races. The second goal of this model is to fully specify the semantics of data races.</p>
+      <p>The axiomatic part is a weak consistency model. It needs to be flexible enough to allow a set of astonishing observable behaviors that are exhibited on weak hardware like ARM and Power and result from compiler transformations. For example, in certain cases, causality is allowed to be violated. At the same time, the memory model needs to enable programmers to reason about programs. These two needs run counter to each other. The compromise in the community is a guarantee called Sequential Consistency for Data Race Free Programs, or SC-DRF. In informal terms, SC-DRF says that if a program does not have concurrent, non-atomic memory accesses on the same memory locations (no data races), the program semantics is as if it were an interleaving of steps from each individual thread (sequentially consistent). The first goal of this model is to enable SC-DRF reasoning. For non-data race free programs, the memory model aims to give unambiguous meaning to those data races. The second goal of this model is to fully specify the semantics of data races.</p>
 
       <p>To understand the axiomatic model, we start with the input to the model, candidate executions. Assume that there is a set of shared memory events (reads and writes) that correspond to some evaluation of a program. The evaluation gives an initial partial ordering of these events called agent-order: if an event _E_ was evaluated before _D_ in some thread, then _E_ must come before _D_ in agent-order. Along with the set of events and agent-order is a map from read events to write events called reads-from. This map says which reads read from which writes during the evaluation. These three things make up a candidate execution, which is the input to the model. The model's job is to further order those events in such a way that candidate executions that can be observed on actual hardware are deemed valid, i.e., allowed, and executions that cannot be observed are deemed invalid, i.e. disallowed.</p>
 
-      <p>The partial order agent-order only orders events from the same thread. From this order we will build a new partial order called happens-before, which additionally relates pairs of correctly synchronized events across threads. To build happens-before, we start by relating atomic reads that reads-from atomic writes on the same memory location. These pairs are considered correctly synchronized. The happens-before partial order then includes all pairs from agent-order and synchronizes-with, as well as pairs of events that are transitively related. Data races, then, are precisely the events that are not relatable by happens-before.</p>
+      <p>The partial order agent-order only orders events from the same thread. From this order we will build a new partial order called happens-before, which additionally relates pairs of correctly synchronized events across threads. To build happens-before, we start by relating atomic reads that reads-from atomic writes on the same memory location. These pairs are considered correctly synchronized. The happens-before partial order then includes all pairs from agent-order and synchronizes-with, as well as pairs of events that are transitively related. Data races, then, are precisely the events that are not relatable by happens-before, where one of them is a write, and access the same location.</p>
 
       <p>The SharedArrayBuffer API raises the difficulty that it allows aliased access on the same memory location via different sizes. That is, a read event can reads-from multiple write events, resulting in reading a composite value of bytes written by multiple events. Problematically, hardware often cannot guarantee the atomicity of concurrent accesses that happen on overlapping locations. To this end the model only guarantees atomic reads and writes on exactly the same memory range to be synchronized. Atomic reads and writes on overlapping locations may behave as if they were non-atomic. The memory model fully specifies the possible composite values that may be read. Together with the definition of data races, we have a fully defined semantics for data races.</p>
 
@@ -891,26 +891,25 @@ These call AllocateTypedArray with a specified length:
       <p>The <dfn>Set</dfn> type is used to explain a collection of unordered elements. Values of the Set type are simple collections of elements, where no element appears more than once. Elements may be added to and removed from Sets. Sets may be unioned, intersected, or subtracted from each other.</p>
       <p>The <dfn>Relation</dfn> type is used to explain constraints on Sets. Values of the Relation type are Sets of ordered pairs of values from its value domain. For example, a Relation on events is a set of ordered pairs of events. For a Relation _R_ and two values _a_ and _b_ in the value domain of _R_, _a_ _R_ _b_ is shorthand for saying the ordered pair (_a_, _b_) is a member of _R_. A Relation is least with respect to some conditions when it is the smallest Relation that satisfies those conditions.</p>
 
-      <p>A <dfn>partial order</dfn> is a Relation value _R_ that satisfies the following conditions.</p>
+      <p>A <dfn>strict partial order</dfn> is a Relation value _R_ that satisfies the following conditions.</p>
 
       <emu-alg>
-        1. Let _a_, _b_, and _c_ be values of _R_'s domain.
-        1. _a_ _R_ _a_, and
-        1. If _a_ _R_ _b_ and _b_ _R_ _a_ then _a_ is _b_, and
-        1. If _a_ _R_ _b_ and _b_ _R_ _c_ then _a_ _R_ _c_.
+        1. For all _a_, _b_, and _c_ in _R_'s domain:
+          1. It is not the case _a_ _R_ _a_, and
+          1. If _a_ _R_ _b_ and _b_ _R_ _c_ then _a_ _R_ _c_.
       </emu-alg>
 
       <emu-note>
-        <p>The three properties above are called, in order, reflexivity, antisymmetry, and transitivity.</p>
+        <p>The two properties above are called, in order, irreflexivity and transitivity.</p>
       </emu-note>
 
       <p>A <dfn>total order</dfn> is a Relation value _R_ that satisfies the following conditions.</p>
 
       <emu-alg>
-        1. Let _a_, _b_, and _c_ be values of _R_'s domain.
-        1. _a_ _R_ _b_ or _b_ _R_ _a_, and
-        1. If _a_ _R_ _b_ and _b_ _R_ _a_ then _a_ is _b_, and
-        1. If _a_ _R_ _b_ and _b_ _R_ _c_ then _a_ _R_ _c_.
+        1. For all _a_, _b_, and _c_ in _R_'s domain:
+          1. _a_ _R_ _b_ or _b_ _R_ _a_, and
+          1. If _a_ _R_ _b_ and _b_ _R_ _a_ then _a_ is _b_, and
+          1. If _a_ _R_ _b_ and _b_ _R_ _c_ then _a_ _R_ _c_.
       </emu-alg>
 
       <emu-note>
@@ -1252,7 +1251,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.HappensBefore" aoid="happens-before">
       <h1>happens-before</h1>
-      <p>For a candidate execution _execution_, _execution_.[[HappensBefore]] is the least partial order that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[HappensBefore]] is the least strict partial order that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
