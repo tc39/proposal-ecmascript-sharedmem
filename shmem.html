@@ -51,7 +51,9 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
-  <li>2016-11-14 -- Pull the coherence condition out of <emu-xref aoid="reads-bytes-from"><a href="#MemoryModel.ReadBytesFrom">reads-bytes-from</a></emu-xref> and into its own constraint.
+  <li>2016-11-15 -- Fix bug #149: TypedArray(typedArray) constructor handling of shared memory
+  
+  </li><li>2016-11-14 -- Pull the coherence condition out of <emu-xref aoid="reads-bytes-from"><a href="#MemoryModel.ReadBytesFrom">reads-bytes-from</a></emu-xref> and into its own constraint.
   
   </li><li>2016-11-14 -- Refine all partial orders into strict partial orders.
   
@@ -415,7 +417,11 @@ These call AllocateTypedArray with a specified length:
         <p>This algorithm is modified as follows:</p>
 
         <p>In the calls to <emu-xref aoid="GetValueFromBuffer"><a href="#StructuredData.ArrayBuffer.abstract.GetValueFromBuffer">GetValueFromBuffer</a></emu-xref> and <emu-xref aoid="SetValueInBuffer"><a href="#StructuredData.ArrayBuffer.abstract.SetValueInBuffer">SetValueInBuffer</a></emu-xref>, pass <emu-val>true</emu-val> as the fourth argument to indicate that the operations are performed on a TypedArray.</p>
-      </emu-clause>
+
+        <p>Modify steps 17 and 18 to take shared memory into account, as follows:</p>
+<emu-alg><ol start="17"><li>If <emu-xref aoid="SameValue"><a href="https://tc39.github.io/ecma262/#sec-samevalue">SameValue</a></emu-xref>(elementType, srcType) is true, then<ol><li>Let srcLength be typedArray.[[ByteLength]].</li><li>If <emu-xref aoid="IsSharedArrayBuffer"><a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedArrayBuffer">IsSharedArrayBuffer</a></emu-xref>(srcData) is false, then<ol><li>Let data be ? <emu-xref aoid="CloneArrayBuffer"><a href="https://tc39.github.io/ecma262/#sec-clonearraybuffer">CloneArrayBuffer</a></emu-xref>(srcData, srcByteOffset, srcLength).</li></ol></li><li>Else,<ol><li>Let data be ? <emu-xref aoid="CloneArrayBuffer"><a href="https://tc39.github.io/ecma262/#sec-clonearraybuffer">CloneArrayBuffer</a></emu-xref>(srcData, srcByteOffset, srcLength, <emu-xref href="#sec-arraybuffer-constructor"><a href="https://tc39.github.io/ecma262/#sec-arraybuffer-constructor">%ArrayBuffer%</a></emu-xref>).</li></ol></li></ol></li><li>Else,<ol><li>If <emu-xref aoid="IsSharedArrayBuffer"><a href="#StructuredData.SharedArrayBuffer.abstract.IsSharedArrayBuffer">IsSharedArrayBuffer</a></emu-xref>(srcData) is false, then<ol><li>Let bufferConstructor be ? <emu-xref aoid="SpeciesConstructor"><a href="https://tc39.github.io/ecma262/#sec-speciesconstructor">SpeciesConstructor</a></emu-xref>(srcData, <emu-xref href="#sec-arraybuffer-constructor"><a href="https://tc39.github.io/ecma262/#sec-arraybuffer-constructor">%ArrayBuffer%</a></emu-xref>).</li></ol></li><li>Else,<ol><li>Let bufferConstructor be <emu-xref href="#sec-arraybuffer-constructor"><a href="https://tc39.github.io/ecma262/#sec-arraybuffer-constructor">%ArrayBuffer%</a></emu-xref>.</li></ol></li><li>Let data be ? <emu-xref aoid="AllocateArrayBuffer"><a href="https://tc39.github.io/ecma262/#sec-allocatearraybuffer">AllocateArrayBuffer</a></emu-xref>(bufferConstructor, byteLength).
+<emu-alg>
+      </emu-alg></li></ol></li></ol></emu-alg></emu-clause>
 
     </emu-clause> <!-- intrinsic object -->
 
