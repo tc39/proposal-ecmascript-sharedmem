@@ -926,7 +926,7 @@ These call AllocateTypedArray with a specified length:
         <p>No orderings weaker than sequentially consistent and stronger than unordered, such as release-acquire, are supported.</p>
       </emu-note>
 
-      <p>A <dfn>Shared Data Block event</dfn> is either a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory Record.</p>
+      <p>A <dfn>Shared Data Block event</dfn> (or simply event) is either a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory Record.</p>
 
       <emu-table id="table-readsharedmemory-fields" caption="ReadSharedMemory Event Fields">
         <table>
@@ -1054,7 +1054,9 @@ These call AllocateTypedArray with a specified length:
         </table>
       </emu-table>
 
-      <p>These events are introduced by abstract operations or by methods on the Atomics object. Additionally, Shared Data Block events include host-specific events.</p>
+      <p>These events are introduced by abstract operations or by methods on the Atomics object.</p>
+
+      <p>Additionally, Shared Data Block events include host-specific events.</p>
 
       <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the Set of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges are neither equal nor overlapping.</p>
 
@@ -1177,7 +1179,14 @@ These call AllocateTypedArray with a specified length:
         </table>
       </emu-table>
 
-     <p>An empty candidate execution is a Record where all its fields are empty Lists and empty Relations.</p>
+      <p>An empty candidate execution _execution_ is a Record whose fields are empty Lists and Relations defined below, and whose [[EventLists]] field is further initialized by the following steps.</p>
+
+      <emu-alg>
+        1. For each agent _agent_ in the agent cluster:
+          1. Let _AR_ be the Agent Record of _agent_.
+          1. Let _emptyList_ be an empty List.
+          1. Append { [[AgentSignifier]]: _AR_.[[Signifier]], [[EventList]]: _emptyList_ } to _execution_.[[EventLists]].
+      </emu-alg>
     </emu-clause>
 
     <emu-clause id="MemoryModel.EventSet" aoid="EventSet">
@@ -1194,7 +1203,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.AgentOrder" aoid="agent-order">
       <h1>agent-order</h1>
-      <p>For a candidate execution _execution_, the least Relation on events that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, a Relation that satisfies the following conditions.</p>
       <emu-alg>
         1. For each pair of events _E_ and _D_ in EventSet(_execution_):
           1. For each element _eventList_ in _execution_.[[EventLists]]:
@@ -1223,7 +1232,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.ReadsFrom" aoid="reads-from">
       <h1>reads-from</h1>
-      <p>For a candidate execution _execution_, _execution_.[[ReadsFrom]] is the least Relation that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[ReadsFrom]] is a Relation that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let reads-from be _execution_.[[ReadsFrom]].
@@ -1243,7 +1252,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.SynchronizesWith" aoid="synchronizes-with">
       <h1>synchronizes-with</h1>
-      <p>For a candidate execution _execution_, _execution_.[[SynchronizesWith]] is the least Relation that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[SynchronizesWith]] is a Relation that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
@@ -1299,7 +1308,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
       <h1>depends-on</h1>
-      <p>For a candidate execution _execution_, a host-provided Relation on events in EventSet(_execution_) that captures semantic data and control dependencies between events.</p>
+      <p>For a candidate execution _execution_, a host-provided strict partial order on events in EventSet(_execution_) that captures semantic data and control dependencies between events.</p>
 
       <emu-note>
         <p>The dependence relation may differ between implementations of ECMAScript. For instance, an implementation may provide a syntactic dependence relation that overapproximates semantic dependences.</p>
@@ -1426,7 +1435,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.SequentiallyConsistentAtomics">
       <h1>Sequentially Consistent Atomics</h1>
-      <p>A candidate execution has sequentially consistent atomics if it admits a memory-order.</p>
+      <p>A candidate execution has sequentially consistent atomics if a memory-order exists.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.ValidExecutions">
@@ -1436,11 +1445,6 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. The host provides a host-synchronizes-with Relation for _execution_.[[HostSynchronizesWith]], and
         1. The host provides a depends-on Relation for _execution_.[[DependsOn]], and
-        1. _execution_ admits an agent-order Relation _execution_.[[AgentOrder]], and
-        1. _execution_ admits a reads-bytes-from Relation _execution_.[[ReadsBytesFrom]], and
-        1. _execution_ admits a reads-from Relation _execution_.[[ReadsFrom]], and
-        1. _execution_ admits a synchronizes-with Relation _execution_.[[SynchronizesWith]], and
-        1. _execution_ admits a happens-before Relation _execution_.[[HappensBefore]], and
         1. _execution_ has valid chosen reads, and
         1. _execution_ has coherent reads, and
         1. _execution_ has no out of thin air reads, and
@@ -1459,9 +1463,9 @@ These call AllocateTypedArray with a specified length:
 
         <p>The inputs to the memory model from the evaluation semantics are per-agent agent-orders of events in a candidate execution's [[EventLists]] and the nondeterministically chosen values in [[ChosenValues]]. Given each agent's own total orders in [[EventLists]], let cluster-order be a total order that is consistent with the total orders of all agents. This cluster-order may be constructed by "zipping" events from each agent's order or simply by appending (i.e. thread inlining). One caveat here is that all `"Init"` events introduced by CreateSharedByteDataBlock must be made to precede all non-`"Init"` events in cluster-order. For example, if Agent 1 has events [A, B] and Agent 2 has events [C, D], cluster-order can be [A, C, B, D], or [C, A, D, B], or [A, B, C, D], and so forth. It, however, cannot be [D, C, A, B], as that would be inconsistent with Agent 2's total order of its own events.</p>
 
-        <p>With this cluster-order, a valid reads-bytes-from relation is constructible as follows. For each read event _R_, for each of its byte locations _b_, choose the most recent, i.e., suprema, write event _W_ that writes to _b_ in cluster-order for _R_ to reads-bytes-from _W_ for the byte at location _b_. Since all byte locations have at least one write event for it, the `"Init"`, such a _W_ always exists. This reads-bytes-from relation then induces reads-from pointwise.</p>
+        <p>With this cluster-order, a valid reads-bytes-from relation is constructible as follows. For each read event _R_, for each of its byte locations _b_, choose the most recent, i.e., supremum, write event _W_ that writes to _b_ in cluster-order for _R_ to reads-bytes-from _W_ for the byte at location _b_. Since all byte locations have at least one write event for it, the `"Init"`, such a _W_ always exists. This reads-bytes-from relation then induces reads-from pointwise.</p>
 
-        <p>With this reads-from relation, synchronizes-with is constructible using the constraints given in the memory model. `"SeqCst"` reads that happen to read from `"SeqCst"` writes in cluster-order are synchronizes-with. For host-specific events disjoint from the shared memory events, the memory model stipulates that the host provides a strict partial order host-synchronizes-with that relates those events. Thus, our constructed synchronizes-with relation is a strict partial order.</p>
+        <p>With this reads-from relation, synchronizes-with is constructible using the constraints given in the memory model. `"SeqCst"` reads that happen to read from `"SeqCst"` writes on equal ranges are synchronizes-with. For host-specific events disjoint from the shared memory events, the memory model stipulates that the host provides a strict partial order host-synchronizes-with that relates those events. Thus, our constructed synchronizes-with relation is a strict partial order.</p>
 
         <p>Next, happens-before is constructed by taking the transitive closure of the union of synchronizes-with and happens-before. Since the constructed reads-from and synchronizes-with relations are strict partial orders, happens-before is also a strict partial order.</p>
 
@@ -1471,17 +1475,13 @@ These call AllocateTypedArray with a specified length:
 
         <p>Coherent reads is satisfied by the construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, which is a total order, this is trivially satisfied.</p>
 
-        <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acylic, and the host is assumed to have supplied a depends-on relation that resulted in no cycles in the union of itself with reads-from.</p>
+        <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acylic, and the host is assumed to have supplied a depends-on strict partial order that resulted in no cycles in the union of itself with reads-from.</p>
 
-        <p>Tear free reads is satisfied by construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, it is impossible for a [[NoTear]] read to reads-from two different write events with equal range for different bytes. Since cluster-order is total, only one of the events would have been chosen when reads-bytes-from during construction.</p>
+        <p>Tear free reads is satisfied by construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, it is impossible for a [[NoTear]] read to reads-from two different write events with equal range for different bytes. Since cluster-order is total, only one of the events would have been chosen during the construction of reads-bytes-from.</p>
 
         <p>This execution has sequentially consistent atomics because cluster-order is a total order. All memory events are sequentially consistent, so the `"SeqCst"` events must also be sequentially consistent. In other words, cluster-order is the memory-order.</p>
 
         <p>This concludes the sketch: the constructed execution is valid.</p>
-      </emu-note>
-
-      <emu-note>
-        <p>The candidate execution where all events are interleaved and a read event always reads from the set of most recent write events is always admitted as a valid execution. That is, the execution where all events are treated as if they were `"SeqCst"` is always admitted.</p>
       </emu-note>
     </emu-clause>
 
