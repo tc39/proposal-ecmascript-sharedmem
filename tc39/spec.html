@@ -1144,6 +1144,16 @@ These call AllocateTypedArray with a specified length:
               <td>Defined below.</td>
             </tr>
             <tr>
+              <td>[[ReadsBytesFrom]]</td>
+              <td>A reads-bytes-from Relation.</td>
+              <td>Defined below.</td>
+            </tr>
+            <tr>
+              <td>[[ReadsFrom]]</td>
+              <td>A reads-from Relation.</td>
+              <td>Defined below.</td>
+            </tr>
+            <tr>
               <td>[[HostSynchronizesWith]]</td>
               <td>A host-synchronizes-with Relation.</td>
               <td>Defined below.</td>
@@ -1156,16 +1166,6 @@ These call AllocateTypedArray with a specified length:
             <tr>
               <td>[[HappensBefore]]</td>
               <td>A happens-before Relation.</td>
-              <td>Defined below.</td>
-            </tr>
-            <tr>
-              <td>[[ReadsBytesFrom]]</td>
-              <td>A reads-bytes-from Relation.</td>
-              <td>Defined below.</td>
-            </tr>
-            <tr>
-              <td>[[ReadsFrom]]</td>
-              <td>A reads-from Relation.</td>
               <td>Defined below.</td>
             </tr>
             <tr>
@@ -1214,8 +1214,10 @@ These call AllocateTypedArray with a specified length:
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
         1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
           1. There is a List of length equal to _R_.[[ElementSize]] of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
+          1. Let _byteLocation_ be _R_.[[ByteIndex]].
           1. For each element _W_ of _Ws_ in List order:
             1. _W_ has _byteLocation_ in its range.
+            1. Increment _byteLocation_ by 1.
       </emu-alg>
     </emu-clause>
 
@@ -1233,7 +1235,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.HostSynchronizesWith" aoid="host-synchronizes-with">
       <h1>host-synchronizes-with</h1>
-      <p>For a candidate execution _execution_, a Relation on host-specific events in EventSet(_execution_).</p>
+      <p>For a candidate execution _execution_, a host-provided strict partial order on host-specific events in EventSet(_execution_).</p>
       <emu-note>
         <p>The host-synchronizes-with relation allows the host to provide additional synchronization mechanisms, such as `postMessage` between HTML workers.</p>
       </emu-note>
