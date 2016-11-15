@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-11-15 -- Fix bug #149: TypedArray(typedArray) constructor handling of shared memory
   <li>2016-07-22 -- Editorial fixes.
   <li>2016-07-21 -- Replace [[SharedArrayBufferData]] and [[SharedArrayBufferByteLength]] with [[ArrayBufferData]] and [[ArrayBufferByteLength]]; remove specialization that was based on the removed properties and instead use type checks with IsSharedArrayBuffer in ArrayBuffer, SharedArrayBuffer, and Atomics methods; spec that Shared Data Blocks are distinguishable (by unspecified means) from regular Data Blocks and use this to defined IsSharedArrayBuffer.
   <li>2016-07-20 -- Editorial fix: clarify the operator passed to AtomicFetchOp.
@@ -462,6 +463,22 @@ These call AllocateTypedArray with a specified length:
         <p>This algorithm is modified as follows:</p>
 
         <p>In the calls to GetValueFromBuffer and SetValueInBuffer, pass *true* as the fourth argument to indicate that the operations are performed on a TypedArray.</p>
+
+        <p>Modify steps 17 and 18 to take shared memory into account, as follows:</p>
+<emu-alg>
+17. If SameValue(elementType, srcType) is true, then
+    1. Let srcLength be typedArray.[[ByteLength]].
+    1. If IsSharedArrayBuffer(srcData) is false, then
+        1. Let data be ? CloneArrayBuffer(srcData, srcByteOffset, srcLength).
+    1. Else,
+        1. Let data be ? CloneArrayBuffer(srcData, srcByteOffset, srcLength, %ArrayBuffer%).
+18. Else,
+    1. If IsSharedArrayBuffer(srcData) is false, then
+        1. Let bufferConstructor be ? SpeciesConstructor(srcData, %ArrayBuffer%).
+    1. Else,
+        1. Let bufferConstructor be %ArrayBuffer%.
+    1. Let data be ? AllocateArrayBuffer(bufferConstructor, byteLength).
+<emu-alg>
       </emu-clause>
 
     </emu-clause> <!-- intrinsic object -->
