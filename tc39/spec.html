@@ -891,7 +891,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>The SharedArrayBuffer API raises the difficulty that it allows aliased access on the same memory location via different sizes. That is, a read event can reads-from multiple write events, resulting in reading a composite value of bytes written by multiple events. Problematically, hardware often cannot guarantee the atomicity of concurrent accesses that happen on overlapping locations. To this end the model only guarantees atomic reads and writes on exactly the same memory range to be synchronized. Atomic reads and writes on overlapping locations may behave as if they were non-atomic. The memory model fully specifies the possible composite values that may be read. Together with the definition of data races, we have a fully defined semantics for data races.</p>
 
-      <p>In addition to happens-before, we need one last constraint on synchronized atomics to enable SC-DRF reasoning. Recall that sequential consistency is an interleaving. Mathematically, this is equivalent to putting events in a total order (i.e., a sequence). Thus the model requires that valid executions have a total ordering of correctly synchronized atomic events called memory-order.</p>
+      <p>In addition to happens-before, we need one last constraint on synchronized atomics to enable SC-DRF reasoning. Recall that sequential consistency is an interleaving. Mathematically, this is equivalent to putting events in a strict total order (i.e., a sequence). Thus the model requires that valid executions have a strict total ordering of correctly synchronized atomic events called memory-order.</p>
 
       <p>These relations and orders mutually constrain each other so that they are coherent. The coherence constraints roughly correspond to the intuition that a read event cannot read from a write event that's "too old", in the sense that there's another write event on the memory location that happens-after the write event that was read from.</p>
 
@@ -931,24 +931,24 @@ These call AllocateTypedArray with a specified length:
         <p>The two properties above are called, in order, irreflexivity and transitivity.</p>
       </emu-note>
 
-      <p>A <dfn>total order</dfn> is a Relation value _R_ that satisfies the following conditions.</p>
+      <p>A <dfn>strict total order</dfn> is a Relation value _R_ that satisfies the following conditions.</p>
 
       <emu-alg>
         1. For all _a_, _b_, and _c_ in _R_'s domain:
           1. _a_ _R_ _b_ or _b_ _R_ _a_, and
-          1. If _a_ _R_ _b_ and _b_ _R_ _a_ then _a_ is _b_, and
+          1. It is not the case _a_ _R_ _a_, and
           1. If _a_ _R_ _b_ and _b_ _R_ _c_ then _a_ _R_ _c_.
       </emu-alg>
 
       <emu-note>
-        <p>The three properties above are called, in order, totality, antisymmetry, and transitivity.</p>
+        <p>The three properties above are called, in order, totality, irreflexivity, and transitivity.</p>
       </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.Fundamentals">
       <h1>Fundamentals</h1>
 
-      <p>Shared memory accesses (reads and writes) are divided into two groups, atomic accesses and data accesses, defined below. Atomic accesses are sequentially consistent, i.e., there is a total ordering of events agreed upon by all agents in an agent cluster. Non-atomic accesses do not have a total ordering agreed upon by all agents, i.e., unordered.</p>
+      <p>Shared memory accesses (reads and writes) are divided into two groups, atomic accesses and data accesses, defined below. Atomic accesses are sequentially consistent, i.e., there is a strict total ordering of events agreed upon by all agents in an agent cluster. Non-atomic accesses do not have a strict total ordering agreed upon by all agents, i.e., unordered.</p>
 
       <emu-note>
         <p>No orderings weaker than sequentially consistent and stronger than unordered, such as release-acquire, are supported.</p>
@@ -1239,7 +1239,7 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
 
       <emu-note>
-        <p>Each agent introduces events in a per-agent total order during the evaluation. This is the union of those total orders.</p>
+        <p>Each agent introduces events in a per-agent strict total order during the evaluation. This is the union of those strict total orders.</p>
       </emu-note>
     </emu-clause>
 
@@ -1447,7 +1447,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.MemoryOrder" aoid="memory-order">
       <h1>memory-order</h1>
-      <p>For a candidate execution _execution_, memory-order is a total order that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, memory-order is a strict total order that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
@@ -1490,11 +1490,11 @@ These call AllocateTypedArray with a specified length:
 
         <p>The intuition that the set of valid executions for any ECMAScript program is nonempty owes to that a sequentially consistent (i.e., interleaving) execution may always be demonstrated. Clearly, this valid execution is too strong and insufficient to account for all observable behaviors in implementations. Instead, it serves as an existence proof that the memory model is well defined for ECMAScript. Below is an informal sketch of how to construct a sequentially consistent execution. This sketch spells out the naive intuition programmers often apply to multithreaded programs by imagining them sequentially consistent.</p>
 
-        <p>The idea is to build an interleaving of events, a total order called cluster-order, that is consistent with, but strictly stronger than, agent-order. This cluster-order is usable as an agent-order, and from it the additional relations required for a valid execution are constructible. These additional relations are also stronger than what the model requires. Moreover, constraints such as sequentially consistent atomics also hold by construction. This then demonstrates that an interleaving of events will always result in a valid execution.</p>
+        <p>The idea is to build an interleaving of events, a strict total order called cluster-order, that is consistent with, but strictly stronger than, agent-order. This cluster-order is usable as an agent-order, and from it the additional relations required for a valid execution are constructible. These additional relations are also stronger than what the model requires. Moreover, constraints such as sequentially consistent atomics also hold by construction. This then demonstrates that an interleaving of events will always result in a valid execution.</p>
 
-        <p>The inputs to the memory model from the evaluation semantics are per-agent agent-orders of events in a candidate execution's [[EventLists]] and the nondeterministically chosen values in [[ChosenValues]]. Given each agent's own total orders in [[EventLists]], let cluster-order be a total order that is consistent with the total orders of all agents. This cluster-order may be constructed by "zipping" events from each agent's order or simply by appending (i.e. thread inlining). Additionally, all `"Init"` events introduced by CreateSharedByteDataBlock must be made to precede all non-`"Init"` events in cluster-order. For example, if Agent 1 has events [A, B] and Agent 2 has events [C, D], cluster-order can be [A, C, B, D], or [C, A, D, B], or [A, B, C, D], and so forth. It, however, cannot be [D, C, A, B], as that would be inconsistent with Agent 2's total order of its own events.</p>
+        <p>The inputs to the memory model from the evaluation semantics are per-agent agent-orders of events in a candidate execution's [[EventLists]] and the nondeterministically chosen values in [[ChosenValues]]. Given each agent's own strict total orders in [[EventLists]], let cluster-order be a strict total order that is consistent with the strict total orders of all agents. This cluster-order may be constructed by "zipping" events from each agent's order or simply by appending (i.e. thread inlining). Additionally, all `"Init"` events introduced by CreateSharedByteDataBlock must be made to precede all non-`"Init"` events in cluster-order. For example, if Agent 1 has events [A, B] and Agent 2 has events [C, D], cluster-order can be [A, C, B, D], or [C, A, D, B], or [A, B, C, D], and so forth. It, however, cannot be [D, C, A, B], as that would be inconsistent with Agent 2's strict total order of its own events.</p>
 
-        <p>Note that there are caveats to the construction of cluster-order we gloss over in this sketch. It is not the case that all possible total orders for each agent's own total orders in [[EventLists]] give rise to valid executions. For example, if an agent's local order of events assumes certain control dependences on shared memory nondeterminism (e.g., assuming a call to Atomics.wait completed), then cluster-order must order events in such a way that the value depended upon was read. If such a cluster-order does not exist, the construction procedure can start over with different orders in [[EventLists]]. The control dependence nondeterminism introduced by shared memory reads may be explored until a valid execution is found. Note that an execution may be undesirable in reality, such as a deadlock, but still be valid with respect to the memory model.</p>
+        <p>Note that there are caveats to the construction of cluster-order we gloss over in this sketch. It is not the case that all possible strict total orders for each agent's own strict total orders in [[EventLists]] give rise to valid executions. For example, if an agent's local order of events assumes certain control dependences on shared memory nondeterminism (e.g., assuming a call to Atomics.wait completed), then cluster-order must order events in such a way that the value depended upon was read. If such a cluster-order does not exist, the construction procedure can start over with different orders in [[EventLists]]. The control dependence nondeterminism introduced by shared memory reads may be explored until a valid execution is found. Note that an execution may be undesirable in reality, such as a deadlock, but still be valid with respect to the memory model.</p>
 
         <p>With this cluster-order, a valid reads-bytes-from relation is constructible as follows. For each read event _R_, for each of its byte locations _b_, choose the most recent, i.e., supremum, write event _W_ that writes to _b_ in cluster-order for _R_ to reads-bytes-from _W_ for the byte at location _b_. Since all byte locations have at least one write event for it, the `"Init"`, such a _W_ always exists. This reads-bytes-from relation then induces reads-from pointwise.</p>
 
@@ -1506,13 +1506,13 @@ These call AllocateTypedArray with a specified length:
 
         <p>Valid chosen reads may be assumed to be satisfied, as it is a formal mechanism to interface the axiomatic memory model to evaluation semantics. Put another way, the evaluation semantics introduces nondeterministic read events and both deterministic and nondeterministic write events. Some writes into SharedArrayBuffers, for example, depends solely on intra-agent evaluation and are deterministic. Since the evaluation semantics were given the affordance to read any possible byte value from SharedArrayBuffers, we may simply construct the candidate execution's [[ChosenReads]] map to be the "right" values for the constructed cluster-order.</p>
 
-        <p>Coherent reads is satisfied by the construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, which is a total order, this is trivially satisfied.</p>
+        <p>Coherent reads is satisfied by the construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, which is a strict total order, this is trivially satisfied.</p>
 
         <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acylic, and the host is assumed to have supplied a depends-on strict partial order that resulted in no cycles in the union of itself with reads-from.</p>
 
         <p>Tear free reads is satisfied by construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, it is impossible for a [[NoTear]] read to reads-from two different write events with equal range for different bytes. Since cluster-order is total, only one of the events would have been chosen during the construction of reads-bytes-from.</p>
 
-        <p>This execution has sequentially consistent atomics because cluster-order is a total order. All memory events are sequentially consistent, so the `"SeqCst"` events must also be sequentially consistent. In other words, cluster-order is the memory-order.</p>
+        <p>This execution has sequentially consistent atomics because cluster-order is a strict total order. All memory events are sequentially consistent, so the `"SeqCst"` events must also be sequentially consistent. In other words, cluster-order is the memory-order.</p>
 
         <p>This concludes the sketch: the constructed execution is valid.</p>
       </emu-note>
