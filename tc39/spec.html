@@ -179,6 +179,14 @@ comments.</p>
     <emu-clause id="ExecutableCodeAndContexts.JobsAndJobQueues.Progress">
       <h1>Forward Progress Guarantees</h1>
       <p>The forward progress guarantee is provided by <a href="https://github.com/tc39/ecma262/pull/522">PR 522 on ES262</a>.</p>
+      <p>The forward progress guarantee is further amended by the following clause.</p>
+      <p>Implementations must ensure that an agent does not cause another agent to become blocked except via explicit APIs that provide blocking.</p>
+      <emu-note>
+        <p>This, along with the liveness guarantee in the memory model, ensures that all `"SeqCst"` writes eventually become observable to all agents.</p>
+      </emu-note>
+      <emu-note>
+        <p>(Spec draft note) This should be folded into PR 522 above.</p>
+      </emu-note>
     </emu-clause>
   </emu-clause>
 
@@ -1447,9 +1455,12 @@ These call AllocateTypedArray with a specified length:
         1. For each pair of events _E_ and _D_ in EventSet(_execution_):
           1. If _E_ happens-before _D_ then _E_ is memory-order before _D_.
           1. If _E_ synchronizes-with _D_ then
-            1. Assert: _D_ has _order_ `"SeqCst"`.
+            1. Assert: _D_.[[Order]] is `"SeqCst"`.
             1. There is no WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in EventSet(_execution_) with equal range as _D_ such that _E_ is memory-order before _W_ and _W_ is memory-order before _D_.
             1. NOTE: This clause constrains `"SeqCst"` events on equal ranges, not all `"SeqCst"` events.
+        1. For each WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in EventSet(_execution_):
+          1. If _W_.[[Order]] is `"SeqCst"` then it is not the case there is an infinite number of ReadSharedMemory or ReadModifyWriteSharedMemory events in EventSet(_execution_) with equal range that is memory-order before _W_.
+          1. NOTE: This clause together with the forward progress guarantee on agents ensure the liveness condition that `"SeqCst"` writes become visible to `"SeqCst"` reads with equal range in finite time.
       </emu-alg>
     </emu-clause>
 
