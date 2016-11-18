@@ -58,6 +58,9 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-11-17 -- Prose and bug fixes.
+  <li>2016-11-17 -- Add liveness language to Sequential Consistency for Atomics and Forward Progress Guarantee.
+  <li>2016-11-17 -- Add OOTA informative note.
   <li>2016-11-15 -- Fix bug #149: TypedArray(typedArray) constructor handling of shared memory
   <li>2016-11-14 -- Pull the coherence condition out of reads-bytes-from and into its own constraint.
   <li>2016-11-14 -- Refine all partial orders into strict partial orders.
@@ -1245,7 +1248,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.ReadBytesFrom" aoid="reads-bytes-from">
       <h1>reads-bytes-from</h1>
-      <p>For a candidate execution _execution_, _execution_.[[ReadsBytesFrom]] is a Relation that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[ReadsBytesFrom]] is a semantic function that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
@@ -1260,19 +1263,25 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.ReadsFrom" aoid="reads-from">
       <h1>reads-from</h1>
-      <p>For a candidate execution _execution_, _execution_.[[ReadsFrom]] is a Relation that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[ReadsFrom]] is the least Relation that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let reads-from be _execution_.[[ReadsFrom]].
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
         1. For each pair of events _R_ and _W_ in EventSet(_execution_):
-          1. If _R_ reads-bytes-from a List of WriteSharedMemory events _Ws_ that contains _W_ then _R_ reads-from _W_.
+          1. If _R_ reads-bytes-from a List of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ that contains _W_ then _R_ reads-from _W_.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="MemoryModel.HostSynchronizesWith" aoid="host-synchronizes-with">
       <h1>host-synchronizes-with</h1>
-      <p>For a candidate execution _execution_, a host-provided strict partial order on host-specific events in EventSet(_execution_).</p>
+      <p>For a candidate execution _execution_, a host-provided strict partial order on host-specific events in EventSet(_execution_) that satisfies the following conditions.</p>
+      <emu-alg>
+        1. There is no cycle in the union of host-synchronizes-with and agent-order.
+      </emu-alg>
+      <emu-note>
+        <p>The set of host-specific events is disjoint from the set of ReadSharedMemory, WriteSharedMemory, and ReadModifyWriteSharedMemory events.</p>
+      </emu-note>
       <emu-note>
         <p>The host-synchronizes-with relation allows the host to provide additional synchronization mechanisms, such as `postMessage` between HTML workers.</p>
       </emu-note>
@@ -1280,7 +1289,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.SynchronizesWith" aoid="synchronizes-with">
       <h1>synchronizes-with</h1>
-      <p>For a candidate execution _execution_, _execution_.[[SynchronizesWith]] is a Relation that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[SynchronizesWith]] is the least Relation that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
@@ -1314,7 +1323,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.HappensBefore" aoid="happens-before">
       <h1>happens-before</h1>
-      <p>For a candidate execution _execution_, _execution_.[[HappensBefore]] is the least strict partial order that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[HappensBefore]] is the least Relation that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
@@ -1336,7 +1345,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
       <h1>depends-on</h1>
-      <p>For a candidate execution _execution_, a host-provided strict partial order on events in EventSet(_execution_) that captures semantic data and control dependencies between events.</p>
+      <p>For a candidate execution _execution_, a host-provided strict partial order on events in EventSet(_execution_) that captures semantic data and control dependencies between events that is consistent with the evaluation semantics of ECMAScript.</p>
 
       <emu-note>
         <p>The dependence relation may differ between implementations of ECMAScript. For instance, an implementation may provide a syntactic dependence relation that overapproximates semantic dependences.</p>
@@ -1344,11 +1353,11 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="MemoryModel.ComposeWriteEventBytes" aoid="ComposeWriteEventBytes">
-      <h1>ComposeWriteEventBytes( _execution_, _block_, _byteIndex_, _Ws_ )</h1>
-      <p>The abstract operation ComposeWriteEventBytes takes four arguments, a candidate execution _execution_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a List _Ws_, and performs the following steps.</p>
+      <h1>ComposeWriteEventBytes( _execution_, _block_, _Ws_ )</h1>
+      <p>The abstract operation ComposeWriteEventBytes takes three arguments, a candidate execution _execution_, a Shared Data Block _block_, and a List _Ws_ of WriteSharedMemory or ReadModifyWriteSharedMemory events, and performs the following steps.</p>
 
       <emu-alg>
-        1. Let _byteLocation_ be _byteIndex_.
+        1. Let _byteLocation_ be 0.
         1. Let _bytesRead_ be an empty List.
         1. For each element _W_ of _Ws_ in List order:
           1. Assert: _W_ has _byteLocation_ in its range.
@@ -1375,14 +1384,14 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.ValueOfReadEvent" aoid="ValueOfReadEvent">
       <h1>ValueOfReadEvent( _execution_, _R_ )</h1>
-      <p>The abstract operation ValueOfReadEvent takes two arguments, a candidate execution _execution_ and a Shared Data Block event _R_, and performs the following steps</p>
+      <p>The abstract operation ValueOfReadEvent takes two arguments, a candidate execution _execution_ and a ReadSharedMemory or ReadModifyWriteSharedMemory event _R_, and performs the following steps</p>
 
       <emu-alg>
         1. Assert: _R_ is a ReadSharedMemory or ReadModifyWriteSharedMemory event.
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
         1. Let _Ws_ be the List of events such that _R_ reads-bytes-from _Ws_.
         1. Assert: _Ws_ has length equal to _R_.[[ElementSize]].
-        1. Return ComposeWriteEventBytes(_execution_, _R_.[[Block]], _R_.[[ByteIndex]], _Ws_).
+        1. Return ComposeWriteEventBytes(_execution_, _R_.[[Block]], _Ws_).
       </emu-alg>
     </emu-clause>
 
@@ -1424,6 +1433,21 @@ These call AllocateTypedArray with a specified length:
       <emu-note>
         <p>(Spec draft notes)</p>
         <p>This is intentionally underspecified. Precisely capturing and forbidding OOTA is currently an open problem.</p>
+        <p>Legislating the shape of the data dependence relation here requires modeling the entirety of ECMAScript, the complexity of which is problematic. However, depends-on is not an arbitrary relation. It is intended to capture the pragmatic intuition of data and control dependence in the language.</p>
+        <p>To see how cycles in the union of depends-on and reads-from give rise to OOTA values, consider the following example. Operations that give rise to events are labeled; || denotes agent boundary.</p>
+        <pre>   R1: let r1 = U8[1]; W1: U8[0] = r1;
+|| R2: let r2 = U8[0]; W2: U8[1] = r2;</pre>
+        <p>The following is a possible depends-on relation.</p>
+        <ul>
+          <li>`R1` depends-on `W2`
+          <li>`R2` depends-on `W1`
+        </ul>
+        <p>The following is a possible reads-from relation.</p>
+        <ul>
+          <li>`R1` reads-from `W1`
+          <li>`R2` reads-from `W2`
+        </ul>
+        <p>The union of these two relations has a cycle from `R1` -depends-on-> `W2` -reads-from-> `R2` -depends-on-> `W1` -reads-from-> `R1`. If the memory model were to allow this cycle, then it would allow any byte value to be read from U8[0] and U8[1] as the reads are circularly justified. This kind of weakness is unobservable in hardware or compilers and allowing it leads to difficulties in reasoning about programs.</p>
       </emu-note>
     </emu-clause>
 
@@ -1457,7 +1481,7 @@ These call AllocateTypedArray with a specified length:
           1. If _E_ synchronizes-with _D_ then
             1. Assert: _D_.[[Order]] is `"SeqCst"`.
             1. There is no WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in EventSet(_execution_) with equal range as _D_ such that _E_ is memory-order before _W_ and _W_ is memory-order before _D_.
-            1. NOTE: This clause constrains `"SeqCst"` events on equal ranges, not all `"SeqCst"` events.
+            1. NOTE: This clause additionally constrains `"SeqCst"` events on equal ranges.
         1. For each WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in EventSet(_execution_):
           1. If _W_.[[Order]] is `"SeqCst"` then it is not the case there is an infinite number of ReadSharedMemory or ReadModifyWriteSharedMemory events in EventSet(_execution_) with equal range that is memory-order before _W_.
           1. NOTE: This clause together with the forward progress guarantee on agents ensure the liveness condition that `"SeqCst"` writes become visible to `"SeqCst"` reads with equal range in finite time.
@@ -1476,6 +1500,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. The host provides a host-synchronizes-with Relation for _execution_.[[HostSynchronizesWith]], and
         1. The host provides a depends-on Relation for _execution_.[[DependsOn]], and
+        1. _execution_.[[HappensBefore]] is a strict partial order, and
         1. _execution_ has valid chosen reads, and
         1. _execution_ has coherent reads, and
         1. _execution_ has no out of thin air reads, and
@@ -1508,7 +1533,7 @@ These call AllocateTypedArray with a specified length:
 
         <p>Coherent reads is satisfied by the construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, which is a strict total order, this is trivially satisfied.</p>
 
-        <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acylic, and the host is assumed to have supplied a depends-on strict partial order that resulted in no cycles in the union of itself with reads-from.</p>
+        <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acyclic, and the host is assumed to have supplied a depends-on strict partial order that resulted in no cycles in the union of itself with reads-from.</p>
 
         <p>Tear free reads is satisfied by construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, it is impossible for a [[NoTear]] read to reads-from two different write events with equal range for different bytes. Since cluster-order is total, only one of the events would have been chosen during the construction of reads-bytes-from.</p>
 
@@ -1525,6 +1550,7 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
         1. Let reads-from be _execution_.[[ReadsFrom]].
+        1. _E_ is not _D_, and
         1. It is not the case that _E_ happens-before _D_ or _D_ happens-before _E_, and
         1. If _E_ and _D_ are both WriteSharedMemory or ReadModifyWriteSharedMemory events then
           1. _E_ and _D_ do not have disjoint ranges.
@@ -1569,7 +1595,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>`R` reads a value composed of bytes from `W1` and `W2`, and is thus not access atomic. At the same time, it does not read-from both `W2` and `W3`, and thus is tear free.</p>
 
-      <p>Similarly, neither the synchronizes-with relation, the Sequentially Consistent Atomics requirement guarantees access atomicity for atomic events. Both are concerned with ordering of atomic operations on equal ranges, but it is possible to have sequentially consistent equal-ranged atomics without access atomicity. For example, consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block.</p>
+      <p>Similarly, neither the synchronizes-with relation nor the Sequentially Consistent Atomics requirement guarantees access atomicity for atomic events. Both are concerned with ordering of atomic operations on equal ranges, but it is possible to have sequentially consistent equal-ranged atomics without access atomicity. For example, consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block. Operations giving rise to events are labled; || denotes agent boundary.</p>
 
       <pre>   W1: Atomics.store(U16, a, 1); W2: Atomics.store(U8, b, 2);
 || W3: Atomics.store(U16, a, 3);
