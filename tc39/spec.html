@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-11-22 -- Prose and bug fixes.
   <li>2016-11-17 -- Prose and bug fixes.
   <li>2016-11-17 -- Add liveness language to Sequential Consistency for Atomics and Forward Progress Guarantee.
   <li>2016-11-17 -- Add OOTA informative note.
@@ -957,7 +958,7 @@ These call AllocateTypedArray with a specified length:
         <p>No orderings weaker than sequentially consistent and stronger than unordered, such as release-acquire, are supported.</p>
       </emu-note>
 
-      <p>A <dfn>Shared Data Block event</dfn> (or simply event) is either a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory Record.</p>
+      <p>A <dfn>Shared Data Block event</dfn> is either a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory Record.</p>
 
       <emu-table id="table-readsharedmemory-fields" caption="ReadSharedMemory Event Fields">
         <table>
@@ -969,7 +970,7 @@ These call AllocateTypedArray with a specified length:
             </tr>
             <tr>
               <td>[[Order]]</td>
-              <td>`"SeqCst"` or `"Unordered"`.</td>
+              <td>`"SeqCst"` or `"Unordered"`</td>
               <td>The weakest ordering guaranteed by the memory model for the event.</td>
             </tr>
             <tr>
@@ -1006,7 +1007,7 @@ These call AllocateTypedArray with a specified length:
             </tr>
             <tr>
               <td>[[Order]]</td>
-              <td>`"SeqCst"`, `"Unordered"`, or `"Init"`.</td>
+              <td>`"SeqCst"`, `"Unordered"`, or `"Init"`</td>
               <td>The weakest ordering guaranteed by the memory model for the event.</td>
             </tr>
             <tr>
@@ -1087,7 +1088,7 @@ These call AllocateTypedArray with a specified length:
 
       <p>These events are introduced by abstract operations or by methods on the Atomics object.</p>
 
-      <p>Additionally, Shared Data Block events include host-specific events.</p>
+      <p>In addition to Shared Data Block events, there are host-specific events.</p>
 
       <p>Let the <dfn>range</dfn> of a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event be the Set of contiguous integers from its _byteIndex_ to _byteIndex_+_elementSize_-1. Two events' ranges are equal when the events have the same _block_, and the ranges are element-wise equal. Two events' ranges are overlapping when the events have the same _block_, the ranges are not equal and their intersection is non-empty. Two events' ranges are disjoint when the events do not have the same _block_ or their ranges are neither equal nor overlapping.</p>
 
@@ -1095,7 +1096,7 @@ These call AllocateTypedArray with a specified length:
         <p>Examples of host-specific synchronizing events that should be accounted for are: sending a SharedArrayBuffer from one agent to another (e.g., by `postMessage` in a browser), starting and stopping agents, and communicating within the agent cluster via channels other than shared memory. It is assumed those events are appended to agent-order during evaluation like the other SharedArrayBuffer events.</p>
       </emu-note>
 
-      <p>Shared Data Block events are ordered within candidate executions by the relations defined mutually recursively below.</p>
+      <p>Shared Data Block events are ordered within candidate executions by the relations defined below.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.AgentEventsRecords">
@@ -1116,7 +1117,7 @@ These call AllocateTypedArray with a specified length:
             </tr>
             <tr>
               <td>[[EventList]]</td>
-              <td>A List of Shared Data Block events</td>
+              <td>A List of events</td>
               <td>Events are appended to the list during evaluation.</td>
             </tr>
           </tbody>
@@ -1178,7 +1179,7 @@ These call AllocateTypedArray with a specified length:
             </tr>
             <tr>
               <td>[[ReadsBytesFrom]]</td>
-              <td>A reads-bytes-from Relation.</td>
+              <td>A reads-bytes-from semantic function.</td>
               <td>Defined below.</td>
             </tr>
             <tr>
@@ -1232,6 +1233,28 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
+    <emu-clause id="MemoryModel.SharedDataBlockEventSet" aoid="SharedDataBlockEventSet">
+      <h1>SharedDataBlockEventSet( _execution_ )</h1>
+      <p>The abstract operation SharedDataBlockEventSet takes one argument, a candidate execution _execution_, and performs the following steps.</p>
+      <emu-alg>
+        1. Let _events_ be an empty Set.
+        1. For each element _E_ in EventSet(_execution_):
+          1. If _E_ is a ReadSharedMemory, WriteSharedMemory, or ReadModifyWriteSharedMemory event then add _E_ to _events_.
+        1. Return _events_.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="MemoryModel.HostEventSet" aoid="HostEventSet">
+      <h1>HostEventSet( _execution_ )</h1>
+      <p>The abstract operation HostEventSet takes one argument, a candidate execution _execution_, and performs the following steps.</p>
+      <emu-alg>
+        1. Let _events_ be an empty Set.
+        1. For each element _E_ in EventSet(_execution_):
+          1. If _E_ is not in SharedDataBlockEventSet(_execution_) then add _E_ to _events_.
+        1. Return _events_.
+      </emu-alg>
+    </emu-clause>
+
     <emu-clause id="MemoryModel.AgentOrder" aoid="agent-order">
       <h1>agent-order</h1>
       <p>For a candidate execution _execution_, a Relation that satisfies the following conditions.</p>
@@ -1248,12 +1271,12 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.ReadBytesFrom" aoid="reads-bytes-from">
       <h1>reads-bytes-from</h1>
-      <p>For a candidate execution _execution_, _execution_.[[ReadsBytesFrom]] is a semantic function that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, _execution_.[[ReadsBytesFrom]] is a semantic function from events in SharedDataBlockEventSet(_execution_) to Lists of events in SharedDataBlockEventSet(_execution_) that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
-        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
-          1. There is a List of length equal to _R_.[[ElementSize]] of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ such that _R_ reads-bytes-from _Ws_.
+        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in SharedDataBlockEventSet(_execution_):
+          1. There is a List of length equal to _R_.[[ElementSize]] of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ such that reads-bytes-from(_R_) is _Ws_.
           1. Let _byteLocation_ be _R_.[[ByteIndex]].
           1. For each element _W_ of _Ws_ in List order:
             1. _W_ has _byteLocation_ in its range.
@@ -1268,19 +1291,22 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Let reads-from be _execution_.[[ReadsFrom]].
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
-        1. For each pair of events _R_ and _W_ in EventSet(_execution_):
-          1. If _R_ reads-bytes-from a List of WriteSharedMemory or ReadModifyWriteSharedMemory events _Ws_ that contains _W_ then _R_ reads-from _W_.
+        1. For each pair of events _R_ and _W_ in SharedDataBlockEventSet(_execution_):
+          1. Let _Ws_ be reads-bytes-from(_R_).
+          1. Assert: _Ws_ is a List of WriteSharedMemory or ReadModifyWriteSharedMemory events.
+          1. If _Ws_ contains _W_ then _R_ reads-from _W_.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="MemoryModel.HostSynchronizesWith" aoid="host-synchronizes-with">
       <h1>host-synchronizes-with</h1>
-      <p>For a candidate execution _execution_, a host-provided strict partial order on host-specific events in EventSet(_execution_) that satisfies the following conditions.</p>
+      <p>For a candidate execution _execution_, a host-provided strict partial order on host-specific events in HostEventSet(_execution_) that satisfies the following conditions.</p>
       <emu-alg>
         1. There is no cycle in the union of host-synchronizes-with and agent-order.
       </emu-alg>
+
       <emu-note>
-        <p>The set of host-specific events is disjoint from the set of ReadSharedMemory, WriteSharedMemory, and ReadModifyWriteSharedMemory events.</p>
+        <p>For two host-specific events _E_ and _D_, _E_ host-synchronizes-with _D_ implies _E_ happens-before _D_.</p>
       </emu-note>
       <emu-note>
         <p>The host-synchronizes-with relation allows the host to provide additional synchronization mechanisms, such as `postMessage` between HTML workers.</p>
@@ -1295,7 +1321,7 @@ These call AllocateTypedArray with a specified length:
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
         1. Let reads-from be _execution_.[[ReadsFrom]].
         1. Let host-synchronizes-with be _execution_.[[HostSynchronizesWith]].
-        1. For each pair of events _R_ and _W_ in EventSet(_execution_) such that _R_.[[Order]] is `"SeqCst"` and _R_ reads-from _W_:
+        1. For each pair of events _R_ and _W_ in SharedDataBlockEventSet(_execution_) such that _R_.[[Order]] is `"SeqCst"` and _R_ reads-from _W_:
           1. Assert: _R_ is a ReadSharedMemory or ReadModifyWriteSharedMemory event.
           1. Assert: _W_ is a WriteSharedMemory or ReadModifyWriteSharedMemory event.
           1. If _W_.[[Order]] is `"SeqCst"` and _R_ and _W_ have equal ranges then _W_ synchronizes-with _R_.
@@ -1304,7 +1330,7 @@ These call AllocateTypedArray with a specified length:
             1. For each event _V_ such that _R_ reads-from _V_:
               1. If _V_.[[Order]] is not `"Init"` then set _allInitReads_ to *false*.
             1. If _allInitReads_ is *true* then _W_ synchronizes-with _R_.
-        1. For each pair of events _E_ and _D_ in EventSet(_execution_):
+        1. For each pair of events _E_ and _D_ in HostEventSet(_execution_):
           1. If _E_ host-synchronizes-with _D_ then _E_ synchronizes-with _D_.
       </emu-alg>
 
@@ -1332,7 +1358,7 @@ These call AllocateTypedArray with a specified length:
         1. For each pair of events _E_ and _D_ in EventSet(_execution_):
           1. If _E_ is agent-order before _D_ then _E_ happens-before _D_.
           1. If _E_ synchronizes-with _D_ then _E_ happens-before _D_.
-          1. If _E_.[[Order]] is `"Init"` and _E_ and _D_ have overlapping ranges then:
+          1. If _E_ and _D_ are in SharedDataBlockEventSet(_execution_), _E_.[[Order]] is `"Init"`, and _E_ and _D_ have overlapping ranges then:
             1. Assert: _D_.[[Order]] is not `"Init"`.
             1. _E_ happens-before _D_.
           1. If there is an event _F_ such that _E_ happens-before _F_ and _F_ happens-before _D_ then _E_ happens-before _D_.
@@ -1345,7 +1371,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
       <h1>depends-on</h1>
-      <p>For a candidate execution _execution_, a host-provided strict partial order on events in EventSet(_execution_) that captures semantic data and control dependencies between events that is consistent with the evaluation semantics of ECMAScript.</p>
+      <p>For a candidate execution _execution_, a host-provided strict partial order on events in SharedDataBlockEventSet(_execution_) that captures semantic data and control dependencies between events that is consistent with the evaluation semantics of ECMAScript.</p>
 
       <emu-note>
         <p>The dependence relation may differ between implementations of ECMAScript. For instance, an implementation may provide a syntactic dependence relation that overapproximates semantic dependences.</p>
@@ -1353,21 +1379,22 @@ These call AllocateTypedArray with a specified length:
     </emu-clause>
 
     <emu-clause id="MemoryModel.ComposeWriteEventBytes" aoid="ComposeWriteEventBytes">
-      <h1>ComposeWriteEventBytes( _execution_, _block_, _Ws_ )</h1>
-      <p>The abstract operation ComposeWriteEventBytes takes three arguments, a candidate execution _execution_, a Shared Data Block _block_, and a List _Ws_ of WriteSharedMemory or ReadModifyWriteSharedMemory events, and performs the following steps.</p>
+      <h1>ComposeWriteEventBytes( _execution_, _block_, _byteIndex_ _Ws_ )</h1>
+      <p>The abstract operation ComposeWriteEventBytes takes four arguments, a candidate execution _execution_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a List _Ws_ of WriteSharedMemory or ReadModifyWriteSharedMemory events, and performs the following steps.</p>
 
       <emu-alg>
-        1. Let _byteLocation_ be 0.
+        1. Let _byteLocation_ be _byteIndex_.
         1. Let _bytesRead_ be an empty List.
         1. For each element _W_ of _Ws_ in List order:
           1. Assert: _W_ has _byteLocation_ in its range.
+          1. Let _payloadIndex_ be _byteLocation_ - _W_.[[ByteIndex]].
           1. If _W_ is a WriteSharedMemory event then
-            1. Let _byte_ be _W_.[[Payload]][_byteLocation_].
+            1. Let _byte_ be _W_.[[Payload]][_payloadIndex_].
           1. Else,
             1. Assert: _W_ is a ReadModifyWriteSharedMemory event.
             1. Let _bytesRead_ be ValueOfReadEvent(_execution_, _W_).
             1. Let _bytesModified_ be _W_.[[ModifyOp]](_bytesRead_, _W_.[[Payload]]).
-            1. Let _byte_ be _bytesModified_[_byteLocation_].
+            1. Let _byte_ be _bytesModified_[_payloadIndex_].
           1. Append _byte_ to _bytesRead_.
           1. Increment _byteLocation_ by 1.
         1. Return _bytesRead_.
@@ -1389,9 +1416,9 @@ These call AllocateTypedArray with a specified length:
       <emu-alg>
         1. Assert: _R_ is a ReadSharedMemory or ReadModifyWriteSharedMemory event.
         1. Let reads-bytes-from be _execution_.[[ReadsBytesFrom]].
-        1. Let _Ws_ be the List of events such that _R_ reads-bytes-from _Ws_.
-        1. Assert: _Ws_ has length equal to _R_.[[ElementSize]].
-        1. Return ComposeWriteEventBytes(_execution_, _R_.[[Block]], _Ws_).
+        1. Let _Ws_ be reads-bytes-from(_R_).
+        1. Assert: _Ws_ is a List of WriteSharedMemory or ReadModifyWriteSharedMemory events with length equal to _R_.[[ElementSize]].
+        1. Return ComposeWriteEventBytes(_execution_, _R_.[[Block]], _R_.[[ByteIndex]], _Ws_).
       </emu-alg>
     </emu-clause>
 
@@ -1400,7 +1427,7 @@ These call AllocateTypedArray with a specified length:
       <p>A candidate execution _execution_ has valid chosen reads if the following conditions hold.</p>
 
       <emu-alg>
-        1. For each ReadSharedMemory and ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
+        1. For each ReadSharedMemory and ReadModifyWriteSharedMemory event _R_ in SharedDataBlockEventSet(_execution_):
           1. Let _chosenValue_ be the element of _execution_.[[ChosenValues]] whose [[Event]] field is _R_.
           1. _chosenValue_ is equal to ValueOfReadEvent(_execution_, _R_).
       </emu-alg>
@@ -1412,8 +1439,8 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
-        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
-          1. Let _Ws_ be the List of events such that _R_ reads-bytes-from _Ws_.
+        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in SharedDataBlockEventSet(_execution_):
+          1. Let _Ws_ be the List of events reads-bytes-from(_R_).
           1. Let _byteLocation_ be _R_.[[ByteIndex]].
           1. For each element _W_ of _Ws_ in List order:
             1. It is not the case that _R_ happens-before _W_, and
@@ -1456,7 +1483,7 @@ These call AllocateTypedArray with a specified length:
       <p>A candidate execution _execution_ has tear free reads if the following conditions hold.</p>
       <emu-alg>
         1. Let reads-from be _execution_.[[ReadsFrom]].
-        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in EventSet(_execution_):
+        1. For each ReadSharedMemory or ReadModifyWriteSharedMemory event _R_ in SharedDataBlockEventSet(_execution_):
           1. If _R_.[[NoTear]] is *true* then
             1. Assert: the remainder of _R_.[[ByteIndex]] ÷ _R_.[[ElementSize]] is *0*.
             1. For each event _W_ such that _R_ reads-from _W_ and _W_.[[NoTear]] is *true*:
@@ -1464,33 +1491,34 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
 
       <emu-note>
-        <p>An event's [[NoTear]] field is *true* when that event was introduced via accessing an integer TypedArray, and *false* when introduced via accessing a DataView.</p>
-        <p>Intuitively, this requirement says when a memory range is accessed in an aligned fashion via a TypedArray, a single write event on that range must "win" when in a data race with other write events with equal ranges. More precisely, this requirement says an aligned read event cannot read a value composed of bytes from multiple, different write events all with equal ranges. It is possible, however, for an aligned read event to read from multiple write events with overlapping ranges. See Access Atomicity below.</p>
+        <p>An event's [[NoTear]] field is *true* when that event was introduced via accessing an integer TypedArray, and *false* when introduced via accessing a floating point TypedArray or DataView.</p>
+        <p>Intuitively, this requirement says when a memory range is accessed in an aligned fashion via an integer TypedArray, a single write event on that range must "win" when in a data race with other write events with equal ranges. More precisely, this requirement says an aligned read event cannot read a value composed of bytes from multiple, different write events all with equal ranges. It is possible, however, for an aligned read event to read from multiple write events with overlapping ranges. See Access Atomicity below.</p>
       </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.MemoryOrder" aoid="memory-order">
-      <h1>memory-order</h1>
-      <p>For a candidate execution _execution_, memory-order is a strict total order that satisfies the following conditions.</p>
+      <h1>Sequentially Consistent Atomics</h1>
+      <p>For a candidate execution _execution_, memory-order is a strict total order of all events in EventSet(_execution_) that satisfies the following conditions.</p>
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
         1. Let synchronizes-with be _execution_.[[SynchronizesWith]].
         1. For each pair of events _E_ and _D_ in EventSet(_execution_):
           1. If _E_ happens-before _D_ then _E_ is memory-order before _D_.
-          1. If _E_ synchronizes-with _D_ then
+          1. If _E_ and _D_ are in SharedDataBlockEventSet(_execution_) and _E_ synchronizes-with _D_ then
             1. Assert: _D_.[[Order]] is `"SeqCst"`.
-            1. There is no WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in EventSet(_execution_) with equal range as _D_ such that _E_ is memory-order before _W_ and _W_ is memory-order before _D_.
+            1. There is no WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in SharedDataBlockEventSet(_execution_) with equal range as _D_ such that _E_ is memory-order before _W_ and _W_ is memory-order before _D_.
             1. NOTE: This clause additionally constrains `"SeqCst"` events on equal ranges.
-        1. For each WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in EventSet(_execution_):
-          1. If _W_.[[Order]] is `"SeqCst"` then it is not the case there is an infinite number of ReadSharedMemory or ReadModifyWriteSharedMemory events in EventSet(_execution_) with equal range that is memory-order before _W_.
+        1. For each WriteSharedMemory or ReadModifyWriteSharedMemory event _W_ in SharedDataBlockEventSet(_execution_):
+          1. If _W_.[[Order]] is `"SeqCst"` then it is not the case there is an infinite number of ReadSharedMemory or ReadModifyWriteSharedMemory events in SharedDataBlockEventSet(_execution_) with equal range that is memory-order before _W_.
           1. NOTE: This clause together with the forward progress guarantee on agents ensure the liveness condition that `"SeqCst"` writes become visible to `"SeqCst"` reads with equal range in finite time.
       </emu-alg>
-    </emu-clause>
 
-    <emu-clause id="MemoryModel.SequentiallyConsistentAtomics">
-      <h1>Sequentially Consistent Atomics</h1>
       <p>A candidate execution has sequentially consistent atomics if a memory-order exists.</p>
+
+      <emu-note>
+        <p>While memory-order includes all events in EventSet(_execution_), those that are not constrained by happens-before or synchronizes-with are allowed to occur anywhere in the order.</p>
+      </emu-note>
     </emu-clause>
 
     <emu-clause id="MemoryModel.ValidExecutions">
@@ -1545,7 +1573,7 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.Races" aoid="race">
       <h1>Races</h1>
-      <p>For an execution _execution_, two events _E_ and _D_ in EventSet(_execution_) are in a race if the following conditions hold.</p>
+      <p>For an execution _execution_, two events _E_ and _D_ in SharedDataBlockEventSet(_execution_) are in a race if the following conditions hold.</p>
 
       <emu-alg>
         1. Let happens-before be _execution_.[[HappensBefore]].
@@ -1554,14 +1582,14 @@ These call AllocateTypedArray with a specified length:
         1. It is not the case that _E_ happens-before _D_ or _D_ happens-before _E_, and
         1. If _E_ and _D_ are both WriteSharedMemory or ReadModifyWriteSharedMemory events then
           1. _E_ and _D_ do not have disjoint ranges.
-        1. Otherwise:
+        1. Else,
           1. _E_ reads-from _D_ or _D_ reads-from _E_.
       </emu-alg>
     </emu-clause>
 
     <emu-clause id="MemoryModel.DataRaces" aoid="data race">
       <h1>Data Races</h1>
-      <p>For an execution _execution_, two events _E_ and _D_ in EventSet(_execution_) are in a data race if the following conditions hold.</p>
+      <p>For an execution _execution_, two events _E_ and _D_ in SharedDataBlockEventSet(_execution_) are in a data race if the following conditions hold.</p>
 
       <emu-alg>
         1. _E_ and _D_ are in a race in _execution_, and
@@ -1571,14 +1599,14 @@ These call AllocateTypedArray with a specified length:
 
     <emu-clause id="MemoryModel.DRF" aoid="data race free">
       <h1>Data Race Freedom</h1>
-      <p>An execution _execution_ is data race free if there are no two events in EventSet(_execution_) that are in a data race.</p>
+      <p>An execution _execution_ is data race free if there are no two events in SharedDataBlockEventSet(_execution_) that are in a data race.</p>
       <p>A program is data race free if all its executions are data race free.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.AccessAtomicity">
       <h1>Access Atomicity (informative)</h1>
 
-      <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event. In the memory model, write events have no force beyond being read from by read events and thus have no notion of being access atomic. This differs from the colloquial notion of access atomicity, which usually means if a write or read was performed by hardware atomically.</p>
+      <p>In an execution, a ReadSharedMemory or ReadModifyWriteSharedMemory event is access atomic when it reads-from a single WriteSharedMemory event or ReadModifyWriteSharedMemory event. In the memory model, write events have no force beyond being read from by read events and thus have no notion of being access atomic. This differs from the colloquial notion of access atomicity, which usually means if a write or read was performed by hardware in a single indivisible step.</p>
 
       <p>The Tear Free Reads requirement does not guarantee access atomicity for non-atomic events. Consider the following program where `U8` and `U16` are aliased 1-byte and 2-byte views on the same Shared Data Block and `a` and `b` represent the same memory address (scaled appropriately for the data type).</p>
 
