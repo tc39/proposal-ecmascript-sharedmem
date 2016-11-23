@@ -17,7 +17,7 @@ be none.</p>
 <script src="harness.js"></script>
 
 <script>
-var w = new Worker("sharing_worker.js");
+var w = new Worker("sharing_window_and_worker.js");
 w.onmessage = function(ev) {
     let d = ev.data;
     if (typeof d == "string") {

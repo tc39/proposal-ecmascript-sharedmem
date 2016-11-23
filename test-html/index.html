@@ -8,11 +8,11 @@
 <body>
   <p> These test cases run as you load them: </p>
   <ul>
-    <li> <a href="test_sharing.html">test_sharing</a>
-    <li> <a href="test_futexTimeout.html">test_futexTimeout</a>
-    <li> <a href="test_sharedMemCriticalSection.html">test_sharedMemCriticalSection</a>
-    <li> <a href="test_sharedTypedArrayClone.html">test_sharedTypedArrayClone</a>
-    <li> <a href="test_sharedWorkerNotSharing.html">test_sharedWorkerNotSharing</a>
+    <li> <a href="test_sharing_window_and_worker.html">test_sharing_window_and_worker</a>: Sharing memory between window and worker works (both directions)
+    <li> <a href="test_sharedWorkerNotSharing.html">test_sharedWorkerNotSharing</a>: Sharing between window and shared worker does not work (either direction)
+    <li> <a href="test_futexTimeout.html">test_futexTimeout</a>: Atomics.wait, Atomics.wake, and timeouts
+    <li> <a href="test_sharedMemCriticalSection.html">test_sharedMemCriticalSection</a>: Simple mutual exclusion using Atomics operations
+    <li> <a href="test_sharedTypedArrayClone.html">test_sharedTypedArrayClone</a>: TypedArray on SharedArrayBuffer can be transmitted to a worker
   </ul>
 
   <p> These test cases require additional interaction to run: </p>
