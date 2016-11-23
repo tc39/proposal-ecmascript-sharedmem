@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-11-22 -- Require reads-bytes-from be acyclic.
   <li>2016-11-22 -- Prose and bug fixes.
   <li>2016-11-17 -- Prose and bug fixes.
   <li>2016-11-17 -- Add liveness language to Sequential Consistency for Atomics and Forward Progress Guarantee.
@@ -1280,6 +1281,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _byteLocation_ be _R_.[[ByteIndex]].
           1. For each element _W_ of _Ws_ in List order:
             1. _W_ has _byteLocation_ in its range.
+            1. _W_ is not _R_.
             1. Increment _byteLocation_ by 1.
       </emu-alg>
     </emu-clause>
