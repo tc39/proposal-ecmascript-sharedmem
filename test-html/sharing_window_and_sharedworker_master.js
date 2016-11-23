@@ -6,7 +6,7 @@ else
     runTest();
 
 function runTest() {
-    var w = new SharedWorker("sharedWorkerNotSharing_worker.js");
+    var w = new SharedWorker("sharing_window_and_sharedworker_worker.js");
     var sab = new SharedArrayBuffer(65536);
 
     w.port.onmessage = function (ev) {
