@@ -2,12 +2,13 @@
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <title>Tests sharing memory between a Window and its Worker</title>
+  <title>Tests sharing memory between a SharedWorker and its nested Worker</title>
 </head>
 
 <body>
+
 <p> This test case tests that sharing memory by postMessage between a
-Window and its Worker works in both directions.</p>
+SharedWorker and its nested Worker works in both directions.</p>
 
 <p> The test runs when you load the page.  It usually takes little
 time and the output appears below.  There should be no error messages
@@ -18,16 +19,15 @@ be none.</p>
 <script src="harness.js"></script>
 
 <script>
-var w = new Worker("sharing_window_and_worker.js");
-w.onmessage = function(ev) {
+var w = new SharedWorker("sharing_sharedworker_and_nested_worker_parent.js");
+w.port.onmessage = function(ev) {
     let d = ev.data;
     if (typeof d == "string") {
         msg(d);
 	return;
     }
-    w.postMessage(d);
 }
-w.postMessage("START");
+w.port.postMessage("START");
 </script>
 </body>
 </html>
