@@ -38,7 +38,7 @@
     \note[item]{First we'll go over what the memory model is good for and what it's intended to accomplish.}
   \item Intuition
     \note[item]{The actual model is esoteric math, so before we get into that we'll talk about intuitions for both the JS programmer and engine implementor.}
-  \item The memory model proper
+  \item Memory model proper
     \note[item]{Then we go into the esoteric math a bit. Good coffee break if you don't care about the details.}
   \end{enumerate}
 
@@ -46,20 +46,19 @@
 \end{frame}
 
 \begin{frame}{Motivation}
-  Why?
   \begin{itemize}
-  \item Need implementation-independent semantics obvs
+  \item Need implementation-independent semantics
   \item No undefined behavior
   \item Races have meaning
   \end{itemize}
 
-  \note{Security on the web yadda yadda yadda.}
+  \note{No undefined behavior because of security on the web yadda yadda yadda.}
 \end{frame}
 
 \begin{frame}{Motivation}
   \begin{description}
-  \item[Strong enough] for programmers to reason about programs
-  \item[Weak enough] for hardware and compiler reality
+  \item[Strong enough] for programmers to reason about programs.
+  \item[Weak enough] for hardware and compiler reality.
   \end{description}
 
   \note{The memory model is Goldilocks. It needs to be strong enough, or restrictive enough, so that enough astonishing effects are disallowed so programmers can actually reason about multi-threaded programs at all. On the other hand, it also needs be weak enough, or liberal enough, to describe hardware and compiler reality. ARM and Power manifest some very mind-bending observable memory behavior, and compiler optimizations can make them even weirder.}
@@ -71,8 +70,8 @@
   \end{block}
 
   \begin{description}
-  \item[Sequential consistency] just means interleaving
-  \item[Data race freedom] means no concurrent, non-atomic memory accesses where one's a write
+  \item[Sequential consistency] just means interleaving.
+  \item[Data race freedom] means no concurrent, non-atomic memory accesses where one's a write.
   \end{description}
 
   \note{Since the memory model has to be both strong enough to reason about and weak enough to account for reality, the compromise in the community is something called SC-DRF. It says if a program has no concurrent, non-atomic memory accesses where one of the accesses is a write, then the program's semantics is as if it were an interleaving of the individual threads.}
@@ -97,6 +96,17 @@
   \note{The set of allowed optimizations is less obvious but still more or less agreed upon by e.g. C++ compiler writers. Note however that SAB non-atomics are stronger than C++ non-atomics. Since there's no undefined behavior, strictly less optimizations are allowed. The quantum garabage read rematerialization example that has come up in committee before, for example, is allowed on C++ non-atomics but not allowed on SAB non-atomics.}
 \end{frame}
 
+\begin{frame}{Implementors' Intuition: Optimizations}
+  \begin{itemize}
+  \item Atomics are carved in stone
+  \item Reads must be stable (e.g. no read rematerialization)
+  \item Writes must be stable (i.e. can't make observable changes to writes)
+  \item Don't completely remove writes (i.e. can coalesce adjacent writes but not remove them completely)
+  \end{itemize}
+
+  \note{Some of these are stronger than what is implied by the memory model. The story here is the usual one of compilers having to have conservative assumption.}
+\end{frame}
+
 \begin{frame}{What We Talk About When We Talk About Atomicity}
 
   \begin{block}{Access atomicity}
@@ -113,7 +123,7 @@
 \end{frame}
 
 \begin{frame}{What We Talk About When We Talk About Atomicity}
-  The memory model orders shared memory events and describes what values can be read by the.
+  The memory model orders shared memory events and describes what values can be read by them.
 
   \note{The take home is that copy accessity is what the memory model \emph{does}. It orders shared memory events.}
 \end{frame}
@@ -131,7 +141,7 @@
   Ordering is done by an axiomatic model.
 
   \begin{description}
-  \item[Input] is a candidate execution---set of memory events and a set of relations ordering them.
+  \item[Input] is a candidate execution---a set of memory events and a set of relations ordering them.
   \item[Output] is a decision whether the candidate execution is valid.
   \end{description}
 
@@ -173,7 +183,7 @@
   The union of evaluation orders of all agents.
 
   \begin{center}
-    If $E$ occurred before $D$ in some thread, $E$ is $\textrm{agent-order}$ before $D$.
+    If $E$ occurred before $D$ in some agent, $E$ is $\textrm{agent-order}$ before $D$.
   \end{center}
 \end{frame}
 
@@ -196,6 +206,12 @@
 \end{frame}
 
 \begin{frame}{$\textrm{happens-before}$}
+  \begin{itemize}
+  \item $\textrm{agent-order}$ relates intra-agent events
+  \item $\textrm{agent-order}$ relates inter-agent events
+  \item $\textrm{happens-before}$ connects the two
+  \end{itemize}
+
   $$(\textrm{agent-order} \cup \textrm{synchronizes-with})^{+}$$
 \end{frame}
 
@@ -221,16 +237,14 @@
 \end{frame}
 
 \begin{frame}{Tear Free Reads}
-  \begin{itemize}
-  \item Aligned accesses are well-behaved.
-  \end{itemize}
+  Aligned accesses are well-behaved.
 
   \note{The details are in the spec. The point here is that aligned accesses via integer TypedArrays have more guarantees than accesses via float TypedArrays and unaligned accesses via DataViews.}
 \end{frame}
 
 \begin{frame}{Sequentially Consistent Atomics}
   \begin{itemize}
-  \item All synchronizes-with atomic events exist in a total order consistent with happens-before.
+  \item All synchronizes-with atomic events exist in a strict total order consistent with happens-before.
   \item An atomic write becomes visible to atomic reads in finite time.
   \end{itemize}
 
