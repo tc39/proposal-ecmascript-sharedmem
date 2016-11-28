@@ -1,0 +1,291 @@
+\documentclass{beamer}
+\usefonttheme[onlymath]{serif}
+
+\title[SAB MM]{SharedArrayBuffer and Atomics \\ Stage 2.95 to Stage 3}
+\author{Shu-yu Guo \and Lars Hansen}
+\institute[Mozilla]{Mozilla}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{What We Have Consensus On}
+  TC39 agreed on Stage 2.95, July 2016
+  \begin{itemize}
+  \item Agents
+  \item API (frozen)
+  \end{itemize}
+
+  \pause
+
+  \begin{center}
+    \huge Memory model had fatal bug
+  \end{center}
+
+  \note{Committee has consensus on agents and API, only missing piece is memory model because it was found to have a fatal bug (circularity) several meetings ago.}
+\end{frame}
+
+\begin{frame}{Outline}
+
+  \begin{center}
+    Memory Model
+  \end{center}
+
+  \begin{enumerate}
+  \item Motivation
+    \note[item]{First we'll go over what the memory model is good for and what it's intended to accomplish.}
+  \item Intuition
+    \note[item]{The actual model is esoteric math, so before we get into that we'll talk about intuitions for both the JS programmer and engine implementor.}
+  \item The memory model proper
+    \note[item]{Then we go into the esoteric math a bit. Good coffee break if you don't care about the details.}
+  \end{enumerate}
+
+  \note{So this presentation is going to be all about the new memory model. This is going to be half intuition and half whirlwind tour of some esoteric math.}
+\end{frame}
+
+\begin{frame}{Motivation}
+  Why?
+  \begin{itemize}
+  \item Need implementation-independent semantics obvs
+  \item No undefined behavior
+  \item Races have meaning
+  \end{itemize}
+
+  \note{Security on the web yadda yadda yadda.}
+\end{frame}
+
+\begin{frame}{Motivation}
+  \begin{description}
+  \item[Strong enough] for programmers to reason about programs
+  \item[Weak enough] for hardware and compiler reality
+  \end{description}
+
+  \note{The memory model is Goldilocks. It needs to be strong enough, or restrictive enough, so that enough astonishing effects are disallowed so programmers can actually reason about multi-threaded programs at all. On the other hand, it also needs be weak enough, or liberal enough, to describe hardware and compiler reality. ARM and Power manifest some very mind-bending observable memory behavior, and compiler optimizations can make them even weirder.}
+\end{frame}
+
+\begin{frame}{Programmers' Intuition}
+  \begin{block}{SC-DRF}
+    Sequential Consistency for Data Race Free Programs
+  \end{block}
+
+  \begin{description}
+  \item[Sequential consistency] just means interleaving
+  \item[Data race freedom] means no concurrent, non-atomic memory accesses where one's a write
+  \end{description}
+
+  \note{Since the memory model has to be both strong enough to reason about and weak enough to account for reality, the compromise in the community is something called SC-DRF. It says if a program has no concurrent, non-atomic memory accesses where one of the accesses is a write, then the program's semantics is as if it were an interleaving of the individual threads.}
+\end{frame}
+
+\begin{frame}{Implementors' Intuition: Codegen}
+  Obvious code generation
+  \begin{itemize}
+  \item Non-atomics compiled to bare stores and loads
+  \item Atomics to atomic instructions or with fences
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Implementors' Intuition: Optimizations}
+  Allowed optimizations
+
+  \begin{itemize}
+  \item On non-atomics, not as loose as undefined behavior (e.g. no ``quantum garbage'').
+  \item On atomics, optimizations for sequentially consistent atomics.
+  \end{itemize}
+
+  \note{The set of allowed optimizations is less obvious but still more or less agreed upon by e.g. C++ compiler writers. Note however that SAB non-atomics are stronger than C++ non-atomics. Since there's no undefined behavior, strictly less optimizations are allowed. The quantum garabage read rematerialization example that has come up in committee before, for example, is allowed on C++ non-atomics but not allowed on SAB non-atomics.}
+\end{frame}
+
+\begin{frame}{What We Talk About When We Talk About Atomicity}
+
+  \begin{block}{Access atomicity}
+    Indivisible action
+  \end{block}
+
+  \pause
+
+  \begin{block}{Copy atomicity}
+    What memory accesses become visible to what cores when. Ordering of memory events.
+  \end{block}
+
+  \note{Access atomicity is easy. Hardware provides instructions that perform certain actions indivisibly. Copy atomicity is harder.}
+\end{frame}
+
+\begin{frame}{What We Talk About When We Talk About Atomicity}
+  The memory model orders shared memory events and describes what values can be read by the.
+
+  \note{The take home is that copy accessity is what the memory model \emph{does}. It orders shared memory events.}
+\end{frame}
+
+\begin{frame}{Model Overview}
+  \begin{itemize}
+  \item Axiomatic memory model
+  \item Interfacing with ES evaluation semantics
+  \end{itemize}
+
+  \note{The model has two parts. The bulk of it is an axiomatic model that does the ordering of memory events as we talked about. But this model is axiomatic -- it's a set of constraints, not an algorithm like the rest of ECMA262. So there's also a second part built into the evaluation semantics that interfaces with the axiomatic model.}
+\end{frame}
+
+\begin{frame}{Axiomatic Model}
+  Ordering is done by an axiomatic model.
+
+  \begin{description}
+  \item[Input] is a candidate execution---set of memory events and a set of relations ordering them.
+  \item[Output] is a decision whether the candidate execution is valid.
+  \end{description}
+
+  The meaning of a program is the set of all valid executions.
+
+  \pause
+
+  \begin{center}
+    \emph{Not} operational!
+  \end{center}
+
+  \note{Axiomatic semantics is a big departure from the kind of semantics we do at TC39, which are all operational and algorithmic. Weak memory models allow for some weird acausal behavior that aren't capturable by a straightforward operational, algorithmic style. The state of the art in the literature of memory models is all axiomatic.}
+\end{frame}
+
+\begin{frame}{Events}
+  \begin{itemize}
+  \item Read (atomic and non-atomic)
+  \item Write (atomic and non-atomic)
+  \item ReadModifyWrite (atomic)
+  \item Host-specific events (e.g. \texttt{postMessage})
+  \end{itemize}
+
+  \note{There are 3 kinds of shared memory events. Read events, write events, and RMW events. The host-specific events depend on the embedding.}
+\end{frame}
+
+\begin{frame}{Candidate Execution}
+  A candidate execution is
+
+  \begin{itemize}
+  \item A set of events
+  \item $\textrm{agent-order}$
+  \item $\textrm{reads-from}$
+  \item $\textrm{synchronizes-with}$
+  \item $\textrm{happens-before}$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{$\textrm{agent-order}$}
+  The union of evaluation orders of all agents.
+
+  \begin{center}
+    If $E$ occurred before $D$ in some thread, $E$ is $\textrm{agent-order}$ before $D$.
+  \end{center}
+\end{frame}
+
+\begin{frame}{$\textrm{reads-from}$}
+  Maps Read and ReadModifyWrite events to Write and ReadModifyWrite events.
+
+  \begin{center}
+    If $R$ $\textrm{reads-from}$ $W$, then $R$ reads one or more bytes written by $W$.
+  \end{center}
+\end{frame}
+
+\begin{frame}{$\textrm{synchronizes-with}$}
+  A subset of $\textrm{reads-from}$ that relates synchronizing atomic Read and ReadModifyWrite events to atomic Write and ReadModifyWrite events.
+
+  \begin{center}
+    An atomic Read $R$ $\textrm{synchronizes-with}$ an atomic Write $W$ when $R$ reads every byte from $W$.
+  \end{center}
+
+  \note{Recall that SAB API allows aliasing, so it's possible for an atomic read to read from multiple writes, atomic and non-atomic, such as in case of races.}
+\end{frame}
+
+\begin{frame}{$\textrm{happens-before}$}
+  $$(\textrm{agent-order} \cup \textrm{synchronizes-with})^{+}$$
+\end{frame}
+
+\begin{frame}{Valid Executions}
+  A candidate execution is valid when it has\ldots
+
+  \begin{itemize}
+  \item \ldots coherent reads
+  \item \ldots tear free reads
+  \item \ldots sequentially consistent atomics
+  \item \ldots no out of thin air reads (if we have time)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Coherent Reads}
+  A read of some byte is coherent if it reads the most happens-before recent write to that byte.
+
+  $$
+  R\ \textrm{reads-from}\ W \Rightarrow \not\exists W'. W\ \textrm{happens-before}\ W'
+  $$
+
+  \note{Remember that not everything is related by happens-before. Mathematically, happens-before is a strict partial order. So if there is a data race, for example, a read can read a more wall-time recent write as long as that write isn't more happens-before recent.}
+\end{frame}
+
+\begin{frame}{Tear Free Reads}
+  \begin{itemize}
+  \item Aligned accesses are well-behaved.
+  \end{itemize}
+
+  \note{The details are in the spec. The point here is that aligned accesses via integer TypedArrays have more guarantees than accesses via float TypedArrays and unaligned accesses via DataViews.}
+\end{frame}
+
+\begin{frame}{Sequentially Consistent Atomics}
+  \begin{itemize}
+  \item All synchronizes-with atomic events exist in a total order consistent with happens-before.
+  \item An atomic write becomes visible to atomic reads in finite time.
+  \end{itemize}
+
+  \note{This total order is the interleaving. The finite time is a liveness guarantee. Non-atomics don't have either guarantee.}
+\end{frame}
+
+\begin{frame}{Data Race Redux}
+  $E$ is in a data race with $D$ iff
+
+  \begin{itemize}
+  \item $E$ and $D$ aren't related by $\textrm{happens-before}$
+  \item $E$ or $D$ is a Write or ReadModifyWrite event
+  \item $E$ and $D$ aren't synchronized atomics
+  \end{itemize}
+
+  \note{A quick revisit to more precisely define data races now that we're armed with math.}
+\end{frame}
+
+\begin{frame}{Event Semantics}
+  \begin{itemize}
+  \item A read event reads a value composed of bytes from write events it reads-from in a valid execution.
+  \item Even racy reads have well-defined values!
+  \end{itemize}
+
+  \note{This is often a set of more than one possible values. But note that this is still an axiomatic thing: we only know the value of a read event after we have the entire event graph and have ordered it according to the memory model.}
+\end{frame}
+
+
+\begin{frame}{Interface with Evaluation Semantics}
+  Where do events come from?
+
+  \pause
+
+  \begin{itemize}
+  \item Evaluation semantics introduces events
+    \pause
+  \item Value of read events is any possible byte value
+  \end{itemize}
+
+  \note{To interface the axiomatic semantics with the evaluation semantics, we make the evaluation semantics nondeterministic. Read operations on SABs introduce read events, write operations write events, and Atomic RMW operations RMW events. The question is what is the value of read events during the evaluation semantics? It is nondeterministically any possible value.}
+\end{frame}
+
+\begin{frame}{Interface with Evaluation Semantics}
+  \begin{description}
+  \item[Without SAB] the evaluation semantics constructs a correct execution directly.
+  \item[With SAB] the evaluation semantics constructs many candidate executions nondeterministically and the memory-model decides which ones are valid.
+  \end{description}
+
+  \note{This makes sense intuitively -- weak memory models permit many possible observed memory values, so the meaning of a program with SAB is the set of valid executions.}
+\end{frame}
+
+\begin{frame}{Out of Thin Air}
+  Artifact of axiomatic models
+
+  (If we have time)
+\end{frame}
+
+\end{document}
