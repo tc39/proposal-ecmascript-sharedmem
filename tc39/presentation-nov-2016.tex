@@ -1,6 +1,18 @@
 \documentclass{beamer}
 \usefonttheme[onlymath]{serif}
 
+\usepackage{listings}
+
+\lstdefinelanguage{JavaScript}
+ {morekeywords={var,let,function,if,else,global,switch,while,catch,try,finally,throw,true,false,eval,with,undefined,case,default,do,break,for,in,continue,return},
+  keywordstyle=\sffamily\bfseries,
+  sensitive=false,
+  comment=[l]{//},
+  morestring=[b]",
+  morestring=[b]',
+  mathescape=true}
+\lstset{captionpos=t,xleftmargin=5pt,columns=flexible,basicstyle=\small\ttfamily,showstringspaces=false,escapechar=\#,language=JavaScript}
+
 \title[SAB MM]{SharedArrayBuffer and Atomics \\ Stage 2.95 to Stage 3}
 \author{Shu-yu Guo \and Lars Hansen}
 \institute[Mozilla]{Mozilla}
@@ -28,7 +40,6 @@
 \end{frame}
 
 \begin{frame}{Outline}
-
   \begin{center}
     Memory Model
   \end{center}
@@ -37,37 +48,143 @@
   \item Motivation
     \note[item]{First we'll go over what the memory model is good for and what it's intended to accomplish.}
   \item Intuition
-    \note[item]{The actual model is esoteric math, so before we get into that we'll talk about intuitions for both the JS programmer and engine implementor.}
-  \item Memory model proper
-    \note[item]{Then we go into the esoteric math a bit. Good coffee break if you don't care about the details.}
+    \note[item]{Then we'll talk about intuitions for both the JS programmer and engine implementor.}
+  \item What the Model Does
+    \note[item]{Finally, without going into the math, I'll briefly say what the model actually does.}
   \end{enumerate}
-
-  \note{So this presentation is going to be all about the new memory model. This is going to be half intuition and half whirlwind tour of some esoteric math.}
 \end{frame}
 
-\begin{frame}{Motivation}
+\begin{frame}[fragile]{Should We Allow This Optimization?}
+    \begin{minipage}{.45\textwidth}
+      \begin{lstlisting}
+let x = U8[0];
+if (x)
+  print(x);
+      \end{lstlisting}
+    \end{minipage}%
+    \hfill$\Rightarrow$\hfill
+    \begin{minipage}{.45\textwidth}
+      \begin{lstlisting}
+
+if (U8[0])
+  print(U8[0]);
+      \end{lstlisting}
+    \end{minipage}
+
+    \note{U8 is a Uint8Array backed by a SAB.}
+\end{frame}
+
+\begin{frame}[fragile]{What About This One?}
+  \begin{minipage}{.45\textwidth}
+    \begin{lstlisting}
+
+while (U8[0] == 0) ;
+    \end{lstlisting}
+  \end{minipage}%
+  \hfill$\Rightarrow$\hfill
+  \begin{minipage}{.45\textwidth}
+    \begin{lstlisting}
+let c = U8[0] == 0;
+while (c) ;
+    \end{lstlisting}
+  \end{minipage}
+\end{frame}
+
+\begin{frame}[fragile]{Or This One?}
+  \begin{minipage}{.45\textwidth}
+    \begin{lstlisting}
+let A = Atomics;
+
+while (A.load(U8,0) == 1) ;
+    \end{lstlisting}
+  \end{minipage}%
+  \hfill$\Rightarrow$\hfill
+  \begin{minipage}{.45\textwidth}
+    \begin{lstlisting}
+let A = Atomics;
+let c = A.load(U8,0) == 1;
+while (c) ;
+    \end{lstlisting}
+  \end{minipage}
+\end{frame}
+
+\begin{frame}[fragile]{What Can Be Printed Here?}
+  \begin{minipage}{0.2\textwidth}
+  \begin{lstlisting}
+U8[0] = 1;
+
+  \end{lstlisting}
+  \end{minipage}%
+  \vrule\hspace{1pt}\vrule
+  \begin{minipage}{0.2\textwidth}
+  \begin{lstlisting}
+U8[1] = 1;
+
+  \end{lstlisting}
+  \end{minipage}%
+    \vrule\hspace{1pt}\vrule
+  \begin{minipage}{0.25\textwidth}
+  \begin{lstlisting}
+print(U8[0]);
+print(U8[1]);
+  \end{lstlisting}
+  \end{minipage}%
+    \vrule\hspace{1pt}\vrule
+  \begin{minipage}{0.25\textwidth}
+  \begin{lstlisting}
+print(U8[1]);
+print(U8[0]);
+  \end{lstlisting}
+  \end{minipage}
+\end{frame}
+
+\begin{frame}{What's a Memory Model Good For?}
   \begin{itemize}
-  \item Need implementation-independent semantics
-  \item No undefined behavior
-  \item Races have meaning
+  \item Arbitrates optimization affordance
+  \item Captures hardware reality
   \end{itemize}
 
-  \note{No undefined behavior because of security on the web yadda yadda yadda.}
+  \note{The first couple of examples were about pinning down what optimizations should or should not be allowed by implementations. Then we saw a case of hardware allowing weird things to happen. The memory model lets us pin down these things, which is very important for interop. And you know, the normal thing of giving meaning to programs that use SAB.}
 \end{frame}
 
-\begin{frame}{Motivation}
+\begin{frame}{Memory Model Design Space}
+  \begin{enumerate}
+  \item No model
+  \item Undefined behavior/values for data races
+  \item \textbf{Fully defined; races have meaning}
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Why}
+  Because we're the web.
+
+  \begin{itemize}
+  \item Interoperability
+  \item Security
+    \pause
+  \item WebAssembly
+  \end{itemize}
+
+  \note{WebAssembly will use SAB, and wasm will want more nuanced semantics of atomics than what's currently here. The mathematical foundations the model lays allows for easy extensions to these more nuanced semantics. Better we own the model.}
+\end{frame}
+
+\begin{frame}{What}
+  The model prescribes the set of values that can be read by SAB operations.
+
+  \note{SAB and multi-agent programs can produce many different results due to nondeterminism in the hardware and compiler optimizations. The model prescribes the set of values allowed to be read by shared memory events.}
+\end{frame}
+
+\begin{frame}{Intuition}
   \begin{description}
-  \item[Strong enough] for programmers to reason about programs.
-  \item[Weak enough] for hardware and compiler reality.
+  \item[Strong enough] for programmers to reason about programs
+  \item[Weak enough] for hardware and compiler reality
   \end{description}
 
-  \note{The memory model is Goldilocks. It needs to be strong enough, or restrictive enough, so that enough astonishing effects are disallowed so programmers can actually reason about multi-threaded programs at all. On the other hand, it also needs be weak enough, or liberal enough, to describe hardware and compiler reality. ARM and Power manifest some very mind-bending observable memory behavior, and compiler optimizations can make them even weirder.}
+  \note{The model is a prescriptive, but in practice it is Goldilocks. It needs to be strong enough, or prescriptive enough, so that enough astonishing effects are disallowed so programmers can actually reason about multi-threaded programs at all. On the other hand, it also needs be weak enough, or descriptive enough, to describe hardware and compiler reality. ARM and Power manifest some very mind-bending observable memory behavior, and compiler optimizations can make them even weirder.}
 \end{frame}
 
 \begin{frame}{Programmers' Intuition}
-  \begin{block}{SC-DRF}
-    Sequential Consistency for Data Race Free Programs
-  \end{block}
+  Sequential Consistency for Data Race Free Programs
 
   \begin{description}
   \item[Sequential consistency] just means interleaving.
@@ -86,17 +203,6 @@
 \end{frame}
 
 \begin{frame}{Implementors' Intuition: Optimizations}
-  Allowed optimizations
-
-  \begin{itemize}
-  \item On non-atomics, not as loose as undefined behavior (e.g. no ``quantum garbage'').
-  \item On atomics, optimizations for sequentially consistent atomics.
-  \end{itemize}
-
-  \note{The set of allowed optimizations is less obvious but still more or less agreed upon by e.g. C++ compiler writers. Note however that SAB non-atomics are stronger than C++ non-atomics. Since there's no undefined behavior, strictly less optimizations are allowed. The quantum garabage read rematerialization example that has come up in committee before, for example, is allowed on C++ non-atomics but not allowed on SAB non-atomics.}
-\end{frame}
-
-\begin{frame}{Implementors' Intuition: Optimizations}
   \begin{itemize}
   \item Atomics are carved in stone
   \item Reads must be stable (e.g. no read rematerialization)
@@ -104,11 +210,11 @@
   \item Don't completely remove writes (i.e. can coalesce adjacent writes but not remove them completely)
   \end{itemize}
 
+  \note{The set of allowed optimizations is less obvious but still more or less agreed upon by e.g. C++ compiler writers. Note however that SAB non-atomics are stronger than C++ non-atomics. Since there's no undefined behavior, strictly less optimizations are allowed. The quantum garabage read rematerialization example that has come up in committee before, for example, is allowed on C++ non-atomics but not allowed on SAB non-atomics.}
   \note{Some of these are stronger than what is implied by the memory model. The story here is the usual one of compilers having to have conservative assumption.}
 \end{frame}
 
 \begin{frame}{What We Talk About When We Talk About Atomicity}
-
   \begin{block}{Access atomicity}
     Indivisible action
   \end{block}
@@ -116,16 +222,46 @@
   \pause
 
   \begin{block}{Copy atomicity}
-    What memory accesses become visible to what cores when. Ordering of memory events.
+    Ordering: what memory accesses become visible to what cores when
   \end{block}
 
   \note{Access atomicity is easy. Hardware provides instructions that perform certain actions indivisibly. Copy atomicity is harder.}
 \end{frame}
 
 \begin{frame}{What We Talk About When We Talk About Atomicity}
-  The memory model orders shared memory events and describes what values can be read by them.
+  The memory model orders shared memory events and prescribes what values can be read by them.
 
-  \note{The take home is that copy accessity is what the memory model \emph{does}. It orders shared memory events.}
+  \note{The take home is that ordering is what the memory model \emph{does}.}
+\end{frame}
+
+\chardef\_=`_
+
+\begin{frame}{Ordering Analogies: Atomics}
+  \begin{itemize}
+  \item C++ \texttt{memory\_order\_seq\_cst}
+  \item LLVM SequentiallyConsistent
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Ordering Analogies: Non-Atomics}
+  \begin{itemize}
+  \item Between C++ non-atomics and \texttt{memory\_order\_relaxed}
+  \item Between LLVM non-atomics and Unordered
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[plain]
+  \begin{center}
+    Details with all the math in the spec.
+  \end{center}
+\end{frame}
+
+\begin{frame}[plain]
+  \begin{center}
+    \textsc{this slide intentionally left blank}
+  \end{center}
+
+  \note{The rest of the presentation are not planned to be presented as it is unlikely a good use of committee time to go into the actual math. Nevertheless, they may be valuable for folks who are reading the slides and are interested in some of the math without going down the rabbit hole.}
 \end{frame}
 
 \begin{frame}{Model Overview}
