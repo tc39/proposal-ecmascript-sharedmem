@@ -78,13 +78,13 @@ if (U8[0])
   \begin{minipage}{.45\textwidth}
     \begin{lstlisting}
 
-while (U8[0] == 0) ;
+while (U8[0] == 42) ;
     \end{lstlisting}
   \end{minipage}%
   \hfill$\Rightarrow$\hfill
   \begin{minipage}{.45\textwidth}
     \begin{lstlisting}
-let c = U8[0] == 0;
+let c = U8[0] == 42;
 while (c) ;
     \end{lstlisting}
   \end{minipage}
@@ -95,14 +95,14 @@ while (c) ;
     \begin{lstlisting}
 let A = Atomics;
 
-while (A.load(U8,0) == 1) ;
+while (A.load(U8,0) == 42) ;
     \end{lstlisting}
   \end{minipage}%
   \hfill$\Rightarrow$\hfill
   \begin{minipage}{.45\textwidth}
     \begin{lstlisting}
 let A = Atomics;
-let c = A.load(U8,0) == 1;
+let c = A.load(U8,0) == 42;
 while (c) ;
     \end{lstlisting}
   \end{minipage}
