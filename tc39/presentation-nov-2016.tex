@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[notes]{beamer}
 \usefonttheme[onlymath]{serif}
 
 \usepackage{listings}
@@ -36,7 +36,7 @@
     \huge Memory model had fatal bug
   \end{center}
 
-  \note{Committee has consensus on agents and API, only missing piece is memory model because it was found to have a fatal bug (circularity) several meetings ago.}
+  %\note{Committee has consensus on agents and API, only missing piece is memory model because it was found to have a fatal bug (circularity) several meetings ago.}
 \end{frame}
 
 \begin{frame}{Outline}
@@ -46,11 +46,11 @@
 
   \begin{enumerate}
   \item Motivation
-    \note[item]{First we'll go over what the memory model is good for and what it's intended to accomplish.}
+    %\note[item]{First we'll go over what the memory model is good for and what it's intended to accomplish.}
   \item Intuition
-    \note[item]{Then we'll talk about intuitions for both the JS programmer and engine implementor.}
+    %\note[item]{Then we'll talk about intuitions for both the JS programmer and engine implementor.}
   \item What the Model Does
-    \note[item]{Finally, without going into the math, I'll briefly say what the model actually does.}
+    %\note[item]{Finally, without going into the math, I'll briefly say what the model actually does.}
   \end{enumerate}
 \end{frame}
 
@@ -71,7 +71,7 @@ if (U8[0])
       \end{lstlisting}
     \end{minipage}
 
-    \note{U8 is a Uint8Array backed by a SAB.}
+    %\note{U8 is a Uint8Array backed by a SAB.}
 \end{frame}
 
 \begin{frame}[fragile]{What About This One?}
@@ -144,7 +144,7 @@ print(U8[0]);
   \item Captures hardware reality
   \end{itemize}
 
-  \note{The first couple of examples were about pinning down what optimizations should or should not be allowed by implementations. Then we saw a case of hardware allowing weird things to happen. The memory model lets us pin down these things, which is very important for interop. And you know, the normal thing of giving meaning to programs that use SAB.}
+  %\note{The first couple of examples were about pinning down what optimizations should or should not be allowed by implementations. Then we saw a case of hardware allowing weird things to happen. The memory model lets us pin down these things, which is very important for interop. And you know, the normal thing of giving meaning to programs that use SAB.}
 \end{frame}
 
 \begin{frame}{Memory Model Design Space}
@@ -165,13 +165,13 @@ print(U8[0]);
   \item WebAssembly
   \end{itemize}
 
-  \note{WebAssembly will use SAB, and wasm will want more nuanced semantics of atomics than what's currently here. The mathematical foundations the model lays allows for easy extensions to these more nuanced semantics. Better we own the model.}
+  %\note{WebAssembly will use SAB, and wasm will want more nuanced semantics of atomics than what's currently here. The mathematical foundations the model lays allows for easy extensions to these more nuanced semantics. Better we own the model.}
 \end{frame}
 
 \begin{frame}{What}
   The model prescribes the set of values that can be read by SAB operations.
 
-  \note{SAB and multi-agent programs can produce many different results due to nondeterminism in the hardware and compiler optimizations. The model prescribes the set of values allowed to be read by shared memory events.}
+  %\note{SAB and multi-agent programs can produce many different results due to nondeterminism in the hardware and compiler optimizations. The model prescribes the set of values allowed to be read by shared memory events.}
 \end{frame}
 
 \begin{frame}{Intuition}
@@ -180,7 +180,7 @@ print(U8[0]);
   \item[Weak enough] for hardware and compiler reality
   \end{description}
 
-  \note{The model is a prescriptive, but in practice it is Goldilocks. It needs to be strong enough, or prescriptive enough, so that enough astonishing effects are disallowed so programmers can actually reason about multi-threaded programs at all. On the other hand, it also needs be weak enough, or descriptive enough, to describe hardware and compiler reality. ARM and Power manifest some very mind-bending observable memory behavior, and compiler optimizations can make them even weirder.}
+  %\note{The model is a prescriptive, but in practice it is Goldilocks. It needs to be strong enough, or prescriptive enough, so that enough astonishing effects are disallowed so programmers can actually reason about multi-threaded programs at all. On the other hand, it also needs be weak enough, or descriptive enough, to describe hardware and compiler reality. ARM and Power manifest some very mind-bending observable memory behavior, and compiler optimizations can make them even weirder.}
 \end{frame}
 
 \begin{frame}{Programmers' Intuition}
@@ -191,7 +191,7 @@ print(U8[0]);
   \item[Data race freedom] means no concurrent, non-atomic memory accesses where one's a write.
   \end{description}
 
-  \note{Since the memory model has to be both strong enough to reason about and weak enough to account for reality, the compromise in the community is something called SC-DRF. It says if a program has no concurrent, non-atomic memory accesses where one of the accesses is a write, then the program's semantics is as if it were an interleaving of the individual threads.}
+  %\note{Since the memory model has to be both strong enough to reason about and weak enough to account for reality, the compromise in the community is something called SC-DRF. It says if a program has no concurrent, non-atomic memory accesses where one of the accesses is a write, then the program's semantics is as if it were an interleaving of the individual threads.}
 \end{frame}
 
 \begin{frame}{Implementors' Intuition: Codegen}
@@ -210,8 +210,8 @@ print(U8[0]);
   \item Don't completely remove writes (i.e. can coalesce adjacent writes but not remove them completely)
   \end{itemize}
 
-  \note{The set of allowed optimizations is less obvious but still more or less agreed upon by e.g. C++ compiler writers. Note however that SAB non-atomics are stronger than C++ non-atomics. Since there's no undefined behavior, strictly less optimizations are allowed. The quantum garabage read rematerialization example that has come up in committee before, for example, is allowed on C++ non-atomics but not allowed on SAB non-atomics.}
-  \note{Some of these are stronger than what is implied by the memory model. The story here is the usual one of compilers having to have conservative assumption.}
+  %\note{The set of allowed optimizations is less obvious but still more or less agreed upon by e.g. C++ compiler writers. Note however that SAB non-atomics are stronger than C++ non-atomics. Since there's no undefined behavior, strictly less optimizations are allowed. The quantum garabage read rematerialization example that has come up in committee before, for example, is allowed on C++ non-atomics but not allowed on SAB non-atomics.}
+  %\note{Some of these are stronger than what is implied by the memory model. The story here is the usual one of compilers having to have conservative assumption.}
 \end{frame}
 
 \begin{frame}{What We Talk About When We Talk About Atomicity}
@@ -225,13 +225,13 @@ print(U8[0]);
     Ordering: what memory accesses become visible to what cores when
   \end{block}
 
-  \note{Access atomicity is easy. Hardware provides instructions that perform certain actions indivisibly. Copy atomicity is harder.}
+  %\note{Access atomicity is easy. Hardware provides instructions that perform certain actions indivisibly. Copy atomicity is harder.}
 \end{frame}
 
 \begin{frame}{What We Talk About When We Talk About Atomicity}
   The memory model orders shared memory events and prescribes what values can be read by them.
 
-  \note{The take home is that ordering is what the memory model \emph{does}.}
+  %\note{The take home is that ordering is what the memory model \emph{does}.}
 \end{frame}
 
 \chardef\_=`_
@@ -261,7 +261,7 @@ print(U8[0]);
     \textsc{this slide intentionally left blank}
   \end{center}
 
-  \note{The rest of the presentation are not planned to be presented as it is unlikely a good use of committee time to go into the actual math. Nevertheless, they may be valuable for folks who are reading the slides and are interested in some of the math without going down the rabbit hole.}
+  \note{The rest of the presentation is not planned to be presented as it is unlikely a good use of committee time to go into the actual math. Nevertheless, they may be valuable for folks who are reading the slides and are interested in some of the math without going down the rabbit hole.}
 \end{frame}
 
 \begin{frame}{Model Overview}
@@ -344,7 +344,7 @@ print(U8[0]);
 \begin{frame}{$\textrm{happens-before}$}
   \begin{itemize}
   \item $\textrm{agent-order}$ relates intra-agent events
-  \item $\textrm{agent-order}$ relates inter-agent events
+  \item $\textrm{synchronizes-with}$ relates inter-agent events
   \item $\textrm{happens-before}$ connects the two
   \end{itemize}
 
@@ -358,7 +358,6 @@ print(U8[0]);
   \item \ldots coherent reads
   \item \ldots tear free reads
   \item \ldots sequentially consistent atomics
-  \item \ldots no out of thin air reads (if we have time)
   \end{itemize}
 \end{frame}
 
@@ -432,10 +431,5 @@ print(U8[0]);
   \note{This makes sense intuitively -- weak memory models permit many possible observed memory values, so the meaning of a program with SAB is the set of valid executions.}
 \end{frame}
 
-\begin{frame}{Out of Thin Air}
-  Artifact of axiomatic models
-
-  (If we have time)
-\end{frame}
-
 \end{document}
+s
