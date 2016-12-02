@@ -671,7 +671,7 @@ These call AllocateTypedArray with a specified length:
           1. Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.
           1. Let _eventList_ be the [[EventList]] field of the element in _execution_.[[AgentOrders]] whose [[AgentSignifier]] is AgentSignifier().
           1. Let _rawBytesRead_ be the a List of length _elementSize_ of nondeterministically chosen byte values.
-          1. NOTE: In implementations, _rawBytesRead_ is the result of a load-link or of an operand of a read-modify-write instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.
+          1. NOTE: In implementations, _rawBytesRead_ is the result of a load-link, of a load-exclusive, or of an operand of a read-modify-write instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.
           1. Let _rmwEvent_ be ReadModifyWriteSharedMemory{ [[Order]]: `"SeqCst"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_, [[ModifyOp]]: _op_ }.
           1. Append _rmwEvent_ to _eventList_.
           1. Append { [[Event]]: _rmwEvent_, [[ChosenValue]]: _rawBytesRead_ } to _execution_.[[ChosenValues]].
@@ -2059,7 +2059,7 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="Codegen">
     <h1>Code Generation Guidelines</h1>
 
-    <p>For architectures with memory models no weaker than those of ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86 and load-link/store-conditional instructions on ARM.</p>
+    <p>For architectures with memory models no weaker than those of ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86, load-exclusive/store-exclusive instructions on ARM, and load-link/store-conditional instructions on Power.</p>
 
     <emu-note>
       <p>(Spec draft notes)</p>
