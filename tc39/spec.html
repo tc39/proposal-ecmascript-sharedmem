@@ -6,7 +6,7 @@
 <meta charset="utf8">
 <pre class=metadata>
   title: ECMAScript Shared Memory and Atomics
-  stage: 2
+  stage: 3
   contributors: Mozilla, Inc.
 </pre>
 <script src="emu.js"></script>
@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-12-02 -- Remove OOTA language for having no teeth.
   <li>2016-11-22 -- Require reads-bytes-from be acyclic.
   <li>2016-11-22 -- Prose and bug fixes.
   <li>2016-11-17 -- Prose and bug fixes.
@@ -1203,11 +1204,6 @@ These call AllocateTypedArray with a specified length:
               <td>A happens-before Relation.</td>
               <td>Defined below.</td>
             </tr>
-            <tr>
-              <td>[[DependsOn]]</td>
-              <td>A depends-on Relation.</td>
-              <td>Defined below.</td>
-            </tr>
           </tbody>
         </table>
       </emu-table>
@@ -1371,15 +1367,6 @@ These call AllocateTypedArray with a specified length:
       </emu-note>
     </emu-clause>
 
-    <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
-      <h1>depends-on</h1>
-      <p>For a candidate execution _execution_, a host-provided strict partial order on events in SharedDataBlockEventSet(_execution_) that captures semantic data and control dependencies between events that is consistent with the evaluation semantics of ECMAScript.</p>
-
-      <emu-note>
-        <p>The dependence relation may differ between implementations of ECMAScript. For instance, an implementation may provide a syntactic dependence relation that overapproximates semantic dependences.</p>
-      </emu-note>
-    </emu-clause>
-
     <emu-clause id="MemoryModel.ComposeWriteEventBytes" aoid="ComposeWriteEventBytes">
       <h1>ComposeWriteEventBytes( _execution_, _block_, _byteIndex_ _Ws_ )</h1>
       <p>The abstract operation ComposeWriteEventBytes takes four arguments, a candidate execution _execution_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a List _Ws_ of WriteSharedMemory or ReadModifyWriteSharedMemory events, and performs the following steps.</p>
@@ -1451,35 +1438,6 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="MemoryModel.NoOutOfThinAirReads">
-      <h1>No Out of Thin Air Reads</h1>
-      <p>A candidate execution has no out of thin air reads if there is no cycle in the union of the Relations _execution_.[[ReadsFrom]] and _execution_.[[DependsOn]].</p>
-
-      <emu-note>
-        <p>Out of thin air reads is an artifact of memory models rather than implementation reality. For other languages with similar memory models, thin air reads have not been observed on any known hardware nor due to any known compiler transform.</p>
-      </emu-note>
-
-      <emu-note>
-        <p>(Spec draft notes)</p>
-        <p>This is intentionally underspecified. Precisely capturing and forbidding OOTA is currently an open problem.</p>
-        <p>Legislating the shape of the data dependence relation here requires modeling the entirety of ECMAScript, the complexity of which is problematic. However, depends-on is not an arbitrary relation. It is intended to capture the pragmatic intuition of data and control dependence in the language.</p>
-        <p>To see how cycles in the union of depends-on and reads-from give rise to OOTA values, consider the following example. Operations that give rise to events are labeled; || denotes agent boundary.</p>
-        <pre>   R1: let r1 = U8[1]; W1: U8[0] = r1;
-|| R2: let r2 = U8[0]; W2: U8[1] = r2;</pre>
-        <p>The following is a possible depends-on relation.</p>
-        <ul>
-          <li>`R1` depends-on `W2`
-          <li>`R2` depends-on `W1`
-        </ul>
-        <p>The following is a possible reads-from relation.</p>
-        <ul>
-          <li>`R1` reads-from `W1`
-          <li>`R2` reads-from `W2`
-        </ul>
-        <p>The union of these two relations has a cycle from `R1` -depends-on-> `W2` -reads-from-> `R2` -depends-on-> `W1` -reads-from-> `R1`. If the memory model were to allow this cycle, then it would allow any byte value to be read from U8[0] and U8[1] as the reads are circularly justified. This kind of weakness is unobservable in hardware or compilers and allowing it leads to difficulties in reasoning about programs.</p>
-      </emu-note>
-    </emu-clause>
-
     <emu-clause id="MemoryModel.TearFreeAlignedReads">
       <h1>Tear Free Reads</h1>
       <p>A candidate execution _execution_ has tear free reads if the following conditions hold.</p>
@@ -1529,11 +1487,9 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. The host provides a host-synchronizes-with Relation for _execution_.[[HostSynchronizesWith]], and
-        1. The host provides a depends-on Relation for _execution_.[[DependsOn]], and
         1. _execution_.[[HappensBefore]] is a strict partial order, and
         1. _execution_ has valid chosen reads, and
         1. _execution_ has coherent reads, and
-        1. _execution_ has no out of thin air reads, and
         1. _execution_ has tear free reads, and
         1. _execution_ has sequentially consistent atomics.
       </emu-alg>
@@ -1557,13 +1513,11 @@ These call AllocateTypedArray with a specified length:
 
         <p>Next, happens-before is constructed by taking the transitive closure of the union of synchronizes-with and reads-from. Since the constructed reads-from and synchronizes-with relations are strict partial orders, happens-before is also a strict partial order.</p>
 
-        <p>Thus far, we have shown how to construct the needed relations. They must now be checked to satisfy the constraints the model sets out for them: valid chosen reads, coherent reads, no out of thin air reads, tear free reads, and sequentially consistent atomics.</p>
+        <p>Thus far, we have shown how to construct the needed relations. They must now be checked to satisfy the constraints the model sets out for them: valid chosen reads, coherent reads, tear free reads, and sequentially consistent atomics.</p>
 
         <p>Valid chosen reads may be assumed to be satisfied, as it is a formal mechanism to interface the axiomatic memory model to evaluation semantics. Put another way, the evaluation semantics introduces nondeterministic read events and both deterministic and nondeterministic write events. Some writes into SharedArrayBuffers, for example, depends solely on intra-agent evaluation and are deterministic. Since the evaluation semantics were given the affordance to read any possible byte value from SharedArrayBuffers, we may simply construct the candidate execution's [[ChosenReads]] map to be the "right" values for the constructed cluster-order.</p>
 
         <p>Coherent reads is satisfied by the construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, which is a strict total order, this is trivially satisfied.</p>
-
-        <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acyclic, and the host is assumed to have supplied a depends-on strict partial order that resulted in no cycles in the union of itself with reads-from.</p>
 
         <p>Tear free reads is satisfied by construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, it is impossible for a [[NoTear]] read to reads-from two different write events with equal range for different bytes. Since cluster-order is total, only one of the events would have been chosen during the construction of reads-bytes-from.</p>
 
@@ -1665,7 +1619,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Sequential Consistency (informative)</h1>
       <p>The memory model guarantees sequential consistency of all events for data race free programs.</p>
       <emu-note>
-        <p>A formal proof of the property requires the host to provide a depends-on relation that prohibits out of thin air reads.</p>
+        <p>(Spec draft note): A formal proof of the property also requires the extending the model with a host-provided data dependence relation that prohibits out of thin air reads.</p>
       </emu-note>
     </emu-clause>
   </emu-clause>
