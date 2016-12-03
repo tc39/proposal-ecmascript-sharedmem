@@ -18,12 +18,13 @@ for i in "shared-array-buffer-props.js" \
          "futex-misc.js" \
          "futex-wait-return.js" \
          "is-lock-free-good.js" \
-         "is-lock-free-corner-cases.js"
+         "is-lock-free-corner-cases.js" \
+	 "wait-wake.js"
 do
     echo ""
     echo "================================================="
     echo $i
     # This is correct for the SpiderMonkey shell, contributions for
     # other shells are welcome.
-    $JSSHELL -f harness.js -f $i
+    $JSSHELL -f harness.js -f agenttest_spidermonkey.js -f $i
 done

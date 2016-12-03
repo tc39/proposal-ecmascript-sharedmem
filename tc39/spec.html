@@ -6,7 +6,7 @@
 <meta charset="utf8">
 <pre class=metadata>
   title: ECMAScript Shared Memory and Atomics
-  stage: 2
+  stage: 3
   contributors: Mozilla, Inc.
 </pre>
 <script src="emu.js"></script>
@@ -58,6 +58,7 @@ comments.</p>
 
 <p>Changelog:</p>
 <ul>
+  <li>2016-12-02 -- Remove OOTA language for having no teeth.
   <li>2016-11-22 -- Require reads-bytes-from be acyclic.
   <li>2016-11-22 -- Prose and bug fixes.
   <li>2016-11-17 -- Prose and bug fixes.
@@ -530,24 +531,23 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.RawBytesToNumber" aoid="RawBytesToNumber">
-        <h1><ins>RawBytesToNumber( _type_, _rawBytes_, _isLittleEndian_ )</ins></h1>
-        <p>This is a new abstract operation.</p>
-        <p><ins>The abstract operation RawBytesToNumber takes three parameters, a String _type_, a List _rawBytes_, and a Boolean _isLittleEndian_.</ins></p>
+        <h1>RawBytesToNumber( _type_, _rawBytes_, _isLittleEndian_ )</h1>
+        <p>The abstract operation RawBytesToNumber takes three parameters, a String _type_, a List _rawBytes_, and a Boolean _isLittleEndian_.</p>
         <emu-alg>
-          1. <ins>If _isLittleEndian_ is *false*, reverse the order of the elements of _rawBytes_.</ins>
-          1. <ins>If _type_ is `"Float32"`, then</ins>
-            1. <ins>Let _value_ be the byte elements of _rawBytes_ concatenated and interpreted as a little-endian bit string encoding of an IEEE 754-2008 binary32 value.</ins>
-            1. <ins>If _value_ is an IEEE 754-2008 binary32 NaN value, return the *NaN* Number value.</ins>
-            1. <ins>Return the Number value that corresponds to _value_.</ins>
-          1. <ins>If _type_ is `"Float64"`, then</ins>
-            1. <ins>Let _value_ be the byte elements of _rawBytes_ concatenated and interpreted as a little-endian bit string encoding of an IEEE 754-2008 binary64 value.</ins>
-            1. <ins>If _value_ is an IEEE 754-2008 binary64 NaN value, return the *NaN* Number value.</ins>
-            1. <ins>Return the Number value that corresponds to _value_.</ins>
-          1. <ins>If the first code unit of _type_ is `"U"`, then</ins>
-            1. <ins>Let _intValue_ be the byte elements of _rawBytes_ concatenated and interpreted as a bit string encoding of an unsigned little-endian binary number.</ins>
-          1. <ins>Else,</ins>
-            1. <ins>Let _intValue_ be the byte elements of _rawBytes_ concatenated and interpreted as a bit string encoding of a binary little-endian 2's complement number of bit length _elementSize_ &times; 8.</ins>
-          1. <ins>Return the Number value that corresponds to _intValue_.</ins>
+          1. If _isLittleEndian_ is *false*, reverse the order of the elements of _rawBytes_.
+          1. If _type_ is `"Float32"`, then
+            1. Let _value_ be the byte elements of _rawBytes_ concatenated and interpreted as a little-endian bit string encoding of an IEEE 754-2008 binary32 value.
+            1. If _value_ is an IEEE 754-2008 binary32 NaN value, return the *NaN* Number value.
+            1. Return the Number value that corresponds to _value_.
+          1. If _type_ is `"Float64"`, then
+            1. Let _value_ be the byte elements of _rawBytes_ concatenated and interpreted as a little-endian bit string encoding of an IEEE 754-2008 binary64 value.
+            1. If _value_ is an IEEE 754-2008 binary64 NaN value, return the *NaN* Number value.
+            1. Return the Number value that corresponds to _value_.
+          1. If the first code unit of _type_ is `"U"`, then
+            1. Let _intValue_ be the byte elements of _rawBytes_ concatenated and interpreted as a bit string encoding of an unsigned little-endian binary number.
+          1. Else,
+            1. Let _intValue_ be the byte elements of _rawBytes_ concatenated and interpreted as a bit string encoding of a binary little-endian 2's complement number of bit length _elementSize_ &times; 8.
+          1. Return the Number value that corresponds to _intValue_.
         </emu-alg>
       </emu-clause>
 
@@ -595,22 +595,22 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.NumberToRawBytes" aoid="NumberToRawBytes">
-        <h1><ins>NumberToRawBytes( _type_, _value_, _isLittleEndian_ )</ins></h1>
-        <p><ins>The abstract operation NumberToRawBytes takes three parameters, a String _type_, a Number _value_, and a Boolean _isLittleEndian_.</ins></p>
+        <h1>NumberToRawBytes( _type_, _value_, _isLittleEndian_ )</h1>
+        <p>The abstract operation NumberToRawBytes takes three parameters, a String _type_, a Number _value_, and a Boolean _isLittleEndian_.</p>
         <emu-alg>
-          1. <ins>If _type_ is `"Float32"`, then</ins>
-            1. <ins>Set _rawBytes_ to a List containing the 4 bytes that are the result of converting _value_ to IEEE 754-2008 binary32 format using &ldquo;Round to nearest, ties to even&rdquo; rounding mode. If _isLittleEndian_ is *false*, the bytes are arranged in big endian order. Otherwise, the bytes are arranged in little endian order. If _value_ is *NaN*, _rawValue_ may be set to any implementation chosen IEEE 754-2008 binary32 format Not-a-Number encoding. An implementation must always choose the same encoding for each implementation distinguishable *NaN* value.</ins>
-          1. <ins>Else if _type_ is `"Float64"`, then</ins>
-            1. <ins>Set _rawBytes_ to a List containing the 8 bytes that are the IEEE 754-2008 binary64 format encoding of _value_. If _isLittleEndian_ is *false*, the bytes are arranged in big endian order. Otherwise, the bytes are arranged in little endian order. If _value_ is *NaN*, _rawValue_ may be set to any implementation chosen IEEE 754-2008 binary64 format Not-a-Number encoding. An implementation must always choose the same encoding for each implementation distinguishable *NaN* value.</ins>
-          1. <ins>Else,</ins>
-            1. <ins>Let _n_ be the Number value of the Element Size specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.</ins>
-            1. <ins>Let _convOp_ be the abstract operation named in the Conversion Operation column in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.</ins>
-            1. <ins>Let _intValue_ be _convOp_(_value_).</ins>
-            1. <ins>If _intValue_ &ge; 0, then</ins>
-              1. <ins>Let _rawBytes_ be a List containing the _n_-byte binary encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.</ins>
-            1. <ins>Else,</ins>
-              1. <ins>Let _rawBytes_ be a List containing the _n_-byte binary 2's complement encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.</ins>
-          1. <ins>Return _rawBytes_.</ins>
+          1. If _type_ is `"Float32"`, then
+            1. Set _rawBytes_ to a List containing the 4 bytes that are the result of converting _value_ to IEEE 754-2008 binary32 format using &ldquo;Round to nearest, ties to even&rdquo; rounding mode. If _isLittleEndian_ is *false*, the bytes are arranged in big endian order. Otherwise, the bytes are arranged in little endian order. If _value_ is *NaN*, _rawValue_ may be set to any implementation chosen IEEE 754-2008 binary32 format Not-a-Number encoding. An implementation must always choose the same encoding for each implementation distinguishable *NaN* value.
+          1. Else if _type_ is `"Float64"`, then
+            1. Set _rawBytes_ to a List containing the 8 bytes that are the IEEE 754-2008 binary64 format encoding of _value_. If _isLittleEndian_ is *false*, the bytes are arranged in big endian order. Otherwise, the bytes are arranged in little endian order. If _value_ is *NaN*, _rawValue_ may be set to any implementation chosen IEEE 754-2008 binary64 format Not-a-Number encoding. An implementation must always choose the same encoding for each implementation distinguishable *NaN* value.
+          1. Else,
+            1. Let _n_ be the Number value of the Element Size specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
+            1. Let _convOp_ be the abstract operation named in the Conversion Operation column in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
+            1. Let _intValue_ be _convOp_(_value_).
+            1. If _intValue_ &ge; 0, then
+              1. Let _rawBytes_ be a List containing the _n_-byte binary encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.
+            1. Else,
+              1. Let _rawBytes_ be a List containing the _n_-byte binary 2's complement encoding of _intValue_. If _isLittleEndian_ is *false*, the bytes are ordered in big endian order. Otherwise, the bytes are ordered in little endian order.
+          1. Return _rawBytes_.
         </emu-alg>
       </emu-clause>
 
@@ -655,28 +655,27 @@ These call AllocateTypedArray with a specified length:
       </emu-clause>
 
       <emu-clause id="StructuredData.ArrayBuffer.abstract.GetModifySetValueInBuffer" aoid="GetModifySetValueInBuffer">
-        <h1><ins>GetModifySetValueInBuffer( _arrayBuffer_, _byteIndex_, _type_, _value_, _op_ [, _isLittleEndian_] )</ins></h1>
-        <p>This is a new abstract operation.</p>
-        <p><ins>The abstract operation GetModifySetValueInBuffer takes six parameters, An ArrayBuffer or SharedArrayBuffer _arrayBuffer_, a nonnegative integer _byteIndex_, a String _type_, a semantic function _op_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps given a valid execution _execution_ (see the Atomics memory model):</ins></p>
+        <h1>GetModifySetValueInBuffer( _arrayBuffer_, _byteIndex_, _type_, _value_, _op_ [, _isLittleEndian_] )</h1>
+        <p>The abstract operation GetModifySetValueInBuffer takes six parameters, An ArrayBuffer or SharedArrayBuffer _arrayBuffer_, a nonnegative integer _byteIndex_, a String _type_, a semantic function _op_, a Number _value_, and optionally a Boolean _isLittleEndian_. This operation performs the following steps given a valid execution _execution_ (see the Atomics memory model):</p>
 
         <emu-alg>
-          1. <ins>Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.</ins>
-          1. <ins>Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.</ins>
-          1. <ins>Assert: _byteIndex_ is an integer value &ge; 0.</ins>
-          1. <ins>Assert: Type(_value_) is Number.</ins>
-          1. <ins>Let _block_ be _arrayBuffer_.[[ArrayBufferData]].</ins>
-          1. <ins>Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.</ins>
-          1. <ins>If _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record.</ins>
-          1. <ins>Let _rawBytes_ be NumberToRawBytes(_type_, _value_, _isLittleEndian_).</ins>
-          1. <ins>Assert: IsSharedArrayBuffer(_arrayBuffer_) is *true*.</ins>
-          1. <ins>Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.</ins>
-          1. <ins>Let _eventList_ be the [[EventList]] field of the element in _execution_.[[AgentOrders]] whose [[AgentSignifier]] is AgentSignifier().</ins>
-          1. <ins>Let _rawBytesRead_ be the a List of length _elementSize_ of nondeterministically chosen byte values.</ins>
-          1. <ins>NOTE: In implementations, _rawBytesRead_ is the result of a load-link or of an operand of a read-modify-write instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.</ins>
-          1. <ins>Let _rmwEvent_ be ReadModifyWriteSharedMemory{ [[Order]]: `"SeqCst"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_, [[ModifyOp]]: _op_ }.</ins>
-          1. <ins>Append _rmwEvent_ to _eventList_.</ins>
-          1. <ins>Append { [[Event]]: _rmwEvent_, [[ChosenValue]]: _rawBytesRead_ } to _execution_.[[ChosenValues]].</ins>
-          1. <ins>Return RawBytesToNumber(_type_, _rawBytesRead_, _isLittleEndian_).</ins>
+          1. Assert: IsDetachedBuffer(_arrayBuffer_) is *false*.
+          1. Assert: There are sufficient bytes in _arrayBuffer_ starting at _byteIndex_ to represent a value of _type_.
+          1. Assert: _byteIndex_ is an integer value &ge; 0.
+          1. Assert: Type(_value_) is Number.
+          1. Let _block_ be _arrayBuffer_.[[ArrayBufferData]].
+          1. Let _elementSize_ be the Number value of the Element Size value specified in <emu-xref href="#table-49"></emu-xref> for Element Type _type_.
+          1. If _isLittleEndian_ is not present, set _isLittleEndian_ to the value of the [[LittleEndian]] internal slot of the surrounding agent's Agent Record.
+          1. Let _rawBytes_ be NumberToRawBytes(_type_, _value_, _isLittleEndian_).
+          1. Assert: IsSharedArrayBuffer(_arrayBuffer_) is *true*.
+          1. Let _execution_ be the [[CandidateExecution]] field of the <em>surrounding agent</em>'s Agent Record.
+          1. Let _eventList_ be the [[EventList]] field of the element in _execution_.[[AgentOrders]] whose [[AgentSignifier]] is AgentSignifier().
+          1. Let _rawBytesRead_ be the a List of length _elementSize_ of nondeterministically chosen byte values.
+          1. NOTE: In implementations, _rawBytesRead_ is the result of a load-link, of a load-exclusive, or of an operand of a read-modify-write instruction on the underlying hardware. The nondeterminism is a semantic prescription of the memory model to describe observable behavior of hardware with weak consistency.
+          1. Let _rmwEvent_ be ReadModifyWriteSharedMemory{ [[Order]]: `"SeqCst"`, [[NoTear]]: *true*, [[Block]]: _block_, [[ByteIndex]]: _byteIndex_, [[ElementSize]]: _elementSize_, [[Payload]]: _rawBytes_, [[ModifyOp]]: _op_ }.
+          1. Append _rmwEvent_ to _eventList_.
+          1. Append { [[Event]]: _rmwEvent_, [[ChosenValue]]: _rawBytesRead_ } to _execution_.[[ChosenValues]].
+          1. Return RawBytesToNumber(_type_, _rawBytesRead_, _isLittleEndian_).
         </emu-alg>
       </emu-clause>
     </emu-clause> <!-- abstract -->
@@ -1203,11 +1202,6 @@ These call AllocateTypedArray with a specified length:
               <td>A happens-before Relation.</td>
               <td>Defined below.</td>
             </tr>
-            <tr>
-              <td>[[DependsOn]]</td>
-              <td>A depends-on Relation.</td>
-              <td>Defined below.</td>
-            </tr>
           </tbody>
         </table>
       </emu-table>
@@ -1371,15 +1365,6 @@ These call AllocateTypedArray with a specified length:
       </emu-note>
     </emu-clause>
 
-    <emu-clause id="MemoryModel.DependsOn" aoid="depends-on">
-      <h1>depends-on</h1>
-      <p>For a candidate execution _execution_, a host-provided strict partial order on events in SharedDataBlockEventSet(_execution_) that captures semantic data and control dependencies between events that is consistent with the evaluation semantics of ECMAScript.</p>
-
-      <emu-note>
-        <p>The dependence relation may differ between implementations of ECMAScript. For instance, an implementation may provide a syntactic dependence relation that overapproximates semantic dependences.</p>
-      </emu-note>
-    </emu-clause>
-
     <emu-clause id="MemoryModel.ComposeWriteEventBytes" aoid="ComposeWriteEventBytes">
       <h1>ComposeWriteEventBytes( _execution_, _block_, _byteIndex_ _Ws_ )</h1>
       <p>The abstract operation ComposeWriteEventBytes takes four arguments, a candidate execution _execution_, a Shared Data Block _block_, a nonnegative integer _byteIndex_, and a List _Ws_ of WriteSharedMemory or ReadModifyWriteSharedMemory events, and performs the following steps.</p>
@@ -1451,35 +1436,6 @@ These call AllocateTypedArray with a specified length:
       </emu-alg>
     </emu-clause>
 
-    <emu-clause id="MemoryModel.NoOutOfThinAirReads">
-      <h1>No Out of Thin Air Reads</h1>
-      <p>A candidate execution has no out of thin air reads if there is no cycle in the union of the Relations _execution_.[[ReadsFrom]] and _execution_.[[DependsOn]].</p>
-
-      <emu-note>
-        <p>Out of thin air reads is an artifact of memory models rather than implementation reality. For other languages with similar memory models, thin air reads have not been observed on any known hardware nor due to any known compiler transform.</p>
-      </emu-note>
-
-      <emu-note>
-        <p>(Spec draft notes)</p>
-        <p>This is intentionally underspecified. Precisely capturing and forbidding OOTA is currently an open problem.</p>
-        <p>Legislating the shape of the data dependence relation here requires modeling the entirety of ECMAScript, the complexity of which is problematic. However, depends-on is not an arbitrary relation. It is intended to capture the pragmatic intuition of data and control dependence in the language.</p>
-        <p>To see how cycles in the union of depends-on and reads-from give rise to OOTA values, consider the following example. Operations that give rise to events are labeled; || denotes agent boundary.</p>
-        <pre>   R1: let r1 = U8[1]; W1: U8[0] = r1;
-|| R2: let r2 = U8[0]; W2: U8[1] = r2;</pre>
-        <p>The following is a possible depends-on relation.</p>
-        <ul>
-          <li>`R1` depends-on `W2`
-          <li>`R2` depends-on `W1`
-        </ul>
-        <p>The following is a possible reads-from relation.</p>
-        <ul>
-          <li>`R1` reads-from `W1`
-          <li>`R2` reads-from `W2`
-        </ul>
-        <p>The union of these two relations has a cycle from `R1` -depends-on-> `W2` -reads-from-> `R2` -depends-on-> `W1` -reads-from-> `R1`. If the memory model were to allow this cycle, then it would allow any byte value to be read from U8[0] and U8[1] as the reads are circularly justified. This kind of weakness is unobservable in hardware or compilers and allowing it leads to difficulties in reasoning about programs.</p>
-      </emu-note>
-    </emu-clause>
-
     <emu-clause id="MemoryModel.TearFreeAlignedReads">
       <h1>Tear Free Reads</h1>
       <p>A candidate execution _execution_ has tear free reads if the following conditions hold.</p>
@@ -1529,11 +1485,9 @@ These call AllocateTypedArray with a specified length:
 
       <emu-alg>
         1. The host provides a host-synchronizes-with Relation for _execution_.[[HostSynchronizesWith]], and
-        1. The host provides a depends-on Relation for _execution_.[[DependsOn]], and
         1. _execution_.[[HappensBefore]] is a strict partial order, and
         1. _execution_ has valid chosen reads, and
         1. _execution_ has coherent reads, and
-        1. _execution_ has no out of thin air reads, and
         1. _execution_ has tear free reads, and
         1. _execution_ has sequentially consistent atomics.
       </emu-alg>
@@ -1557,13 +1511,11 @@ These call AllocateTypedArray with a specified length:
 
         <p>Next, happens-before is constructed by taking the transitive closure of the union of synchronizes-with and reads-from. Since the constructed reads-from and synchronizes-with relations are strict partial orders, happens-before is also a strict partial order.</p>
 
-        <p>Thus far, we have shown how to construct the needed relations. They must now be checked to satisfy the constraints the model sets out for them: valid chosen reads, coherent reads, no out of thin air reads, tear free reads, and sequentially consistent atomics.</p>
+        <p>Thus far, we have shown how to construct the needed relations. They must now be checked to satisfy the constraints the model sets out for them: valid chosen reads, coherent reads, tear free reads, and sequentially consistent atomics.</p>
 
         <p>Valid chosen reads may be assumed to be satisfied, as it is a formal mechanism to interface the axiomatic memory model to evaluation semantics. Put another way, the evaluation semantics introduces nondeterministic read events and both deterministic and nondeterministic write events. Some writes into SharedArrayBuffers, for example, depends solely on intra-agent evaluation and are deterministic. Since the evaluation semantics were given the affordance to read any possible byte value from SharedArrayBuffers, we may simply construct the candidate execution's [[ChosenReads]] map to be the "right" values for the constructed cluster-order.</p>
 
         <p>Coherent reads is satisfied by the construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, which is a strict total order, this is trivially satisfied.</p>
-
-        <p>No out of thin air reads is assumed to be satisfied. The constructed reads-from is acyclic, and the host is assumed to have supplied a depends-on strict partial order that resulted in no cycles in the union of itself with reads-from.</p>
 
         <p>Tear free reads is satisfied by construction of reads-bytes-from. Since reads always choose the most recent writes for each byte in cluster-order, it is impossible for a [[NoTear]] read to reads-from two different write events with equal range for different bytes. Since cluster-order is total, only one of the events would have been chosen during the construction of reads-bytes-from.</p>
 
@@ -1665,7 +1617,7 @@ These call AllocateTypedArray with a specified length:
       <h1>Sequential Consistency (informative)</h1>
       <p>The memory model guarantees sequential consistency of all events for data race free programs.</p>
       <emu-note>
-        <p>A formal proof of the property requires the host to provide a depends-on relation that prohibits out of thin air reads.</p>
+        <p>(Spec draft note): A formal proof of the property also requires the extending the model with a host-provided data dependence relation that prohibits out of thin air reads.</p>
       </emu-note>
     </emu-clause>
   </emu-clause>
@@ -2107,7 +2059,7 @@ These call AllocateTypedArray with a specified length:
   <emu-clause id="Codegen">
     <h1>Code Generation Guidelines</h1>
 
-    <p>For architectures with memory models no weaker than those of ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86 and load-link/store-conditional instructions on ARM.</p>
+    <p>For architectures with memory models no weaker than those of ARM or Power, non-atomic stores and loads may be compiled to bare stores and loads on the target architecture. Atomic stores and loads may be compiled down to instructions that guarantee sequential consistency. If no such instructions exist, memory barriers are to be employed, such as placing barriers on both sides of a bare store or load. Read-modify-write operations may be compiled to read-modify-write instructions on the target architectrue, such as `LOCK`-prefixed instructions on x86, load-exclusive/store-exclusive instructions on ARM, and load-link/store-conditional instructions on Power.</p>
 
     <emu-note>
       <p>(Spec draft notes)</p>
