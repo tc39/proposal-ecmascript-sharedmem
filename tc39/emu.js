@@ -20,8 +20,8 @@ Search.prototype.loadBiblio = function () {
     this.biblio = {};
   } else {
     this.biblio = JSON.parse($biblio.textContent);
-    this.biblio.clauses = this.biblio.filter(e => e.type === 'clause');
-    this.biblio.clausesById = this.biblio.clauses.reduce((map, entry) => {
+    this.biblio.clauses = this.biblio.filter(function (e) { return e.type === 'clause' });
+    this.biblio.clausesById = this.biblio.clauses.reduce(function (map, entry) {
       map[entry.id] = entry;
       return map;
     }, {});
@@ -218,13 +218,19 @@ function Menu() {
   this.$pins = document.querySelector('#menu-pins');
   this.$pinList = document.getElementById('menu-pins-list');
   this.$toc = document.querySelector('#menu-toc > ol');
+  this.$specContainer = document.getElementById('spec-container');
   this.search = new Search(this);
   
   this._pinnedIds = {}; 
   this.loadPinEntries();
 
+  // toggle menu
   this.$toggle.addEventListener('click', this.toggle.bind(this));
+
+  // keydown events for pinned clauses
   document.addEventListener('keydown', this.documentKeydown.bind(this));
+
+  // toc expansion
   var tocItems = this.$menu.querySelectorAll('#menu-toc li');
   for (var i = 0; i < tocItems.length; i++) {
     var $item = tocItems[i];
@@ -234,6 +240,7 @@ function Menu() {
     }.bind(null, $item));
   }
 
+  // close toc on toc item selection
   var tocLinks = this.$menu.querySelectorAll('#menu-toc li > a');
   for (var i = 0; i < tocLinks.length; i++) {
     var $link = tocLinks[i];
@@ -243,13 +250,26 @@ function Menu() {
     }.bind(this));
   }
 
-  var container = document.getElementById('spec-container');
-  container.addEventListener('scroll', debounce(function () {
-    this.$activeClause = findActiveClause(container);
-    this.revealInToc(this.$activeClause);
-  }.bind(this)));
-  this.$activeClause = findActiveClause(container);
+  // update active clause on scroll
+  window.addEventListener('scroll', debounce(this.updateActiveClause.bind(this)));
+  this.updateActiveClause();
 
+  // prevent menu scrolling from scrolling the body
+  this.$toc.addEventListener('wheel', function (e) {
+    var target = e.currentTarget;
+    var offTop = e.deltaY < 0 && target.scrollTop === 0;
+    if (offTop) {
+      e.preventDefault();
+    }
+    var offBottom = e.deltaY > 0
+                    && target.offsetHeight + target.scrollTop >= target.scrollHeight;
+
+    if (offBottom) {
+		  event.preventDefault();
+	  }
+  })
+
+  // handle pinning clauses via the pin link
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('utils-pin')) {
       var id = e.target.parentNode.parentNode.parentNode.parentNode.id;
@@ -267,6 +287,15 @@ Menu.prototype.documentKeydown = function (e) {
   }
 }
 
+Menu.prototype.updateActiveClause = function () {
+  this.setActiveClause(findActiveClause(this.$specContainer))
+}
+
+Menu.prototype.setActiveClause = function (clause) {
+  this.$activeClause = clause;
+  this.revealInToc(this.$activeClause);
+}
+
 Menu.prototype.revealInToc = function (path) {
   var current = this.$toc.querySelectorAll('li.revealed');
   for (var i = 0; i < current.length; i++) {
@@ -278,8 +307,8 @@ Menu.prototype.revealInToc = function (path) {
   var index = 0;
   while (index < path.length) {
     var children = current.children;
-    for ( var i = 0; i < children.length; i++) {
-      if ( '#' + path[index].id === children[i].children[1].getAttribute('href') ) {
+    for (var i = 0; i < children.length; i++) {
+      if ('#' + path[index].id === children[i].children[1].getAttribute('href') ) {
         children[i].classList.add('revealed');
         if (index === path.length - 1) {
           children[i].classList.add('revealed-leaf');
@@ -345,6 +374,7 @@ function ClauseWalker(root) {
   
   return treeWalker;
 }
+
 Menu.prototype.toggle = function () {
   this.$menu.classList.toggle('active');
 }
