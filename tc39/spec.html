@@ -367,6 +367,21 @@ comments.</p>
         synchronizes-with edge in the memory ordering.</p>
     </emu-note>
 
+    <emu-clause id="ExecutableCodeAndContexts.AgentCluster.CandidateExecutionInitialization">
+      <h1>Candidate Execution Initialization</h1>
+      <p>All agents in an agent cluster reference the same candidate execution Record in the [[CandidateExecution]] field of the Agent Record. During execution, the reference to the Record in this field is not mutated.</p>
+      <p>Before any evaluation is performed, perform the following steps.</p>
+
+      <emu-alg>
+        1. Let _execution_ be an empty candidate execution Record.
+        1. For each agent _agent_ in the agent cluster:
+          1. Let _AR_ be the Agent Record of _agent_.
+          1. Set _AR_.[[CandidateExecution]] to _execution_.
+          1. Let _emptyList_ be an empty List.
+          1. Append { [[AgentSignifier]]: _AR_.[[Signifier]], [[EventList]]: _emptyList_ } to _execution_.[[EventLists]].
+      </emu-alg>
+    </emu-clause>
+
   </emu-clause> <!-- agent cluster -->
 
 </emu-clause>
@@ -1206,14 +1221,7 @@ These call AllocateTypedArray with a specified length:
         </table>
       </emu-table>
 
-      <p>An empty candidate execution _execution_ is a Record whose fields are empty Lists and Relations defined below, and whose [[EventLists]] field is further initialized by the following steps.</p>
-
-      <emu-alg>
-        1. For each agent _agent_ in the agent cluster:
-          1. Let _AR_ be the Agent Record of _agent_.
-          1. Let _emptyList_ be an empty List.
-          1. Append { [[AgentSignifier]]: _AR_.[[Signifier]], [[EventList]]: _emptyList_ } to _execution_.[[EventLists]].
-      </emu-alg>
+      <p>An <dfn>empty candidate execution</dfn> is a candidate execution Record whose fields are empty Lists and Relations.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.EventSet" aoid="EventSet">
