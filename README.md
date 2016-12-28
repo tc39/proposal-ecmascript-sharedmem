@@ -1,6 +1,6 @@
 # ecmascript_sharedmem
 
-This is a specification for Shared Memory and Atomics for ECMAScript, a proposal submitted to Ecma TC39 and currently at Stage 2 in the ECMAScript approval process.
+This is a specification for Shared Memory and Atomics for ECMAScript, a proposal submitted to Ecma TC39 and currently at Stage 3 in the ECMAScript approval process.
 
 ## Documentation and other materials
 
