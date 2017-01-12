@@ -30,9 +30,9 @@ To allocate shared memory, just allocate a SharedArrayBuffer:
 var sab = new SharedArrayBuffer(1024);  // 1KiB shared memory
 ```
 
-The creator can share this memory with the worker by *transfering* it using the standard ```postMessage``` semantics, where a second argument to ```postMessage``` contains the values to be transfered:
+The creator can share this memory with the worker by sending it to the worker using the standard ```postMessage``` method:
 ```js
-w.postMessage(sab, [sab])
+w.postMessage(sab)
 ```
 In the worker, this object is received as the data property of the event:
 ```js
@@ -56,7 +56,7 @@ var ia = new Int32Array(sab);  // ia.length == 100000
 var primes = new PrimeGenerator();
 for ( let i=0 ; i < ia.length ; i++ )
    ia[i] = primes.next();
-w.postMessage(ia, [ia.buffer]);  // The array buffer goes in the transfer list
+w.postMessage(ia);
 ```
 
 The worker receives an Int32Array because that's what was sent:

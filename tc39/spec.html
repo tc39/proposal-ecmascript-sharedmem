@@ -123,9 +123,9 @@ comments.</p>
 
       <p>A data block that resides in memory that can be referenced from multiple agents concurrently is designated a <dfn>Shared Data Block</dfn>.  A Shared Data Block has an identity (for the purposes of equality testing Shared Data Block values) that is <em>address-free</em>: it is tied not to the virtual addresses the block is mapped to in any process, but to the set of locations in memory that the block represents.  Shared Data Blocks can also be distinguished from Data Blocks.</p>
 
-      <p>The semantics of Shared Data Blocks is defined using Shared Data Block events by the Atomics memory model. Abstract operations below act as the interface between evaluation semantics and the event semantics of the memory model. The operations thus introduce ReadSharedMemory, WriteSharedMemory, and ReadModifyWriteSharedMemory events. Because of the axiomatic nature of the memory model, the values of these events are not known until the set of all events is known. The operations thus also nondeterministically read any possible Number value of a particular type during evaluation. The events introduced during an evaluation form a graph. The event graph together with the nondeterministically chosen values and other relations defined in the memory model form a candidate execution. The memory model does not admit all candidate executions; the allowed candidate executions are called valid executions, or simply executions. There is at least one valid execution for a given evaluation.</p>
+      <p>The semantics of Shared Data Blocks is defined using Shared Data Block events by the Atomics memory model. Abstract operations below introduce Shared Data Block events and act as the interface between evaluation semantics and the event semantics of the memory model. The events form a candidate execution, on which the memory model acts as a filter. Please consult the memory model for full semantics.</p>
 
-      <p>A Shared Data Block event are modeled by Records, defined in the Atomics memory model. All agents in an agent cluster share the same candidate execution record in its Agent Record's [[CandidateExecution] field, which is initialized to an empty candidate execution Record.</p>
+      <p>Shared Data Block events are modeled by Records, defined in the Atomics memory model. All agents in an agent cluster share the same candidate execution record in its Agent Record's [[CandidateExecution] field, which is initialized to an empty candidate execution Record.</p>
 
       <emu-note>
         <p>One may think of the evaluation semantics of ECMAScript as a generating function for candidate executions. The memory model then prunes invalid executions from the set of candidate executions. A single-agent ECMAScript program that does not use SharedArrayBuffer (and, for simplicity, ignoring other sources of nondeterminism such as `Math.random()`) always has exactly one candidate execution, which is also a valid execution. A multi-agent ECMAScript program that uses SharedArrayBuffer has many candidate executions and at least one valid execution.</p>
@@ -366,6 +366,21 @@ comments.</p>
         termination is signaled then the signal creates a
         synchronizes-with edge in the memory ordering.</p>
     </emu-note>
+
+    <emu-clause id="ExecutableCodeAndContexts.AgentCluster.CandidateExecutionInitialization">
+      <h1>Candidate Execution Initialization</h1>
+      <p>All agents in an agent cluster reference the same candidate execution Record in the [[CandidateExecution]] field of the Agent Record. During execution, the reference to the Record in this field is not mutated.</p>
+      <p>Before any evaluation is performed, perform the following steps.</p>
+
+      <emu-alg>
+        1. Let _execution_ be an empty candidate execution Record.
+        1. For each agent _agent_ in the agent cluster:
+          1. Let _AR_ be the Agent Record of _agent_.
+          1. Set _AR_.[[CandidateExecution]] to _execution_.
+          1. Let _emptyList_ be an empty List.
+          1. Append { [[AgentSignifier]]: _AR_.[[Signifier]], [[EventList]]: _emptyList_ } to _execution_.[[EventLists]].
+      </emu-alg>
+    </emu-clause>
 
   </emu-clause> <!-- agent cluster -->
 
@@ -1206,14 +1221,7 @@ These call AllocateTypedArray with a specified length:
         </table>
       </emu-table>
 
-      <p>An empty candidate execution _execution_ is a Record whose fields are empty Lists and Relations defined below, and whose [[EventLists]] field is further initialized by the following steps.</p>
-
-      <emu-alg>
-        1. For each agent _agent_ in the agent cluster:
-          1. Let _AR_ be the Agent Record of _agent_.
-          1. Let _emptyList_ be an empty List.
-          1. Append { [[AgentSignifier]]: _AR_.[[Signifier]], [[EventList]]: _emptyList_ } to _execution_.[[EventLists]].
-      </emu-alg>
+      <p>An <dfn>empty candidate execution</dfn> is a candidate execution Record whose fields are empty Lists and Relations.</p>
     </emu-clause>
 
     <emu-clause id="MemoryModel.EventSet" aoid="EventSet">

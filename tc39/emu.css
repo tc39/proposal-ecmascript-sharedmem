@@ -1,31 +1,19 @@
-html {
-}
-
 body {
-    display: flex;
-    font-size: 18px;
-    line-height: 1.5;
-    font-family: Cambria, Palatino Linotype, Palatino, Liberation Serif, serif;
-    padding: 0;
-    color: #111;
-    margin: 0;
-    overflow: hidden;
-    height: 100%;
-    position:absolute;
-    top:0; left: 0; bottom: 0; right: 0;
+  display: flex;
+  font-size: 18px;
+  line-height: 1.5;
+  font-family: Cambria, Palatino Linotype, Palatino, Liberation Serif, serif;
+  padding: 0;
+  margin: 0;
+  color: #111;
 }
 
 #spec-container {
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    display: block;
-    padding-left: 20px;
-    flex-basis: 66%;
-    flex-shrink: 0;
-    flex-grow: 1;
-    box-sizing: border-box;
-    will-change: transform;
+  padding-left: 20px;
+  flex-grow: 1;
+  flex-basis: 66%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 body.oldtoc {
@@ -105,6 +93,11 @@ emu-alg ol ol ol, ol ol ol ol ol ol {
 emu-eqn {
   display: block;
   margin-left: 4em;
+}
+
+emu-eqn.inline {
+  display: inline;
+  margin: 0;
 }
 
 emu-eqn div:first-child {
@@ -398,16 +391,14 @@ ins {
     border-bottom: 1px solid #396;
 }
 
-ins.block {
-    display: block;
-}
-
 del {
     background-color: #fee;
 }
 
-del.block {
-    display: block;
+ins.block, del.block,
+emu-production > ins, emu-production > del,
+emu-grammar > ins, emu-grammar > del {
+  display: block;
 }
 
 /* Menu Styles */
@@ -422,6 +413,7 @@ del.block {
   z-index: 3;
   visibility: hidden;
   color: #1567a2;
+  background-color: #fff;
 
   line-height: 1.5em;
   text-align: center;
@@ -436,16 +428,26 @@ del.block {
 }
 
 #menu {
-  height: 100%;
-  flex-shrink: 0;
-  flex-grow: 0;
-  flex-basis: 33%;
+  display: flex;
+  flex-direction: column;
+  width: 33%; height: 100vh;
   max-width: 500px;
   box-sizing: border-box;
   background-color: #ddd;
   overflow: hidden;
   transition: opacity 0.1s linear;
   padding: 0 5px;
+  position: fixed;
+  left: 0; top: 0;
+
+  z-index: 2;
+}
+
+#menu-spacer {
+  flex-basis: 33%;
+  max-width: 500px;
+  flex-grow: 0;
+  flex-shrink: 0;
 }
 
 #menu a {
@@ -575,12 +577,6 @@ del.block {
 
 #menu-toc li > a {
   padding: 2px 5px;
-}
-
-
-#menu {
-  display: flex;
-  flex-direction: column;
 }
 
 #menu > * {
@@ -723,7 +719,7 @@ li.menu-search-result-term:before {
 
 @media (max-width: 1000px) {
   body {
-    margin: 0 0 0 60px;
+    margin: 0;
     display: block;
   }
 
@@ -744,17 +740,16 @@ li.menu-search-result-term:before {
   #menu-toggle {
     visibility: visible;
   }
+
+  #spec-container {
+    padding: 0 5px;
+  }
 }
 
 @media only screen and (max-width: 800px) {
-  body {
-    margin: 2em 10px 0 10px;
-  }
-
   #menu {
     width: 100%;
   }
-
 
   h1 .secnum:empty {
     margin: 0; padding: 0;
