@@ -2,7 +2,7 @@
 
 This is a specification for Shared Memory and Atomics for ECMAScript, a proposal submitted to Ecma TC39 and currently at Stage 4 in the ECMAScript approval process.
 
-**IMPORTANT NOTE:**  As of February 2017 this proposal has been merged into the [ECMAScript specification](https://tc39.github.io/ecma262/).  Bug fixing and further evolution appears in that document, and the prose that is the present repository will increasingly become irrelevant.  If you find bugs, please check the ECMAScript specification first, and if the bugs are also in that version then please file bugs [in the ecma262 bug tracker](https://github.com/tc39/ecma262/issues), not in this repository.
+**IMPORTANT NOTE:**  As of February 2017 this proposal has been merged into the [ECMAScript specification](https://tc39.github.io/ecma262/).  Bug fixing and further evolution take place in that document, and the prose in the present repository will increasingly become irrelevant.  If you find bugs, please check the ECMAScript specification first, and if the bugs are also in that version then please file bugs [in the ecma262 bug tracker](https://github.com/tc39/ecma262/issues), not in this repository.
 
 ## Documentation and other materials
 
