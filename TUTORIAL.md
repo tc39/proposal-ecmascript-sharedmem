@@ -10,7 +10,7 @@ The worker and its creator communicate over a message channel.  In the creator, 
 ```js
 w.postMessage("hi");     // send "hi" to the worker
 w.onmessage = function (ev) {
-  console.log(ev.data);  // prints "ho"
+  console.log(ev.data);  // prints "hi"
 }
 ```
 Meanwhile, in the worker, a global handler receives messages as events, and a call to the global ```postMessage``` function sends a message back to the worker's creator:
